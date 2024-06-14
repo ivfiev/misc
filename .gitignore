@@ -1,2 +1,4 @@
 .idea
 ctf/output
+**/bin/
+**/obj/
