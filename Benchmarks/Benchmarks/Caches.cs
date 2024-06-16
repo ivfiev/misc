@@ -19,47 +19,41 @@ internal class C
 [MemoryDiagnoser]
 public class Caches
 {
+    private const int Size = 30_000_000;
+
     private C[] _classes;
     private C[] _shuffledClasses;
-    private C[] _shuffledClassesPages;
     private S[] _shuffledStructs;
     private S[] _structs;
+
+    [Params(10_000)]
+    public int Accesses;
 
     [GlobalSetup]
     public void Setup()
     {
-        _structs = new S[1000];
+        _structs = new S[Accesses * 2];
+        _shuffledStructs = new S[Accesses * 2];
 
-        _shuffledStructs = new S[1000];
-        _shuffledStructs.Shuffle();
+        _classes = new C[Size];
+        _shuffledClasses = new C[Size];
 
-        _classes = new C[1000];
-        _shuffledClasses = new C[1000];
-        _shuffledClassesPages = new C[1000000];
-
-        for (int i = 0; i < 1000; i++)
+        for (int i = 0; i < Size; i++)
         {
             _classes[i] = new C();
             _shuffledClasses[i] = new C();
         }
 
         _shuffledClasses.Shuffle();
-
-        for (int i = 0; i < 1000000; i++)
-        {
-            _shuffledClassesPages[i] = new C();
-        }
-
-        _shuffledClassesPages.Shuffle();
+        _shuffledStructs.Shuffle();
     }
 
     [Benchmark]
-    public long Default()
+    public long Structs()
     {
         long sum = 0;
 
-        for (var j = 0; j < 1000; j++)
-        for (var i = 0; i < _structs.Length; i++)
+        for (var i = 0; i < Accesses; i++)
         {
             sum += _structs[i].X;
         }
@@ -68,12 +62,11 @@ public class Caches
     }
 
     [Benchmark]
-    public long Shuffled()
+    public long StructsShuffled()
     {
         long sum = 0;
 
-        for (var j = 0; j < 1000; j++)
-        for (var i = 0; i < _shuffledStructs.Length; i++)
+        for (var i = 0; i < Accesses; i++)
         {
             sum += _shuffledStructs[i].X;
         }
@@ -82,12 +75,11 @@ public class Caches
     }
 
     [Benchmark]
-    public long Default2()
+    public long Classes()
     {
         long sum = 0;
 
-        for (var j = 0; j < 1000; j++)
-        for (var i = 0; i < _classes.Length; i++)
+        for (var i = 0; i < Accesses; i++)
         {
             sum += _classes[i].X;
         }
@@ -95,28 +87,31 @@ public class Caches
         return sum;
     }
 
-    [Benchmark]
-    public long Shuffled2()
-    {
-        long sum = 0;
-
-        for (var j = 0; j < 1000; j++)
-        for (var i = 0; i < _shuffledClasses.Length; i++)
-        {
-            sum += _shuffledClasses[i].X;
-        }
-
-        return sum;
-    }
 
     [Benchmark]
-    public long ShuffledLarge()
+    [Arguments(0.064)]
+    [Arguments(16)]
+    [Arguments(64)]
+    [Arguments(125)]
+    [Arguments(1000)]
+    public long ClassesShuffled(double mb)
     {
+        const long bytes = 40;
+        double range = 1024 * 1024 * mb;
+        long a = (long)Math.Round(range / bytes);
+        double iters = (double)Accesses / a;
+
         long sum = 0;
 
-        for (var i = 0; i < _shuffledClassesPages.Length; i++)
+        while (iters > 0)
         {
-            sum += _shuffledClassesPages[i].X;
+            var lim = (long)(iters >= 1 ? a : iters * a);
+            iters--;
+
+            for (var i = 0; i < lim; i++)
+            {
+                sum += _shuffledClasses[i].X;
+            }
         }
 
         return sum;
