@@ -14,4 +14,10 @@ contents = json.load(response)
 
 names = list(map(lambda x: x['name'], contents))
 
-print(names)
+for name in names:
+  github_views_req = urllib.request.Request(f'https://api.github.com/repos/{user}/{name}/traffic/views')
+  github_views_req.add_header('Authorization', f'token {token}')
+  response = urllib.request.urlopen(github_views_req)
+  contents = json.load(response)
+  data = list(map(lambda x: {'repo': name, 'views': x['count'], 'date': x['timestamp'].split('T')[0]}, contents['views']))
+  print(data)
