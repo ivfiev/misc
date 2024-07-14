@@ -42,10 +42,10 @@ data = {key: data[key] for key in sorted(data)}
 with open(path, 'w') as file:
   json.dump(data, file)
 
-ys = data.keys()
-xs = data.values()
+xs = data.keys()
+ys = data.values()
 
 fig, ax = plt.subplots()
-ax.plot(ys, xs)
+ax.plot(xs, ys)
 plt.xticks(rotation=90)
 plt.show()
