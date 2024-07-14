@@ -1,4 +1,5 @@
 .idea
+.venv
 ctf/output
 **/bin/
 **/obj/
