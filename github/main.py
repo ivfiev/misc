@@ -2,6 +2,7 @@ import urllib.request
 import sys
 import json
 from datetime import datetime
+import matplotlib.pyplot as plt
 
 user = sys.argv[1]
 token = sys.argv[2]
@@ -18,6 +19,7 @@ contents = json.load(response)
 names = list(map(lambda x: x['name'], contents))
 
 today = datetime.today().strftime('%Y-%m-%d')
+data[today] = 0
 points = []
 
 for name in names:
@@ -35,7 +37,15 @@ for point in points:
 for point in points:
   data[point['date']] += point['count']
 
+data = {key: data[key] for key in sorted(data)}
+
 with open(path, 'w') as file:
   json.dump(data, file)
 
+ys = data.keys()
+xs = data.values()
 
+fig, ax = plt.subplots()
+ax.plot(ys, xs)
+plt.xticks(rotation=90)
+plt.show()
