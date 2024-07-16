@@ -1,7 +1,7 @@
 import urllib.request
 import sys
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 
 user = sys.argv[1]
@@ -18,9 +18,10 @@ response = urllib.request.urlopen(github_repos_req)
 contents = json.load(response)
 names = list(map(lambda x: x['name'], contents))
 
-today = datetime.today().strftime('%Y-%m-%d')
-data[today] = 0
+for d in range(8):
+  data[(datetime.today() - timedelta(days=d)).strftime('%Y-%m-%d')] = 0
 points = []
+today = datetime.today().strftime('%Y-%m-%d')
 
 for name in names:
   github_views_req = urllib.request.Request(f'https://api.github.com/repos/{user}/{name}/traffic/views')
@@ -48,7 +49,7 @@ ys = data.values()
 fig, ax = plt.subplots(figsize=(12, 8))
 
 for (x, y) in zip(xs, ys):
-  ax.annotate(f'{y}', (x, y), textcoords='offset points', xytext=(0, 10), ha='center')
+  ax.annotate(f'{y}', (x, y), textcoords='offset points', xytext=(0, 5), ha='center')
 
 ax.plot(xs, ys, marker='o')
 
