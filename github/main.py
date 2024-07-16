@@ -45,7 +45,12 @@ with open(path, 'w') as file:
 xs = data.keys()
 ys = data.values()
 
-fig, ax = plt.subplots()
-ax.plot(xs, ys)
+fig, ax = plt.subplots(figsize=(12, 8))
+
+for (x, y) in zip(xs, ys):
+  ax.annotate(f'{y}', (x, y), textcoords='offset points', xytext=(0, 10), ha='center')
+
+ax.plot(xs, ys, marker='o')
+
 plt.xticks(rotation=90)
 plt.show()
