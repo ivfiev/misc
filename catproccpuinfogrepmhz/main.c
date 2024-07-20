@@ -70,17 +70,14 @@ void index_cpuinfo(int indexes[], int cpus) {
 
   while (cpu < cpus) {
     ix = strstr(ix, "cpu MHz");
-    if (ix) {
-      indexes[cpu++] = ix - cpuinfo;
-      ix++;
+    if (ix == NULL) {
+      printf("failed to index cpuinfo\n");
+      exit(1);
     }
+    indexes[cpu++] = ix - cpuinfo;
+    ix++;
   }
 
-  if (cpu != cpus) {
-    printf("failed to index cpuinfo\n");
-    exit(1);
-  }
-  
   free(cpuinfo);
 }
 
@@ -90,7 +87,10 @@ void read_clocks(int clocks[], int indexes[], int cpus) {
   for (int i = 0; i < cpus; i++) {
     char *ix = cpuinfo + indexes[i] - cpus;
     ix = strstr(ix, "MHz");
-
+    if (ix == NULL) {
+      printf("failed to parse indexed cpuinfo\n");
+      exit(1);
+    }
     while (!isdigit(*ix)) {
       ix++;
     }
@@ -116,6 +116,7 @@ int main(void) {
         maxes[cpu] = maxes[cpu] < clocks[cpu] ? clocks[cpu] : maxes[cpu];
         avgs[cpu] = (double)(avgs[cpu] * samples + clocks[cpu]) / (samples + 1);
       }
+
       samples++;
       usleep(1000000 / SAMPLES_PER_SEC);
     }
