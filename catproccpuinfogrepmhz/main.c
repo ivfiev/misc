@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <ctype.h>
+#define SAMPLES_PER_SEC 10
 
 int get_cpus() {
   char buf[1024];
@@ -39,7 +40,6 @@ int get_cpus() {
   }
 
   pclose(fp);
-
   return atoi(line);
 }
 
@@ -84,7 +84,7 @@ void index_cpuinfo(int indexes[], int cpus) {
   free(cpuinfo);
 }
 
-void set_clocks(int clocks[], int indexes[], int cpus) {
+void read_clocks(int clocks[], int indexes[], int cpus) {
   char *cpuinfo = read_cpuinfo();
 
   for (int i = 0; i < cpus; i++) {
@@ -109,19 +109,19 @@ int main(void) {
   index_cpuinfo(indexes, cpus);
 
   for (;;) {
-    for (int i = 0; i < 10; i++) {
-      set_clocks(clocks, indexes, cpus);
+    for (int i = 0; i < SAMPLES_PER_SEC; i++) {
+      read_clocks(clocks, indexes, cpus);
       
       for (int cpu = 0; cpu < cpus; cpu++) {
         maxes[cpu] = maxes[cpu] < clocks[cpu] ? clocks[cpu] : maxes[cpu];
         avgs[cpu] = (double)(avgs[cpu] * samples + clocks[cpu]) / (samples + 1);
       }
       samples++;
-      usleep(100 * 1000);
+      usleep(1000000 / SAMPLES_PER_SEC);
     }
     
     printf("\e[1;1H\e[2J");
-    printf("CORE#\tNow\tMax\tAvg\n");
+    printf("Core#\tNow\tMax\tAvg\n");
     for (int i = 0; i < cpus; i++) {
       printf("%d\t%d\t%d\t%d\n", i, clocks[i], maxes[i], avgs[i]);
     }
