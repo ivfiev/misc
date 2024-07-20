@@ -102,9 +102,10 @@ void read_clocks(int clocks[], int indexes[], int cpus) {
 
 int main(void) {
   int cpus = get_cpus(), samples = 0;
-  int indexes[cpus], clocks[cpus], avgs[cpus], maxes[cpus];
+  int indexes[cpus], clocks[cpus], maxes[cpus];
+  double avgs[cpus];
 
-  memset(avgs, 0, cpus * sizeof(int));
+  memset(avgs, 0, cpus * sizeof(double));
   memset(maxes, 0, cpus * sizeof(int));
   index_cpuinfo(indexes, cpus);
 
@@ -114,7 +115,7 @@ int main(void) {
       
       for (int cpu = 0; cpu < cpus; cpu++) {
         maxes[cpu] = maxes[cpu] < clocks[cpu] ? clocks[cpu] : maxes[cpu];
-        avgs[cpu] = (double)(avgs[cpu] * samples + clocks[cpu]) / (samples + 1);
+        avgs[cpu] = (avgs[cpu] * samples + clocks[cpu]) / (samples + 1);
       }
 
       samples++;
@@ -124,7 +125,7 @@ int main(void) {
     printf("\e[1;1H\e[2J");
     printf("Core#\tNow\tMax\tAvg\n");
     for (int i = 0; i < cpus; i++) {
-      printf("%d\t%d\t%d\t%d\n", i, clocks[i], maxes[i], avgs[i]);
+      printf("%d\t%d\t%d\t%d\n", i, clocks[i], maxes[i], (int)avgs[i]);
     }
   }
 
