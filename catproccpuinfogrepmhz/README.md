@@ -1,3 +1,3 @@
 gcc -Wall -O3 -o main main.c
 
-![Screencast from 2024-07-21 18-18-35(1)](https://github.com/user-attachments/assets/2c1663d7-2c7d-474e-9c4e-75b5f552126b)
+![Screencast from 2024-07-21 18-30-46](https://github.com/user-attachments/assets/4e07bbed-2bd0-453a-b0fe-5a0e1c0465c5)
