@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <ctype.h>
 #define SAMPLES_PER_SEC 10
+#define SAMPLES_RING 50
 
 int get_cpus() {
   char buf[1024];
@@ -87,6 +88,7 @@ void read_clocks(int clocks[], int indexes[], int cpus) {
   for (int i = 0; i < cpus; i++) {
     char *ix = cpuinfo + indexes[i] - cpus;
     ix = strstr(ix, "MHz");
+
     if (ix == NULL) {
       printf("failed to parse indexed cpuinfo\n");
       exit(1);
@@ -102,11 +104,12 @@ void read_clocks(int clocks[], int indexes[], int cpus) {
 
 int main(void) {
   int cpus = get_cpus(), samples = 0;
-  int indexes[cpus], clocks[cpus], maxes[cpus];
-  double avgs[cpus];
+  int indexes[cpus], clocks[cpus], maxes[cpus], ring[cpus][SAMPLES_RING];
+  float avgs[cpus];
 
-  memset(avgs, 0, cpus * sizeof(double));
+  memset(avgs, 0, cpus * sizeof(float));
   memset(maxes, 0, cpus * sizeof(int));
+  memset(ring, 0, cpus * SAMPLES_RING * sizeof(int));
   index_cpuinfo(indexes, cpus);
 
   for (;;) {
@@ -116,6 +119,7 @@ int main(void) {
       for (int cpu = 0; cpu < cpus; cpu++) {
         maxes[cpu] = maxes[cpu] < clocks[cpu] ? clocks[cpu] : maxes[cpu];
         avgs[cpu] = (avgs[cpu] * samples + clocks[cpu]) / (samples + 1);
+        ring[cpu][samples % SAMPLES_RING] = clocks[cpu];
       }
 
       samples++;
@@ -123,9 +127,19 @@ int main(void) {
     }
     
     printf("\e[1;1H\e[2J");
-    printf("Core#\tNow\tMax\tAvg\n");
+    printf("core#\tnow\tmax(*)\tavg(*)\tmax(%d)\tavg(%d)\n", SAMPLES_RING, SAMPLES_RING);
+
     for (int i = 0; i < cpus; i++) {
-      printf("%d\t%d\t%d\t%d\n", i, clocks[i], maxes[i], (int)avgs[i]);
+
+      int max = 0;
+      float avg = 0;
+      for (int j = 0; j < SAMPLES_RING; j++) {
+        max = ring[i][j] > max ? ring[i][j] : max;
+        avg += ring[i][j];
+      }
+      avg /= SAMPLES_RING;
+
+      printf("%d\t%d\t%d\t%d\t%d\t%d\n", i, clocks[i], maxes[i], (int)avgs[i], max, (int)avg);
     }
   }
 
