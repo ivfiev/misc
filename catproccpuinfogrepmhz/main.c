@@ -127,7 +127,7 @@ int main(void) {
     }
     
     printf("\e[1;1H\e[2J");
-    printf("core#\tnow\tmax(*)\tavg(*)\tmax(%d)\tavg(%d)\n", SAMPLES_RING, SAMPLES_RING);
+    printf("core#\tnow\tmax(%d)\tavg(%d)\tmax(*)\tavg(*)\n", SAMPLES_RING, SAMPLES_RING);
 
     for (int i = 0; i < cpus; i++) {
 
@@ -139,7 +139,7 @@ int main(void) {
       }
       avg /= SAMPLES_RING;
 
-      printf("%d\t%d\t%d\t%d\t%d\t%d\n", i, clocks[i], maxes[i], (int)avgs[i], max, (int)avg);
+      printf("%d\t%d\t%d\t%d\t%d\t%d\n", i, clocks[i], max, (int)avg, maxes[i], (int)avgs[i]);
     }
   }
 
