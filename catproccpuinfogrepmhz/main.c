@@ -4,10 +4,11 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <signal.h>
 #define SAMPLES_PER_SEC 10
 #define SAMPLES_RING 50
 
-int get_cpus() {
+int get_cpus(void) {
   char buf[1024];
   char *line;
   FILE *fp;
@@ -44,7 +45,7 @@ int get_cpus() {
   return atoi(line);
 }
 
-char *read_cpuinfo() {
+char *read_cpuinfo(void) {
   const int size = 64 * 1024;
   char *buf = calloc(size, sizeof(char));
   int fp, bytes, len;
@@ -102,7 +103,22 @@ void read_clocks(int clocks[], int indexes[], int cpus) {
   free(cpuinfo);
 }
 
+void cleanup(int) {
+  (void)system("clear");
+  exit(0);
+}
+
+void handle_sigint(void) {
+  struct sigaction a;
+  memset(&a, 0, sizeof(a));
+  a.sa_handler = cleanup;
+  if (sigaction(SIGINT, &a, NULL) < 0) {
+    printf("signal handler failed\n");
+  }
+}
+
 int main(void) {
+  handle_sigint();
   int cpus = get_cpus(), samples = 0;
   int indexes[cpus], clocks[cpus], maxes[cpus], ring[cpus][SAMPLES_RING];
   float avgs[cpus];
