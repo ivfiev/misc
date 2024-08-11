@@ -7,6 +7,9 @@
 #include <unistd.h>
 #include <errno.h>
 
+#define EPOLL_MAX_EVENTS 128
+#define BUF_SIZE 4096
+
 typedef struct epoll_cb {
     int fd;
     struct epoll_event event;
@@ -32,7 +35,6 @@ int listener(const char *port) {
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE;
-
   struct addrinfo *bindaddr;
   if (getaddrinfo(0, "8080", &hints, &bindaddr) < 0) {
     err("getaddrinfo");
@@ -54,20 +56,19 @@ int listener(const char *port) {
 int main(void) {
   int listenerfd = listener("8080");
   printf("listener fd %d\n", listenerfd);
-  struct epoll_event events[128];
-  char buf[4096];
+  struct epoll_event events[EPOLL_MAX_EVENTS];
+  char buf[BUF_SIZE];
   memset(events, 0, sizeof(events));
+  memset(buf, 0, sizeof(buf));
 
-  int epfd = epoll_create(128);
-  if (epfd < 0) {
-    err("epoll");
-  }
+  int epfd = epoll_create(EPOLL_MAX_EVENTS);
+
   epoll_cb *listener_cb = alloc_cb(listenerfd);
   listener_cb->event.events = EPOLLIN;
   epoll_ctl(epfd, EPOLL_CTL_ADD, listenerfd, &listener_cb->event);
 
   for (;;) {
-    int ready = epoll_wait(epfd, events, 128, -1);
+    int ready = epoll_wait(epfd, events, EPOLL_MAX_EVENTS, -1);
 
     for (int i = 0; i < ready; i++) {
       epoll_cb *cb = events[i].data.ptr;
@@ -88,7 +89,6 @@ int main(void) {
           printf("%.*s", bytes, buf);
         }
       }
-
       if (events[i].events & (EPOLLHUP | EPOLLERR)) {
         CLOSE:
         printf("closing socket %d\n", cb->fd);
