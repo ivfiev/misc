@@ -9,7 +9,6 @@
 
 typedef struct epoll_cb {
     int fd;
-    char test[128];
     struct epoll_event event;
 } epoll_cb;
 
@@ -69,6 +68,7 @@ int main(void) {
 
   for (;;) {
     int ready = epoll_wait(epfd, events, 128, -1);
+
     for (int i = 0; i < ready; i++) {
       epoll_cb *cb = events[i].data.ptr;
 
@@ -79,7 +79,6 @@ int main(void) {
           epoll_cb *new_cb = alloc_cb(clientfd);
           new_cb->event.events = EPOLLIN | EPOLLHUP | EPOLLERR;
           epoll_ctl(epfd, EPOLL_CTL_ADD, clientfd, &new_cb->event);
-
         } else {
           int bytes = (int)read(cb->fd, buf, sizeof(buf));
           if (bytes == 0) {
