@@ -3,3 +3,5 @@
 ctf/output
 **/bin/
 **/obj/
+**/cmake-build-debug
+**/cmake-build-release
