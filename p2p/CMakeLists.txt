@@ -3,4 +3,8 @@ project(p2p C)
 
 set(CMAKE_C_STANDARD 23)
 
-add_executable(p2p main.c)
+add_executable(p2p main.c
+        p2p.h
+        cb.c
+        listener.c
+        error.c)
