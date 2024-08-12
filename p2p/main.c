@@ -61,7 +61,7 @@ int main(void) {
   memset(events, 0, sizeof(events));
   memset(buf, 0, sizeof(buf));
 
-  int epfd = epoll_create(EPOLL_MAX_EVENTS);
+  int epfd = epoll_create1(EPOLL_CLOEXEC);
 
   epoll_cb *listener_cb = alloc_cb(listenerfd);
   listener_cb->event.events = EPOLLIN;
