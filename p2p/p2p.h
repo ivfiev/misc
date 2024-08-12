@@ -10,6 +10,9 @@
 typedef struct epoll_cb {
     int fd;
     struct epoll_event event;
+
+    char *buf_out;
+    size_t buf_size;
 } epoll_cb;
 
 epoll_cb *alloc_cb(int fd);

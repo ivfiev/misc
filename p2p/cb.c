@@ -9,5 +9,8 @@ epoll_cb *alloc_cb(int fd) {
 }
 
 void free_cb(epoll_cb *cb) {
+  if (cb->buf_out) {
+    free(cb->buf_out);
+  }
   free(cb);
 }

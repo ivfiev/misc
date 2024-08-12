@@ -31,14 +31,32 @@ int main(int argc, char **argv) {
           new_cb->event.events = EPOLLIN | EPOLLHUP | EPOLLERR;
           epoll_ctl(epfd, EPOLL_CTL_ADD, clientfd, &new_cb->event);
         } else {
-          int bytes = (int)read(cb->fd, buf, sizeof(buf));
+          ssize_t bytes = read(cb->fd, buf, sizeof(buf));
           if (bytes == 0) {
             goto CLOSE;
           }
-          printf("incoming data from %d:\n", cb->fd);
-          printf("%.*s", bytes, buf);
+          printf("incoming data from %d: %.*s", cb->fd, (int)bytes, buf);
+          cb->buf_size = bytes + 20;
+          cb->buf_out = calloc(sizeof(char), cb->buf_size);
+          snprintf(cb->buf_out, cb->buf_size, "received - %.*s", (int)bytes, buf);
+          cb->event.events |= EPOLLOUT;
+          epoll_ctl(epfd, EPOLL_CTL_MOD, cb->fd, &cb->event);
         }
       }
+
+      if (events[i].events & EPOLLOUT) {
+        ssize_t sent = write(cb->fd, cb->buf_out, cb->buf_size);
+        if (sent == cb->buf_size) {
+          free(cb->buf_out);
+          cb->buf_out = NULL;
+          cb->buf_size = 0;
+          cb->event.events ^= EPOLLIN;
+          epoll_ctl(epfd, EPOLL_CTL_MOD, cb->fd, &cb->event);
+        } else {
+          err("write");
+        }
+      }
+
       if (events[i].events & (EPOLLHUP | EPOLLERR)) {
         CLOSE:
         printf("closing socket %d\n", cb->fd);
