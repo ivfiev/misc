@@ -22,6 +22,8 @@ void free_cb(epoll_cb *cb);
 
 int peer_listen(const char *port);
 
+int peer_connect(const char *port);
+
 void err(const char *msg);
 
 void reset_out_buf(epoll_cb *cb);

@@ -21,6 +21,15 @@ int main(int argc, char **argv) {
   listener_cb->event.events = EPOLLIN;
   epoll_ctl(epfd, EPOLL_CTL_ADD, listener_fd, &listener_cb->event);
 
+  if (argc > 2) {
+    for (int i = 2; i < argc; i++) {
+      int peer_fd = peer_connect(argv[i]);
+      epoll_cb *peer_cb = alloc_cb(peer_fd);
+      peer_cb->event.events = EPOLLIN;
+      epoll_ctl(epfd, EPOLL_CTL_ADD, peer_fd, &peer_cb->event);
+    }
+  }
+
   for (;;) {
     int ready = epoll_wait(epfd, events, EPOLL_MAX_EVENTS, -1);
 
