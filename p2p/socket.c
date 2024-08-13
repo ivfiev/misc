@@ -1,6 +1,6 @@
 #include "p2p.h"
 
-int listener(const char *port) {
+int peer_listen(const char *port) {
   struct addrinfo hints;
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;
@@ -12,7 +12,7 @@ int listener(const char *port) {
   }
   int listener = socket(AF_INET, SOCK_STREAM, 0);
   if (listener < 0) {
-    err("listener");
+    err("peer_listen");
   }
   if (bind(listener, bindaddr->ai_addr, bindaddr->ai_addrlen) < 0) {
     err("bind");
@@ -24,3 +24,6 @@ int listener(const char *port) {
   return listener;
 }
 
+int peer_connect() {
+  return 0;
+}

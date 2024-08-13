@@ -3,9 +3,13 @@
 #define EPOLL_MAX_EVENTS 128
 #define BUF_SIZE 4096
 
+char *get_port(char **argv) {
+  return argv[1] ? argv[1] : "8080";
+}
+
 int main(int argc, char **argv) {
-  int listenerfd = listener("8080");
-  printf("listener fd %d\n", listenerfd);
+  int listener_fd = peer_listen(get_port(argv));
+  printf("listener fd %d\n", listener_fd);
   struct epoll_event events[EPOLL_MAX_EVENTS];
   char buf[BUF_SIZE];
   memset(events, 0, sizeof(events));
@@ -13,9 +17,9 @@ int main(int argc, char **argv) {
 
   int epfd = epoll_create1(EPOLL_CLOEXEC);
 
-  epoll_cb *listener_cb = alloc_cb(listenerfd);
+  epoll_cb *listener_cb = alloc_cb(listener_fd);
   listener_cb->event.events = EPOLLIN;
-  epoll_ctl(epfd, EPOLL_CTL_ADD, listenerfd, &listener_cb->event);
+  epoll_ctl(epfd, EPOLL_CTL_ADD, listener_fd, &listener_cb->event);
 
   for (;;) {
     int ready = epoll_wait(epfd, events, EPOLL_MAX_EVENTS, -1);
@@ -24,12 +28,12 @@ int main(int argc, char **argv) {
       epoll_cb *cb = events[i].data.ptr;
 
       if (events[i].events & EPOLLIN) {
-        if (cb->fd == listenerfd) {
-          int clientfd = accept(listenerfd, NULL, NULL);
-          printf("new connection %d\n", clientfd);
-          epoll_cb *new_cb = alloc_cb(clientfd);
+        if (cb->fd == listener_fd) {
+          int client_fd = accept(listener_fd, NULL, NULL);
+          printf("new connection %d\n", client_fd);
+          epoll_cb *new_cb = alloc_cb(client_fd);
           new_cb->event.events = EPOLLIN | EPOLLHUP | EPOLLERR;
-          epoll_ctl(epfd, EPOLL_CTL_ADD, clientfd, &new_cb->event);
+          epoll_ctl(epfd, EPOLL_CTL_ADD, client_fd, &new_cb->event);
         } else {
           ssize_t bytes = read(cb->fd, buf, sizeof(buf));
           if (bytes == 0) {
@@ -45,15 +49,14 @@ int main(int argc, char **argv) {
       }
 
       if (events[i].events & EPOLLOUT) {
-        ssize_t sent = write(cb->fd, cb->buf_out, cb->buf_size);
+        ssize_t sent = write(cb->fd, cb->buf_out + cb->buf_i, cb->buf_size - cb->buf_i);
         if (sent == cb->buf_size) {
           free(cb->buf_out);
-          cb->buf_out = NULL;
-          cb->buf_size = 0;
+          reset_out_buf(cb);
           cb->event.events ^= EPOLLIN;
           epoll_ctl(epfd, EPOLL_CTL_MOD, cb->fd, &cb->event);
         } else {
-          err("write");
+          cb->buf_i += sent;
         }
       }
 

@@ -11,14 +11,17 @@ typedef struct epoll_cb {
     int fd;
     struct epoll_event event;
 
-    char *buf_out;
     size_t buf_size;
+    size_t buf_i;
+    char *buf_out;
 } epoll_cb;
 
 epoll_cb *alloc_cb(int fd);
 
 void free_cb(epoll_cb *cb);
 
-int listener(const char *port);
+int peer_listen(const char *port);
 
 void err(const char *msg);
+
+void reset_out_buf(epoll_cb *cb);

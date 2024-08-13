@@ -5,6 +5,7 @@ epoll_cb *alloc_cb(int fd) {
   cb->fd = fd;
   memset(&cb->event, 0, sizeof(struct epoll_event));
   cb->event.data.ptr = cb;
+  reset_out_buf(cb);
   return cb;
 }
 
@@ -13,4 +14,10 @@ void free_cb(epoll_cb *cb) {
     free(cb->buf_out);
   }
   free(cb);
+}
+
+void reset_out_buf(epoll_cb *cb) {
+  cb->buf_out = NULL;
+  cb->buf_size = 0;
+  cb->buf_i = 0;
 }
