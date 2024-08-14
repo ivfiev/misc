@@ -39,5 +39,6 @@ int peer_connect(const char *port) {
   if (connect(fd, peer_addr->ai_addr, peer_addr->ai_addrlen)) {
     err("connect");
   }
+  freeaddrinfo(peer_addr);
   return fd;
 }

@@ -3,12 +3,8 @@
 #define EPOLL_MAX_EVENTS 128
 #define BUF_SIZE 4096
 
-char *get_port(char **argv) {
-  return argv[1] ? argv[1] : "8080";
-}
-
 int main(int argc, char **argv) {
-  int listener_fd = peer_listen(get_port(argv));
+  int listener_fd = peer_listen(argv[1] ? argv[1] : "8080");
   printf("listener fd %d\n", listener_fd);
   struct epoll_event events[EPOLL_MAX_EVENTS];
   char buf[BUF_SIZE];
@@ -21,13 +17,11 @@ int main(int argc, char **argv) {
   listener_cb->event.events = EPOLLIN;
   epoll_ctl(epfd, EPOLL_CTL_ADD, listener_fd, &listener_cb->event);
 
-  if (argc > 2) {
-    for (int i = 2; i < argc; i++) {
-      int peer_fd = peer_connect(argv[i]);
-      epoll_cb *peer_cb = alloc_cb(peer_fd);
-      peer_cb->event.events = EPOLLIN;
-      epoll_ctl(epfd, EPOLL_CTL_ADD, peer_fd, &peer_cb->event);
-    }
+  for (int i = 2; i < argc; i++) {
+    int peer_fd = peer_connect(argv[i]);
+    epoll_cb *peer_cb = alloc_cb(peer_fd);
+    peer_cb->event.events = EPOLLIN;
+    epoll_ctl(epfd, EPOLL_CTL_ADD, peer_fd, &peer_cb->event);
   }
 
   for (;;) {
