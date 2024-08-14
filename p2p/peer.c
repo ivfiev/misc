@@ -1,7 +1,7 @@
 #include "p2p.h"
 
 void exec_cmd(char *cmd, char **args, int argc) {
-  if (!strcmp(cmd, "msg")) {
+  if (!strcmp(cmd, "ping")) {
     int fd = connect1(args[0]);
     write(fd, args[1], strlen(args[1]));
     close(fd);
@@ -13,8 +13,7 @@ void peer_EPOLLIN(epoll_cb *cb) {
   const char *delim = ",";
   int i;
   char buf[BUF_SIZE];
-  ssize_t bytes = read2(cb, buf);
-  if (bytes < 0) {
+  if (read2(cb, buf) < 0) {
     return;
   }
   toks[0] = strtok(buf, delim);
