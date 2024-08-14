@@ -8,5 +8,6 @@ add_executable(p2p main.c
         cb.c
         socket.c
         error.c
-        handler.c
+        peer.c
+        listener.c
 )

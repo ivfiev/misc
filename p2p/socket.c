@@ -1,6 +1,8 @@
 #include "p2p.h"
 
-int peer_listen(const char *port) {
+extern int EPFD;
+
+int listen1(const char *port) {
   struct addrinfo hints;
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;
@@ -24,7 +26,7 @@ int peer_listen(const char *port) {
   return fd;
 }
 
-int peer_connect(const char *port) {
+int connect1(const char *port) {
   struct addrinfo hints;
   memset(&hints, 0, sizeof(hints));
   hints.ai_family = AF_INET;
@@ -35,10 +37,28 @@ int peer_connect(const char *port) {
   }
   int fd = socket(hints.ai_family, hints.ai_socktype, 0);
 
-  // TODO - use non-blocking connects & handle conn errors in evt loop!
+  // TODO - use non-blocking connects & handle conn errors in evt loop
+  // TODO - handle partial writes or increase the size of tcp buffers
+  // TODO - handle partial reads (treat whitespace as terminator)
   if (connect(fd, peer_addr->ai_addr, peer_addr->ai_addrlen)) {
     err("connect");
   }
   freeaddrinfo(peer_addr);
   return fd;
+}
+
+ssize_t read2(epoll_cb *cb, char *buf) {
+  ssize_t bytes = read(cb->fd, buf, BUF_SIZE);
+  if (bytes <= 0) {
+    close1(cb);
+    return -1;
+  }
+  return bytes;
+}
+
+void close1(epoll_cb *cb) {
+  printf("closing socket [%d]\n", cb->fd);
+  epoll_ctl(EPFD, EPOLL_CTL_DEL, cb->fd, NULL);
+  close(cb->fd);
+  free_cb(cb);
 }

@@ -14,23 +14,19 @@ typedef struct epoll_cb {
     int fd;
     struct epoll_event event;
 
-    size_t buf_out_size;
-    size_t buf_out_i;
-    char *buf_out;
-
-    size_t buf_in_size;
-    size_t buf_in_i;
-    char *buf_in;
+    void (*on_EPOLLIN)(struct epoll_cb *cb);
 } epoll_cb;
 
 epoll_cb *alloc_cb(int fd);
 
 void free_cb(epoll_cb *cb);
 
-int peer_listen(const char *port);
+int listen1(const char *port);
 
-int peer_connect(const char *port);
+int connect1(const char *port);
+
+ssize_t read2(epoll_cb *cb, char *buf);
+
+void close1(epoll_cb *cb);
 
 void err(const char *msg);
-
-void handle_msg(epoll_cb *cb);
