@@ -57,7 +57,10 @@ ssize_t read2(epoll_cb *cb, char *buf) {
 }
 
 void close1(epoll_cb *cb) {
-  printf("closing socket [%d]\n", cb->fd);
+  printf("closing fd [%d]\n", cb->fd);
+  if (cb->on_close) {
+    cb->on_close(cb);
+  }
   epoll_ctl(EPFD, EPOLL_CTL_DEL, cb->fd, NULL);
   close(cb->fd);
   free_cb(cb);

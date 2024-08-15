@@ -11,10 +11,14 @@
 #define BUF_SIZE 4096
 
 typedef struct epoll_cb {
-    int fd;
-    struct epoll_event event;
+  int fd;
+  struct epoll_event event;
+  void *data;
 
-    void (*on_EPOLLIN)(struct epoll_cb *cb);
+  void (*on_EPOLLIN)(struct epoll_cb *cb);
+
+  void (*on_close)(struct epoll_cb *cb);
+
 } epoll_cb;
 
 epoll_cb *alloc_cb(int fd);
