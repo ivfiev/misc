@@ -34,3 +34,5 @@ ssize_t read2(epoll_cb *cb, char *buf);
 void close1(epoll_cb *cb);
 
 void err(const char *msg);
+
+int timer_interval(long ms, void (*on_tick)(epoll_cb *cb));
