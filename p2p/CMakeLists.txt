@@ -9,6 +9,5 @@ add_executable(p2p main.c
         socket.c
         peer.c
         log.c
-        timer.c
         hashtable.c
 )
