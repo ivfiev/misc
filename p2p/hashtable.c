@@ -38,6 +38,7 @@ void *hash_set(hashtable *ht, void *k, void *v) {
   } else {
     prev->next = new;
   }
+  ht->len++;
   return NULL;
 }
 
@@ -64,6 +65,7 @@ struct node *hash_del(hashtable *ht, void *k) {
       } else {
         prev->next = node->next;
       }
+      ht->len--;
       return node;
     }
     prev = node;
