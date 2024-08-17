@@ -10,6 +10,7 @@
 #define EPOLL_MAX_EVENTS 128
 #define BUF_SIZE 4096
 
+// cb
 typedef struct epoll_cb {
   int fd;
   struct epoll_event event;
@@ -25,14 +26,44 @@ epoll_cb *alloc_cb(int fd);
 
 void free_cb(epoll_cb *cb);
 
-int listen1(const char *port);
-
-int connect1(const char *port);
-
 ssize_t read2(epoll_cb *cb, char *buf);
 
 void close1(epoll_cb *cb);
 
+// socket
+int listen1(const char *port);
+
+int connect1(const char *port);
+
+// timer
+int timer_interval(long ms, void (*on_tick)(epoll_cb *cb));
+
+// misc
 void err(const char *msg);
 
-int timer_interval(long ms, void (*on_tick)(epoll_cb *cb));
+// hashtable
+struct node {
+  void *key;
+  void *val;
+  struct node *next;
+};
+
+typedef struct hashtable {
+  struct node **nodes;
+  size_t cap;
+  size_t len;
+
+  int (*cmp)(void *k1, void *k2);
+} hashtable;
+
+hashtable *hash_new(size_t cap, int (*cmp)(void *k1, void *k2));
+
+void *hash_set(hashtable *ht, void *k, void *v);
+
+void *hash_get(hashtable *ht, void *k);
+
+struct node *hash_del(hashtable *ht, void *k);
+
+void hash_foreach(hashtable *ht, void (*)(int i, void *k, void *v));
+
+void hash_free(hashtable *ht);

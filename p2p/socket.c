@@ -1,7 +1,5 @@
 #include "p2p.h"
 
-extern int EPFD;
-
 int listen1(const char *port) {
   struct addrinfo hints;
   memset(&hints, 0, sizeof(hints));
@@ -45,23 +43,4 @@ int connect1(const char *port) {
   }
   freeaddrinfo(peer_addr);
   return fd;
-}
-
-ssize_t read2(epoll_cb *cb, char *buf) {
-  ssize_t bytes = read(cb->fd, buf, BUF_SIZE);
-  if (bytes <= 0) {
-    close1(cb);
-    return -1;
-  }
-  return bytes;
-}
-
-void close1(epoll_cb *cb) {
-  printf("closing fd [%d]\n", cb->fd);
-  if (cb->on_close) {
-    cb->on_close(cb);
-  }
-  epoll_ctl(EPFD, EPOLL_CTL_DEL, cb->fd, NULL);
-  close(cb->fd);
-  free_cb(cb);
 }

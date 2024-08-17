@@ -12,4 +12,5 @@ add_executable(p2p main.c
         listener.c
         log.c
         timer.c
+        hashtable.c
 )
