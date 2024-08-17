@@ -50,3 +50,9 @@ void init_log(char *port) {
   cb->on_close = reset_stdout;
   epoll_ctl(EPFD, EPOLL_CTL_ADD, rw_fd[0], &cb->event);
 }
+
+void err(const char *msg) {
+  printf("%s\n", msg);
+  printf("%s\n", strerror(errno));
+  exit(1);
+}

@@ -7,9 +7,7 @@ add_executable(p2p main.c
         p2p.h
         cb.c
         socket.c
-        error.c
         peer.c
-        listener.c
         log.c
         timer.c
         hashtable.c

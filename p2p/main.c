@@ -2,7 +2,7 @@
 
 int EPFD;
 
-void init_listener(char *port);
+void init_peer(char *port);
 
 void init_log(char *port);
 
@@ -16,7 +16,7 @@ int main(int argc, char **argv) {
     init_log(argv[3]);
   }
 
-  init_listener(argv[1]);
+  init_peer(argv[1]);
 
   for (;;) {
     int ready = epoll_wait(EPFD, events, EPOLL_MAX_EVENTS, -1);
