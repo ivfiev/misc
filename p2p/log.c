@@ -14,7 +14,7 @@ void on_print(epoll_cb *cb) {
   write(data->stdout_fd, buf, bytes);
   ssize_t sent = send(data->log_fd, buf, bytes, MSG_NOSIGNAL);
   if (sent < bytes) {
-    printf("sent < bytes\n");
+    printf("logger socket closed\n");
     close1(cb);
   }
 }
