@@ -8,17 +8,17 @@ int listen1(const char *port) {
   hints.ai_flags = AI_PASSIVE;
   struct addrinfo *bind_addr;
   if (getaddrinfo(0, port, &hints, &bind_addr) < 0) {
-    err("getaddrinfo");
+    err_fatal("getaddrinfo");
   }
   int fd = socket(hints.ai_family, hints.ai_socktype, 0);
   if (fd < 0) {
-    err("peer_listen");
+    err_fatal("peer_listen");
   }
   if (bind(fd, bind_addr->ai_addr, bind_addr->ai_addrlen) < 0) {
-    err("bind");
+    err_fatal("bind");
   }
   if (listen(fd, 0) < 0) {
-    err("listen");
+    err_fatal("listen");
   }
   freeaddrinfo(bind_addr);
   return fd;
@@ -31,7 +31,7 @@ int connect1(const char *port) {
   hints.ai_socktype = SOCK_STREAM;
   struct addrinfo *peer_addr;
   if (getaddrinfo(0, port, &hints, &peer_addr) < 0) {
-    err("getaddrinfo");
+    err_fatal("getaddrinfo");
   }
   int fd = socket(hints.ai_family, hints.ai_socktype, 0);
 
@@ -39,8 +39,21 @@ int connect1(const char *port) {
   // TODO - handle partial writes or increase the size of tcp buffers
   // TODO - handle partial reads (treat whitespace as terminator)
   if (connect(fd, peer_addr->ai_addr, peer_addr->ai_addrlen)) {
-    err("connect");
+    err("connect1.connect");
+    freeaddrinfo(peer_addr);
+    return 0;
   }
   freeaddrinfo(peer_addr);
   return fd;
+}
+
+char *getname(int socket_fd) {
+  struct sockaddr_in addr;
+  socklen_t len = sizeof(struct sockaddr_in);
+  char *name = calloc(8, sizeof(char));
+  if (getpeername(socket_fd, (struct sockaddr *)&addr, &len) < 0) {
+    err_fatal("getpeername");
+  }
+  snprintf(name, 8, "%d", addr.sin_port);
+  return name;
 }

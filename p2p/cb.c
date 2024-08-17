@@ -52,3 +52,8 @@ int timer(long ms, void (*on_tick)(epoll_cb *cb)) {
   epoll_ctl(EPFD, EPOLL_CTL_ADD, fd, &cb->event);
   return fd;
 }
+
+void timer_ack(epoll_cb *cb) {
+  char buf[16];
+  read(cb->fd, buf, sizeof(buf));
+}

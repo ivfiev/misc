@@ -1,23 +1,34 @@
 #include "p2p.h"
 
-size_t hash_func(void *ptr, size_t N) {
+size_t hash_int(void *ptr, size_t N) {
   long long ll = (long long)ptr;
   size_t i = ((ll >> 32) ^ ll);
   return i % N;
 }
 
-hashtable *hash_new(size_t cap, int (*cmp)(void *k1, void *k2)) {
+size_t hash_str(void *ptr, size_t N) {
+  size_t i = 0;
+  char *str = ptr;
+  char c;
+  while ((c = *str++)) {
+    i += i * 89 + (int)c;
+  }
+  return i % N;
+}
+
+hashtable *hash_new(size_t cap, size_t (*hash)(void *ptr, size_t N), int (*cmp)(void *k1, void *k2)) {
   struct node **vs = calloc(cap, sizeof(struct node *));
   hashtable *ht = malloc(sizeof(hashtable));
   ht->nodes = vs;
   ht->cap = cap;
+  ht->hash = hash;
   ht->len = 0;
   ht->cmp = cmp;
   return ht;
 }
 
 void *hash_set(hashtable *ht, void *k, void *v) {
-  size_t h = hash_func(k, ht->cap);
+  size_t h = ht->hash(k, ht->cap);
   struct node *node = ht->nodes[h];
   struct node *prev = NULL;
   while (node) {
@@ -43,7 +54,7 @@ void *hash_set(hashtable *ht, void *k, void *v) {
 }
 
 void *hash_get(hashtable *ht, void *k) {
-  size_t h = hash_func(k, ht->cap);
+  size_t h = ht->hash(k, ht->cap);
   struct node *node = ht->nodes[h];
   while (node) {
     if (!ht->cmp(k, node->key)) {
@@ -55,7 +66,7 @@ void *hash_get(hashtable *ht, void *k) {
 }
 
 struct node *hash_del(hashtable *ht, void *k) {
-  size_t h = hash_func(k, ht->cap);
+  size_t h = ht->hash(k, ht->cap);
   struct node *node = ht->nodes[h];
   struct node *prev = NULL;
   while (node) {

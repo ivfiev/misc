@@ -2,7 +2,7 @@
 
 int EPFD;
 
-void init_peer(char *port);
+void init(char *port);
 
 void init_log(char *port);
 
@@ -12,11 +12,11 @@ int main(int argc, char **argv) {
 
   EPFD = epoll_create1(EPOLL_CLOEXEC);
 
-  if (!strcmp(argv[2], "--logs") && argv[3]) {
+  if (argc > 2 && !strcmp(argv[2], "--logs") && argv[3]) {
     init_log(argv[3]);
   }
 
-  init_peer(argv[1]);
+  init(argv[1]);
 
   for (;;) {
     int ready = epoll_wait(EPFD, events, EPOLL_MAX_EVENTS, -1);
