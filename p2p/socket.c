@@ -21,7 +21,7 @@ int listen1(const char *port) {
   if (bind(fd, bind_addr->ai_addr, bind_addr->ai_addrlen) < 0) {
     err_fatal("bind");
   }
-  if (listen(fd, 0) < 0) {
+  if (listen(fd, 128) < 0) {
     err_fatal("listen");
   }
   freeaddrinfo(bind_addr);
@@ -58,6 +58,6 @@ char *getname(int socket_fd) {
   if (getpeername(socket_fd, (struct sockaddr *)&addr, &len) < 0) {
     err_fatal("getpeername");
   }
-  snprintf(name, 8, "%d", addr.sin_port);
+  snprintf(name, 8, "%d", ntohs(addr.sin_port));
   return name;
 }

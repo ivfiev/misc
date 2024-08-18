@@ -1,25 +1,5 @@
 #include "p2p.h"
 
-size_t hash_int(void *ptr, size_t N) {
-  long long ll = (long long)ptr;
-  size_t i = ((ll >> 32) ^ ll);
-  return i % N;
-}
-
-int intcmp(int i, int j) {
-  return i - j;
-}
-
-size_t hash_str(void *ptr, size_t N) {
-  size_t i = 0;
-  char *str = ptr;
-  char c;
-  while ((c = *str++)) {
-    i += i * 89 + (int)c;
-  }
-  return i % N;
-}
-
 hashtable *hash_new(size_t cap, size_t (*hash)(void *ptr, size_t N), int (*cmp)(void *k1, void *k2)) {
   struct node **vs = calloc(cap, sizeof(struct node *));
   hashtable *ht = malloc(sizeof(hashtable));
@@ -89,15 +69,16 @@ struct node *hash_del(hashtable *ht, void *k) {
   return NULL;
 }
 
-void hash_foreach(hashtable *ht, void (*f)(int i, void *k, void *v)) {
-  for (int n = 0, i = 0; n < ht->cap; n++) {
-    struct node *node = ht->nodes[n];
+void **hash_keys(hashtable *ht) {
+  void **keys = calloc(sizeof(void *), ht->len);
+  for (int i = 0, k = 0; i < ht->cap; i++) {
+    struct node *node = ht->nodes[i];
     while (node) {
-      f(i, node->key, node->val);
+      keys[k++] = node->key;
       node = node->next;
-      i++;
     }
   }
+  return keys;
 }
 
 void hash_free(hashtable *ht) {

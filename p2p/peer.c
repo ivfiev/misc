@@ -2,36 +2,51 @@
 
 extern int EPFD;
 
-char NAME[8];
+char *NAME;
 static hashtable *peers;
 
-void init_peer(int fd);
+int init_peer(int fd);
 
-void exec_cmd(char *cmd, char **args, int argc) {
+void exec_cmd(char *cmd, char **args, int argc, epoll_cb *cb) {
+  for (int i = 0; i < argc; i++) {
+    trim_end(args[i]);
+  }
   if (!strcmp(cmd, "ping")) {
     printf("pinging [%s] [%s]\n", args[0], args[1]);
     int fd = (int)hash_get(peers, args[0]);
     if (fd) {
       write(fd, args[1], strlen(args[1]));
     }
+  } else if (!strcmp(cmd, "status")) {
+    if (!hash_get(peers, args[0])) {
+      char *peer_name = strdup(args[0]);
+      hash_set(peers, peer_name, (void *)cb->fd);
+      //printf("new peer fd [%d] name [%s]\n", cb->fd, peer_name);
+      cb->data = peer_name;
+    }
   } else if (!strcmp(cmd, "peers")) {
     for (int i = 0; i < argc; i++) {
-      for (int j = 0; args[i][j]; j++)
-        if (args[i][j] == '\n')
-          args[i][j] = 0;
-    }
-    for (int i = 0; i < argc; i++) {
-      int fd = connect1(args[i]);
-      if (fd > 0) {
-        init_peer(fd);
+      if (!strcmp(NAME, args[i])) {
+        continue;
+      }
+      int fd = (int)hash_get(peers, args[i]);
+      if (fd == 0) {
+        fd = connect1(args[i]);
+        if (!init_peer(fd)) {
+          char *peer_name = strdup(args[i]);
+          hash_set(peers, peer_name, (void *)fd);
+          //printf("new peer fd [%d] name [%s]\n", fd, peer_name);
+        }
       }
     }
   }
 }
 
 void peer_EPOLLIN(epoll_cb *cb) {
+  char *cmd, *cmd_r = NULL;
   char *toks[128];
-  const char *delim = ",";
+  const char *delim_tok = ",";
+  const char *delim_cmd = "\0";
   int i;
   char buf[BUF_SIZE];
   ssize_t bytes = read2(cb, buf);
@@ -40,11 +55,16 @@ void peer_EPOLLIN(epoll_cb *cb) {
     return;
   }
   buf[bytes] = 0;
-  toks[0] = strtok(buf, delim);
-  for (i = 1; toks[i - 1]; i++) {
-    toks[i] = strtok(NULL, delim);
+  cmd = strtok_r(buf, delim_cmd, &cmd_r);
+  while (cmd != NULL) {
+    printf("%s execs cmd [%s]\n", NAME, cmd);
+    toks[0] = strtok(buf, delim_tok);
+    for (i = 1; toks[i - 1]; i++) {
+      toks[i] = strtok(NULL, delim_tok);
+    }
+    exec_cmd(toks[0], toks + 1, i == 1 ? 0 : i - 2, cb);
+    cmd = strtok_r(NULL, delim_cmd, &cmd_r);
   }
-  exec_cmd(toks[0], toks + 1, i == 1 ? 0 : i - 2);
 }
 
 void disconnect_peer(epoll_cb *cb) {
@@ -52,7 +72,25 @@ void disconnect_peer(epoll_cb *cb) {
 }
 
 void peer_tick(epoll_cb *cb) {
-  printf("tick\n");
+  if (peers->len == 0) {
+    return;
+  }
+  char **keys = (char **)hash_keys(peers);
+  char peers_buf[BUF_SIZE];
+  char status_buf[BUF_SIZE];
+  char *ptr = peers_buf + snprintf(peers_buf, 20, "%s", "peers");
+  for (int i = 0; i < peers->len; i++) {
+    ptr += snprintf(ptr, 10, ",%s", keys[i]);
+  }
+  snprintf(status_buf, sizeof(status_buf), "status,%s", NAME);
+  for (int i = 0; i < peers->len; i++) {
+    int fd = (int)hash_get(peers, keys[i]);
+    if (fd > 0) {
+      write(fd, status_buf, strlen(status_buf) + 1);
+      write(fd, peers_buf, strlen(peers_buf) + 1);
+    }
+  }
+  free(keys);
 }
 
 void accept_peer(epoll_cb *cb) {
@@ -60,17 +98,17 @@ void accept_peer(epoll_cb *cb) {
   init_peer(peer_fd);
 }
 
-void init_peer(int peer_fd) {
-  char *peer_name = getname(peer_fd);
-  hash_set(peers, peer_name, (void *)peer_fd);
-  printf("new connection fd [%d] name [%s]\n", peer_fd, peer_name);
-
+int init_peer(int peer_fd) {
+  if (peer_fd <= 0) {
+    err_info("init_peer");
+    return -1;
+  }
   epoll_cb *peer_cb = alloc_cb(peer_fd);
   peer_cb->event.events = EPOLLIN | EPOLLHUP | EPOLLERR;
-  peer_cb->data = peer_name;
   peer_cb->on_EPOLLIN = peer_EPOLLIN;
   peer_cb->on_close = disconnect_peer;
   epoll_ctl(EPFD, EPOLL_CTL_ADD, peer_fd, &peer_cb->event);
+  return 0;
 }
 
 void init(char *port) {
@@ -82,7 +120,7 @@ void init(char *port) {
   cb->on_EPOLLIN = accept_peer;
   epoll_ctl(EPFD, EPOLL_CTL_ADD, fd, &cb->event);
 
-  strcpy(NAME, port);
+  NAME = strdup(port);
   peers = hash_new(128, hash_str, (int (*)(void *, void *))strcmp);
 
   timer(5000, peer_tick, NULL);

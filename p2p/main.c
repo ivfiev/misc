@@ -34,3 +34,5 @@ int main(int argc, char **argv) {
     }
   }
 }
+
+// negative numbers in peer fds,

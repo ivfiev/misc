@@ -81,6 +81,9 @@ void *hash_get(hashtable *ht, void *k);
 
 struct node *hash_del(hashtable *ht, void *k);
 
-void hash_foreach(hashtable *ht, void (*)(int i, void *k, void *v));
+void **hash_keys(hashtable *ht);
 
 void hash_free(hashtable *ht);
+
+// utils
+void trim_end(char *);

@@ -10,4 +10,5 @@ add_executable(p2p main.c
         peer.c
         log.c
         hashtable.c
+        utils.c
 )
