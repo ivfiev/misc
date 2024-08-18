@@ -35,11 +35,11 @@ int connect1(const char *port) {
   }
   int fd = socket(hints.ai_family, hints.ai_socktype, 0);
 
-  // TODO - use non-blocking connects & handle conn errors in evt loop
+  // TODO - use non-blocking connects & handle connection errors in evt loop
   // TODO - handle partial writes or increase the size of tcp buffers
   // TODO - handle partial reads (treat whitespace as terminator)
   if (connect(fd, peer_addr->ai_addr, peer_addr->ai_addrlen)) {
-    err("connect1.connect");
+    err_info("connect1.connect");
     freeaddrinfo(peer_addr);
     return 0;
   }

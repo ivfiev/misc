@@ -3,14 +3,14 @@
 extern int EPFD;
 
 char NAME[8];
-hashtable *conn;
+static hashtable *peers;
 
 void init_peer(int fd);
 
 void exec_cmd(char *cmd, char **args, int argc) {
   if (!strcmp(cmd, "ping")) {
     printf("pinging [%s] [%s]\n", args[0], args[1]);
-    int fd = (int)hash_get(conn, args[0]);
+    int fd = (int)hash_get(peers, args[0]);
     if (fd) {
       write(fd, args[1], strlen(args[1]));
     }
@@ -48,7 +48,7 @@ void peer_EPOLLIN(epoll_cb *cb) {
 }
 
 void disconnect_peer(epoll_cb *cb) {
-  free(hash_del(conn, cb->data));
+  free(hash_del(peers, cb->data));
 }
 
 void peer_tick(epoll_cb *cb) {
@@ -62,7 +62,7 @@ void accept_peer(epoll_cb *cb) {
 
 void init_peer(int peer_fd) {
   char *peer_name = getname(peer_fd);
-  hash_set(conn, peer_name, (void *)peer_fd);
+  hash_set(peers, peer_name, (void *)peer_fd);
   printf("new connection fd [%d] name [%s]\n", peer_fd, peer_name);
 
   epoll_cb *peer_cb = alloc_cb(peer_fd);
@@ -83,7 +83,7 @@ void init(char *port) {
   epoll_ctl(EPFD, EPOLL_CTL_ADD, fd, &cb->event);
 
   strcpy(NAME, port);
-  conn = hash_new(128, hash_str, (int (*)(void *, void *))strcmp);
+  peers = hash_new(128, hash_str, (int (*)(void *, void *))strcmp);
 
   timer(5000, peer_tick);
 }

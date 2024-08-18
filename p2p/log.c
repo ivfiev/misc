@@ -57,7 +57,7 @@ void err_fatal(const char *msg) {
   exit(1);
 }
 
-void err(const char *msg) {
+void err_info(const char *msg) {
   printf("%s\n", msg);
   printf("%s\n", strerror(errno));
 }

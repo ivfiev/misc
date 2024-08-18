@@ -45,7 +45,7 @@ void timer_ack(epoll_cb *cb);
 // misc
 void err_fatal(const char *msg);
 
-void err(const char *msg);
+void err_info(const char *msg);
 
 // hashtable
 struct node {
