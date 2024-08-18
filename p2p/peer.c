@@ -85,5 +85,5 @@ void init(char *port) {
   strcpy(NAME, port);
   peers = hash_new(128, hash_str, (int (*)(void *, void *))strcmp);
 
-  timer(5000, peer_tick);
+  timer(5000, peer_tick, NULL);
 }

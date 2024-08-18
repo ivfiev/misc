@@ -38,7 +38,12 @@ int connect1(const char *port);
 char *getname(int socket_fd);
 
 // timer
-int timer(long ms, void (*on_tick)(epoll_cb *cb));
+typedef struct timer_data {
+  struct itimerspec *its;
+  void *data;
+} timer_data;
+
+int timer(long ms, void (*on_tick)(epoll_cb *cb), void *data);
 
 // misc
 void err_fatal(const char *msg);
