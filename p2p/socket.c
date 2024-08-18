@@ -14,6 +14,10 @@ int listen1(const char *port) {
   if (fd < 0) {
     err_fatal("peer_listen");
   }
+  int reuse = 1;
+  if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+    err_fatal("setsockopt");
+  }
   if (bind(fd, bind_addr->ai_addr, bind_addr->ai_addrlen) < 0) {
     err_fatal("bind");
   }
@@ -41,7 +45,7 @@ int connect1(const char *port) {
   if (connect(fd, peer_addr->ai_addr, peer_addr->ai_addrlen)) {
     err_info("connect1.connect");
     freeaddrinfo(peer_addr);
-    return 0;
+    return -1;
   }
   freeaddrinfo(peer_addr);
   return fd;

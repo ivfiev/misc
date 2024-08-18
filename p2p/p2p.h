@@ -40,8 +40,6 @@ char *getname(int socket_fd);
 // timer
 int timer(long ms, void (*on_tick)(epoll_cb *cb));
 
-void timer_ack(epoll_cb *cb);
-
 // misc
 void err_fatal(const char *msg);
 
@@ -67,6 +65,8 @@ typedef struct hashtable {
 size_t hash_int(void *ptr, size_t N);
 
 size_t hash_str(void *ptr, size_t N);
+
+int intcmp(int, int);
 
 hashtable *hash_new(size_t cap, size_t (*hash)(void *ptr, size_t N), int (*cmp)(void *k1, void *k2));
 

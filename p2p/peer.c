@@ -22,7 +22,7 @@ void exec_cmd(char *cmd, char **args, int argc) {
     }
     for (int i = 0; i < argc; i++) {
       int fd = connect1(args[i]);
-      if (fd) {
+      if (fd > 0) {
         init_peer(fd);
       }
     }
@@ -52,7 +52,7 @@ void disconnect_peer(epoll_cb *cb) {
 }
 
 void peer_tick(epoll_cb *cb) {
-  timer_ack(cb);
+  printf("tick\n");
 }
 
 void accept_peer(epoll_cb *cb) {

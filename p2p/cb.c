@@ -37,8 +37,21 @@ void close1(epoll_cb *cb) {
   free_cb(cb);
 }
 
+static hashtable *timer_handlers = NULL;
+
+void timer_ack(epoll_cb *cb) {
+  char buf[16];
+  read(cb->fd, buf, sizeof(buf));
+  void (*handler)(epoll_cb *cb) = hash_get(timer_handlers, (void *)cb->fd);
+  handler(cb);
+}
+
 int timer(long ms, void (*on_tick)(epoll_cb *cb)) {
   int fd = timerfd_create(CLOCK_REALTIME, 0);
+  if (timer_handlers == NULL) {
+    timer_handlers = hash_new(16, hash_int, (int (*)(void *, void *))intcmp);
+  }
+  hash_set(timer_handlers, (void *)fd, on_tick);
   struct itimerspec *its = malloc(sizeof(struct itimerspec));
   epoll_cb *cb = alloc_cb(fd);
   its->it_value.tv_sec = ms / 1000;
@@ -47,13 +60,8 @@ int timer(long ms, void (*on_tick)(epoll_cb *cb)) {
   its->it_interval.tv_nsec = 1000000 * (ms % 1000);
   timerfd_settime(fd, 0, its, NULL);
   cb->data = its;
-  cb->on_EPOLLIN = on_tick;
+  cb->on_EPOLLIN = timer_ack;
   cb->event.events = EPOLLIN;
   epoll_ctl(EPFD, EPOLL_CTL_ADD, fd, &cb->event);
   return fd;
-}
-
-void timer_ack(epoll_cb *cb) {
-  char buf[16];
-  read(cb->fd, buf, sizeof(buf));
 }

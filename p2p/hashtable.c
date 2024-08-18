@@ -6,6 +6,10 @@ size_t hash_int(void *ptr, size_t N) {
   return i % N;
 }
 
+int intcmp(int i, int j) {
+  return i - j;
+}
+
 size_t hash_str(void *ptr, size_t N) {
   size_t i = 0;
   char *str = ptr;
