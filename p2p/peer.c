@@ -68,7 +68,9 @@ void peer_EPOLLIN(epoll_cb *cb) {
 }
 
 void disconnect_peer(epoll_cb *cb) {
-  free(hash_del(peers, cb->data));
+  if (cb->data != NULL) {
+    free(hash_del(peers, cb->data));
+  }
 }
 
 void peer_tick(epoll_cb *cb) {
