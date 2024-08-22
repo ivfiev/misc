@@ -21,7 +21,6 @@ void exec_cmd(char *cmd, char **args, int argc, epoll_cb *cb) {
     if (!hash_get(peers, args[0])) {
       char *peer_name = strdup(args[0]);
       hash_set(peers, peer_name, (void *)cb->fd);
-      //printf("new peer fd [%d] name [%s]\n", cb->fd, peer_name);
       cb->data = peer_name;
     }
   } else if (!strcmp(cmd, "peers")) {
@@ -35,7 +34,6 @@ void exec_cmd(char *cmd, char **args, int argc, epoll_cb *cb) {
         if (!init_peer(fd)) {
           char *peer_name = strdup(args[i]);
           hash_set(peers, peer_name, (void *)fd);
-          //printf("new peer fd [%d] name [%s]\n", fd, peer_name);
         }
       }
     }
@@ -57,7 +55,6 @@ void peer_EPOLLIN(epoll_cb *cb) {
   buf[bytes] = 0;
   cmd = strtok_r(buf, delim_cmd, &cmd_r);
   while (cmd != NULL) {
-    printf("%s execs cmd [%s]\n", NAME, cmd);
     toks[0] = strtok(buf, delim_tok);
     for (i = 1; toks[i - 1]; i++) {
       toks[i] = strtok(NULL, delim_tok);
@@ -71,6 +68,18 @@ void disconnect_peer(epoll_cb *cb) {
   if (cb->data != NULL) {
     free(hash_del(peers, cb->data));
   }
+}
+
+void log_stats(char **keys, int len) {
+  int total = 0, connected = 0;
+  for (int i = 0; i < len; i++) {
+    int fd = (int)hash_get(peers, keys[i]);
+    if (fd > 0) {
+      connected++;
+    }
+    total++;
+  }
+  printf("%s - %d / %d\n", NAME, connected, total);
 }
 
 void peer_tick(epoll_cb *cb) {
@@ -92,6 +101,7 @@ void peer_tick(epoll_cb *cb) {
       write(fd, peers_buf, strlen(peers_buf) + 1);
     }
   }
+  log_stats(keys, peers->len);
   free(keys);
 }
 
