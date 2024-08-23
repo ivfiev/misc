@@ -4,6 +4,7 @@ extern int EPFD;
 
 char *NAME;
 static hashtable *peers;
+const int tick_ms = 5000;
 
 int init_peer(int fd);
 
@@ -70,16 +71,20 @@ void disconnect_peer(epoll_cb *cb) {
   }
 }
 
-void log_stats(char **keys, int len) {
-  int total = 0, connected = 0;
+void log_stats(char **keys, size_t len) {
+  int total = 0, conn = 0;
+  char conn_buf[BUF_SIZE], total_buf[BUF_SIZE];
+  char *conn_ptr = conn_buf, *total_ptr = total_buf;
   for (int i = 0; i < len; i++) {
     int fd = (int)hash_get(peers, keys[i]);
     if (fd > 0) {
-      connected++;
+      conn++;
+      conn_ptr += snprintf(conn_ptr, 10, ",%s", keys[i]);
     }
     total++;
+    total_ptr += snprintf(total_ptr, 10, ",%s", keys[i]);
   }
-  printf("%s - %d / %d\n", NAME, connected, total);
+  printf("%s - %d / %d\nconn - %s\ntotal - %s\n\n", NAME, conn, total, conn_buf + 1, total_buf + 1);
 }
 
 void peer_tick(epoll_cb *cb) {
@@ -87,11 +92,14 @@ void peer_tick(epoll_cb *cb) {
     return;
   }
   char **keys = (char **)hash_keys(peers);
+  size_t per_min = peers->len * 3;
+  size_t per_tick = (double)per_min / (60000.0 / tick_ms) + 1; // TODO divide by connection count
+  char **gossip = (char **)rand_select((void **)keys, peers->len, per_tick);
   char peers_buf[BUF_SIZE];
   char status_buf[BUF_SIZE];
   char *ptr = peers_buf + snprintf(peers_buf, 20, "%s", "peers");
-  for (int i = 0; i < peers->len; i++) {
-    ptr += snprintf(ptr, 10, ",%s", keys[i]);
+  for (int i = 0; i < per_tick; i++) {
+    ptr += snprintf(ptr, 10, ",%s", gossip[i]);
   }
   snprintf(status_buf, sizeof(status_buf), "status,%s", NAME);
   for (int i = 0; i < peers->len; i++) {
@@ -102,6 +110,7 @@ void peer_tick(epoll_cb *cb) {
     }
   }
   log_stats(keys, peers->len);
+  free(gossip);
   free(keys);
 }
 
@@ -135,5 +144,5 @@ void init(char *port) {
   NAME = strdup(port);
   peers = hash_new(128, hash_str, (int (*)(void *, void *))strcmp);
 
-  timer(5000, peer_tick, NULL);
+  timer(tick_ms, peer_tick, NULL);
 }

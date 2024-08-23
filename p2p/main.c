@@ -1,3 +1,4 @@
+#include <time.h>
 #include "p2p.h"
 
 int EPFD;
@@ -7,6 +8,7 @@ void init(char *port);
 void init_log(char *port);
 
 int main(int argc, char **argv) {
+  srand(time(NULL));
   struct epoll_event events[EPOLL_MAX_EVENTS];
   memset(events, 0, sizeof(events));
 

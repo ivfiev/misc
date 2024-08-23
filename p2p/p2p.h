@@ -7,6 +7,9 @@
 #include <unistd.h>
 #include <errno.h>
 
+#define MIN(x, y) ((x) > (y) ? (y) : (x))
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+
 #define EPOLL_MAX_EVENTS 128
 #define BUF_SIZE 4096
 
@@ -87,3 +90,5 @@ void hash_free(hashtable *ht);
 
 // utils
 void trim_end(char *);
+
+void **rand_select(void **elems, size_t len, size_t k);
