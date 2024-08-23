@@ -19,7 +19,7 @@ void exec_cmd(char *cmd, char **args, int argc, epoll_cb *cb) {
       write(fd, args[1], strlen(args[1]));
     }
   } else if (!strcmp(cmd, "status")) {
-    if (!hash_get(peers, args[0])) {
+    if (!hash_getv(peers, args[0])) {
       char *peer_name = strdup(args[0]);
       hash_set(peers, peer_name, (void *)cb->fd);
       cb->data = peer_name;
@@ -29,7 +29,7 @@ void exec_cmd(char *cmd, char **args, int argc, epoll_cb *cb) {
       if (!strcmp(NAME, args[i])) {
         continue;
       }
-      int fd = (int)hash_get(peers, args[i]);
+      int fd = (int)hash_getv(peers, args[i]);
       if (fd == 0) {
         fd = connect1(args[i]);
         if (!init_peer(fd)) {
