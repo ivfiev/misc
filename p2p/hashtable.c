@@ -37,7 +37,19 @@ void *hash_set(hashtable *ht, void *k, void *v) {
   return NULL;
 }
 
-void *hash_get(hashtable *ht, void *k) {
+void *hash_getk(hashtable *ht, void *k) {
+  size_t h = ht->hash(k, ht->cap);
+  struct node *node = ht->nodes[h];
+  while (node) {
+    if (!ht->cmp(k, node->key)) {
+      return node->key;
+    }
+    node = node->next;
+  }
+  return NULL;
+}
+
+void *hash_getv(hashtable *ht, void *k) {
   size_t h = ht->hash(k, ht->cap);
   struct node *node = ht->nodes[h];
   while (node) {

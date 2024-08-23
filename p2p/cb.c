@@ -42,7 +42,7 @@ static hashtable *timer_handlers = NULL;
 void timer_ack(epoll_cb *cb) {
   char buf[16];
   read(cb->fd, buf, sizeof(buf));
-  void (*handler)(epoll_cb *cb) = hash_get(timer_handlers, (void *)cb->fd);
+  void (*handler)(epoll_cb *cb) = hash_getv(timer_handlers, (void *)cb->fd);
   handler(cb);
 }
 

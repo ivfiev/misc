@@ -81,7 +81,9 @@ hashtable *hash_new(size_t cap, size_t (*hash)(void *ptr, size_t N), int (*cmp)(
 
 void *hash_set(hashtable *ht, void *k, void *v);
 
-void *hash_get(hashtable *ht, void *k);
+void *hash_getk(hashtable *ht, void *k);
+
+void *hash_getv(hashtable *ht, void *k);
 
 struct node *hash_del(hashtable *ht, void *k);
 
