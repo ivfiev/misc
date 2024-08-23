@@ -12,3 +12,5 @@ add_executable(p2p main.c
         hashtable.c
         utils.c
 )
+
+target_link_libraries(p2p m)
