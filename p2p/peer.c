@@ -14,7 +14,7 @@ void exec_cmd(char *cmd, char **args, int argc, epoll_cb *cb) {
   }
   if (!strcmp(cmd, "ping")) {
     printf("pinging [%s] [%s]\n", args[0], args[1]);
-    int fd = (int)hash_get(peers, args[0]);
+    int fd = (int)hash_getv(peers, args[0]);
     if (fd) {
       write(fd, args[1], strlen(args[1]));
     }
@@ -76,7 +76,7 @@ void log_stats(char **keys, size_t len) {
   char conn_buf[BUF_SIZE], total_buf[BUF_SIZE];
   char *conn_ptr = conn_buf, *total_ptr = total_buf;
   for (int i = 0; i < len; i++) {
-    int fd = (int)hash_get(peers, keys[i]);
+    int fd = (int)hash_getv(peers, keys[i]);
     if (fd > 0) {
       conn++;
       conn_ptr += snprintf(conn_ptr, 10, ",%s", keys[i]);
@@ -84,7 +84,11 @@ void log_stats(char **keys, size_t len) {
     total++;
     total_ptr += snprintf(total_ptr, 10, ",%s", keys[i]);
   }
-  printf("%s - %d / %d\nconn - %s\ntotal - %s\n\n", NAME, conn, total, conn_buf + 1, total_buf + 1);
+  if (total > 0) {
+    printf("%s - %d / %d\nconn  - %s\ntotal - %s\n\n", NAME, conn, total, conn_buf + 1, total_buf + 1);
+  } else {
+    printf("%s - %d / %d\nconn  - \ntotal - \n\n", NAME, 0, 0);
+  }
 }
 
 void peer_tick(epoll_cb *cb) {
@@ -103,7 +107,7 @@ void peer_tick(epoll_cb *cb) {
   }
   snprintf(status_buf, sizeof(status_buf), "status,%s", NAME);
   for (int i = 0; i < peers->len; i++) {
-    int fd = (int)hash_get(peers, keys[i]);
+    int fd = (int)hash_getv(peers, keys[i]);
     if (fd > 0) {
       write(fd, status_buf, strlen(status_buf) + 1);
       write(fd, peers_buf, strlen(peers_buf) + 1);
