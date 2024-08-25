@@ -1,41 +1,82 @@
 #include "p2p.h"
 
+typedef struct peer_descriptor {
+  int fd;
+  epoll_cb *cb;
+} PD;
+
 extern int EPFD;
 
 char *NAME;
 static hashtable *peers;
-const int tick_ms = 5000;
+const int tick_ms = 500;
 
-int init_peer(int fd);
+epoll_cb *init_peer(int fd);
+
+PD *get_pd(int fd, epoll_cb *cb);
+
+void clear_pd(PD *pd);
 
 void exec_cmd(char *cmd, char **args, int argc, epoll_cb *cb) {
   for (int i = 0; i < argc; i++) {
     trim_end(args[i]);
   }
-  if (!strcmp(cmd, "ping")) {
-    printf("pinging [%s] [%s]\n", args[0], args[1]);
-    int fd = (int)hash_getv(peers, args[0]);
-    if (fd) {
-      write(fd, args[1], strlen(args[1]));
-    }
-  } else if (!strcmp(cmd, "status")) {
-    if (!hash_getv(peers, args[0])) {
-      char *peer_name = strdup(args[0]);
-      hash_set(peers, peer_name, (void *)cb->fd);
-      cb->data = peer_name;
+  if (!strcmp(cmd, "debug")) {
+    if (!strcmp(args[0], "conn")) {
+      printf("%s connecting..\n", NAME);
+      int fd = connect1(args[1]);
+      epoll_cb *peer_cb = init_peer(fd);
+      if (peer_cb != NULL) {
+        char *peer_name = strdup(args[1]); // just a debug cmd, so it's fine to alloc.
+        peer_cb->data = peer_name;
+        PD *pd = get_pd(fd, peer_cb);
+        hash_set(peers, peer_name, pd);
+      }
+    } else if (!strcmp(args[0], "close")) {
+      PD *pd = hash_getv(peers, args[1]);
+      printf("got pd...\n");
+      printf("%s disconnecting %d ...\n", NAME, pd->fd);
+      close1(pd->cb);
+      clear_pd(pd);
     }
   } else if (!strcmp(cmd, "peers")) {
-    for (int i = 0; i < argc; i++) {
-      if (!strcmp(NAME, args[i])) {
+    if (strcmp(args[0], "nc") != 0 && strcmp(args[0], NAME) != 0) {
+      char *peer_name = hash_getk(peers, args[0]);
+      if (peer_name == NULL) {
+        peer_name = strdup(args[0]);
+      }
+      if (cb->data == NULL) {
+        cb->data = peer_name;
+      }
+      PD *pd = hash_getv(peers, peer_name);
+      if (pd == NULL) {
+        pd = get_pd(cb->fd, cb);
+      } else if (pd->fd <= 0) {
+        pd->fd = cb->fd;
+        pd->cb = cb;
+      } else if (pd->fd != cb->fd) {
+        if (strcmp(NAME, peer_name) < 0) {
+          printf("%s double connection to %s, closing my end...\n", NAME, peer_name);
+          close1(pd->cb);
+          clear_pd(pd);
+          pd->fd = cb->fd;
+          pd->cb = cb;
+//          pd->fd = cb->fd;
+        } else {
+          //printf("%s double connection to %s, realigning...\n", NAME, peer_name);
+//          close1(cb);
+        }
+      }
+      hash_set(peers, peer_name, pd);
+    }
+    for (int i = 1; i < argc; i++) {
+      if (!strcmp(NAME, args[i]) || !strcmp(args[0], args[i])) {
         continue;
       }
-      int fd = (int)hash_getv(peers, args[i]);
-      if (fd == 0) {
-        fd = connect1(args[i]);
-        if (!init_peer(fd)) {
-          char *peer_name = strdup(args[i]);
-          hash_set(peers, peer_name, (void *)fd);
-        }
+      char *existing = (char *)hash_getk(peers, args[i]);
+      if (existing == NULL) {
+        existing = strdup(args[i]);
+        hash_set(peers, existing, NULL);
       }
     }
   }
@@ -66,8 +107,13 @@ void peer_EPOLLIN(epoll_cb *cb) {
 }
 
 void disconnect_peer(epoll_cb *cb) {
+  printf("%s disconnect_peer [%s]\n", NAME, (char *)cb->data);
   if (cb->data != NULL) {
-    free(hash_del(peers, cb->data));
+    PD *pd = hash_getv(peers, cb->data);
+    cb->data = NULL;
+    if (pd->fd == cb->fd) {
+      clear_pd(pd); // leave it in
+    }
   }
 }
 
@@ -76,8 +122,8 @@ void log_stats(char **keys, size_t len) {
   char conn_buf[BUF_SIZE], total_buf[BUF_SIZE];
   char *conn_ptr = conn_buf, *total_ptr = total_buf;
   for (int i = 0; i < len; i++) {
-    int fd = (int)hash_getv(peers, keys[i]);
-    if (fd > 0) {
+    PD *pd = hash_getv(peers, keys[i]);
+    if (pd != NULL && pd->fd > 0) {
       conn++;
       conn_ptr += snprintf(conn_ptr, 10, ",%s", keys[i]);
     }
@@ -91,6 +137,44 @@ void log_stats(char **keys, size_t len) {
   }
 }
 
+void peer_reconnect(epoll_cb *cb) {
+  if (peers->len <= 0) {
+    return;
+  }
+  char **keys = (char **)hash_keys(peers);
+  char *cands[peers->len];
+  int c = 0;
+  for (int i = 0; i < peers->len; i++) {
+    PD *pd = hash_getv(peers, keys[i]);
+    if (pd == NULL || pd->fd <= 0) {  // maybe include connected?
+      cands[c++] = keys[i];
+    } else {
+      close1(pd->cb);
+      clear_pd(pd);
+    }
+  }
+  size_t count = (size_t)log((double)peers->len) + 1;
+  count = MIN(count, c);
+  char **new = (char **)rand_select((void **)cands, c, count);
+  for (int i = 0; i < count; i++) {
+    printf("%s connecting to %s\n", NAME, new[i]);
+    int fd = connect1(new[i]);
+    epoll_cb *cb = init_peer(fd);
+    if (cb != NULL) {
+      PD *pd = hash_getv(peers, new[i]);
+      if (pd == NULL) {
+        pd = get_pd(fd, cb);
+        hash_set(peers, new[i], pd);
+      }
+      pd->fd = fd;
+      pd->cb = cb;
+      cb->data = new[i];
+    }
+  }
+  free(new);
+  free(keys);
+}
+
 void peer_tick(epoll_cb *cb) {
   if (peers->len == 0) {
     return;
@@ -100,17 +184,14 @@ void peer_tick(epoll_cb *cb) {
   size_t per_tick = (double)per_min / (60000.0 / tick_ms) + 1; // TODO divide by connection count
   char **gossip = (char **)rand_select((void **)keys, peers->len, per_tick);
   char peers_buf[BUF_SIZE];
-  char status_buf[BUF_SIZE];
-  char *ptr = peers_buf + snprintf(peers_buf, 20, "%s", "peers");
+  char *ptr = peers_buf + snprintf(peers_buf, 20, "%s,%s", "peers", NAME);
   for (int i = 0; i < per_tick; i++) {
     ptr += snprintf(ptr, 10, ",%s", gossip[i]);
   }
-  snprintf(status_buf, sizeof(status_buf), "status,%s", NAME);
   for (int i = 0; i < peers->len; i++) {
-    int fd = (int)hash_getv(peers, keys[i]);
-    if (fd > 0) {
-      write(fd, status_buf, strlen(status_buf) + 1);
-      write(fd, peers_buf, strlen(peers_buf) + 1);
+    PD *pd = hash_getv(peers, keys[i]);
+    if (pd != NULL && pd->fd > 0) {
+      write(pd->fd, peers_buf, strlen(peers_buf) + 1);
     }
   }
   log_stats(keys, peers->len);
@@ -120,20 +201,21 @@ void peer_tick(epoll_cb *cb) {
 
 void accept_peer(epoll_cb *cb) {
   int peer_fd = accept(cb->fd, NULL, NULL);
-  init_peer(peer_fd);
+  printf("%s,accepting peer [%d]\n", NAME, peer_fd);
+  init_peer(peer_fd); // we'll store the cbs in 'peers' handler
 }
 
-int init_peer(int peer_fd) {
+epoll_cb *init_peer(int peer_fd) {
   if (peer_fd <= 0) {
     err_info("init_peer");
-    return -1;
+    return NULL;
   }
   epoll_cb *peer_cb = alloc_cb(peer_fd);
   peer_cb->event.events = EPOLLIN | EPOLLHUP | EPOLLERR;
   peer_cb->on_EPOLLIN = peer_EPOLLIN;
   peer_cb->on_close = disconnect_peer;
   epoll_ctl(EPFD, EPOLL_CTL_ADD, peer_fd, &peer_cb->event);
-  return 0;
+  return peer_cb;
 }
 
 void init(char *port) {
@@ -149,4 +231,17 @@ void init(char *port) {
   peers = hash_new(128, hash_str, (int (*)(void *, void *))strcmp);
 
   timer(tick_ms, peer_tick, NULL);
+  timer(2 * tick_ms + 113, peer_reconnect, NULL);
+}
+
+PD *get_pd(int fd, epoll_cb *cb) {
+  PD *pd = (PD *)malloc(sizeof(PD));
+  clear_pd(pd);
+  pd->fd = fd;
+  pd->cb = cb;
+  return pd;
+}
+
+void clear_pd(PD *pd) {
+  memset(pd, 0, sizeof(PD));
 }
