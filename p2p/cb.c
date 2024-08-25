@@ -2,6 +2,7 @@
 #include "p2p.h"
 
 extern int EPFD;
+extern char *NAME;
 
 epoll_cb *alloc_cb(int fd) {
   epoll_cb *cb = (epoll_cb *)malloc(sizeof(epoll_cb));
@@ -12,7 +13,7 @@ epoll_cb *alloc_cb(int fd) {
 }
 
 void free_cb(epoll_cb *cb) {
-  if (cb->data) {
+  if (cb->data != NULL) {
     free(cb->data);
   }
   free(cb);
@@ -28,16 +29,23 @@ ssize_t read2(epoll_cb *cb, char *buf) {
 }
 
 void close1(epoll_cb *cb) {
-  printf("closing fd [%d]\n", cb->fd);
-  if (cb->on_close) {
+  printf("%s closing fd [%d]\n", NAME, cb->fd);
+  if (cb->on_close != NULL) {
     cb->on_close(cb);
   }
   epoll_ctl(EPFD, EPOLL_CTL_DEL, cb->fd, NULL);
-  close(cb->fd);
+  if (close(cb->fd) < 0) {
+    err_fatal("close1.close");
+  }
   free_cb(cb);
 }
 
 static hashtable *timer_handlers = NULL;
+
+int is_timer(int fd) {
+  void *handler = hash_getv(timer_handlers, (void *)fd);
+  return handler != NULL;
+}
 
 void timer_ack(epoll_cb *cb) {
   char buf[16];
