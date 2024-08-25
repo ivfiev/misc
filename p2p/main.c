@@ -12,7 +12,6 @@ int is_timer(int fd);
 int cmp_events(struct epoll_event *e1, struct epoll_event *e2) {
   epoll_cb *cb1 = e1->data.ptr;
   epoll_cb *cb2 = e2->data.ptr;
-  printf("qsort %d %d\n", cb1->fd, cb2->fd);
   int t1 = is_timer(cb1->fd);
   int t2 = is_timer(cb2->fd);
   return t1 - t2;
@@ -49,5 +48,3 @@ int main(int argc, char **argv) {
     }
   }
 }
-
-// negative numbers in peer fds,

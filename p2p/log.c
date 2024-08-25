@@ -1,6 +1,8 @@
+#include <stdarg.h>
 #include "p2p.h"
 
 extern int EPFD;
+extern char *NAME;
 
 struct log_data {
   int stdout_fd;
@@ -16,13 +18,13 @@ void on_print(epoll_cb *cb) {
   write(data->stdout_fd, buf, bytes);
   if (data->log_fd < 0 && data->port != NULL && data->reconnect) {
     data->reconnect = false;
-    printf("streaming logs to [%s]\n", data->port);
+    log_info("streaming logs to [%s]\n", data->port);
     data->log_fd = connect1(data->port);
   }
   if (data->log_fd > 0) {
     ssize_t sent = send(data->log_fd, buf, bytes, MSG_NOSIGNAL);
     if (sent < bytes) {
-      printf("logger socket closed\n");
+      log_info("logger socket closed\n");
       close(data->log_fd);
       data->log_fd = -1;
     }
@@ -37,7 +39,7 @@ void reset_stdout(epoll_cb *cb) {
   data->stdout_fd = -1;
   free(data->port);
   //setvbuf(stdout, NULL, _IOLBF, 0);
-  printf("reset stdout\n");
+  log_info("reset stdout\n");
 }
 
 void reset_reconnect(epoll_cb *cb) {
@@ -72,12 +74,31 @@ void init_log(char *port) {
 }
 
 void err_fatal(const char *msg) {
-  printf("%s\n", msg);
-  printf("%s\n", strerror(errno));
+  printf("%s ***> %s\n", NAME, msg);
+  printf("%s ***> %s\n", NAME, strerror(errno));
   exit(1);
 }
 
 void err_info(const char *msg) {
-  printf("%s\n", msg);
-  printf("%s\n", strerror(errno));
+  printf("%s ***> %s\n", NAME, msg);
+  printf("%s ***> %s\n", NAME, strerror(errno));
+}
+
+void log_debug(const char *format, ...) {
+  char *debug = getenv("DEBUG");
+  if (debug != NULL && !strcmp(debug, "1")) {
+    printf("%s -> ", NAME);
+    va_list args;
+    va_start(args, format);
+    vfprintf(stdout, format, args);
+    va_end(args);
+  }
+}
+
+void log_info(const char *format, ...) {
+  printf("%s -> ", NAME);
+  va_list args;
+  va_start(args, format);
+  vfprintf(stdout, format, args);
+  va_end(args);
 }

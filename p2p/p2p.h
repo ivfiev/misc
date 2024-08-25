@@ -54,6 +54,10 @@ void err_fatal(const char *msg);
 
 void err_info(const char *msg);
 
+void log_debug(const char *format, ...) __attribute__((format(printf, 1, 2)));
+
+void log_info(const char *format, ...) __attribute__((format(printf, 1, 2)));
+
 // hashtable
 struct node {
   void *key;

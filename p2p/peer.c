@@ -23,7 +23,7 @@ void exec_cmd(char *cmd, char **args, int argc, epoll_cb *cb) {
   }
   if (!strcmp(cmd, "debug")) {
     if (!strcmp(args[0], "conn")) {
-      printf("%s connecting..\n", NAME);
+      log_debug("connecting...\n");
       int fd = connect1(args[1]);
       epoll_cb *peer_cb = init_peer(fd);
       if (peer_cb != NULL) {
@@ -34,8 +34,7 @@ void exec_cmd(char *cmd, char **args, int argc, epoll_cb *cb) {
       }
     } else if (!strcmp(args[0], "close")) {
       PD *pd = hash_getv(peers, args[1]);
-      printf("got pd...\n");
-      printf("%s disconnecting %d ...\n", NAME, pd->fd);
+      log_debug("disconnecting fd [%d] ...\n", pd->fd);
       close1(pd->cb);
       clear_pd(pd);
     }
@@ -56,15 +55,11 @@ void exec_cmd(char *cmd, char **args, int argc, epoll_cb *cb) {
         pd->cb = cb;
       } else if (pd->fd != cb->fd) {
         if (strcmp(NAME, peer_name) < 0) {
-          printf("%s double connection to %s, closing my end...\n", NAME, peer_name);
+          log_debug("double connection to %s, closing my end...\n", peer_name);
           close1(pd->cb);
           clear_pd(pd);
           pd->fd = cb->fd;
           pd->cb = cb;
-//          pd->fd = cb->fd;
-        } else {
-          //printf("%s double connection to %s, realigning...\n", NAME, peer_name);
-//          close1(cb);
         }
       }
       hash_set(peers, peer_name, pd);
@@ -107,7 +102,7 @@ void peer_EPOLLIN(epoll_cb *cb) {
 }
 
 void disconnect_peer(epoll_cb *cb) {
-  printf("%s disconnect_peer [%s]\n", NAME, (char *)cb->data);
+  log_debug("disconnect_peer [%s]\n", (char *)cb->data);
   if (cb->data != NULL) {
     PD *pd = hash_getv(peers, cb->data);
     cb->data = NULL;
@@ -131,9 +126,9 @@ void log_stats(char **keys, size_t len) {
     total_ptr += snprintf(total_ptr, 10, ",%s", keys[i]);
   }
   if (total > 0) {
-    printf("%s - %d / %d\nconn  - %s\ntotal - %s\n\n", NAME, conn, total, conn_buf + 1, total_buf + 1);
+    log_info("%d / %d\nconn  - %s\ntotal - %s\n\n", conn, total, conn_buf + 1, total_buf + 1);
   } else {
-    printf("%s - %d / %d\nconn  - \ntotal - \n\n", NAME, 0, 0);
+    log_info("%d / %d\nconn  - \ntotal - \n\n", 0, 0);
   }
 }
 
@@ -157,7 +152,7 @@ void peer_reconnect(epoll_cb *cb) {
   count = MIN(count, c);
   char **new = (char **)rand_select((void **)cands, c, count);
   for (int i = 0; i < count; i++) {
-    printf("%s connecting to %s\n", NAME, new[i]);
+    log_debug("connecting to %s\n", new[i]);
     int fd = connect1(new[i]);
     epoll_cb *cb = init_peer(fd);
     if (cb != NULL) {
@@ -201,7 +196,7 @@ void peer_tick(epoll_cb *cb) {
 
 void accept_peer(epoll_cb *cb) {
   int peer_fd = accept(cb->fd, NULL, NULL);
-  printf("%s,accepting peer [%d]\n", NAME, peer_fd);
+  log_debug("accepting peer [%d]\n", peer_fd);
   init_peer(peer_fd); // we'll store the cbs in 'peers' handler
 }
 
@@ -220,14 +215,14 @@ epoll_cb *init_peer(int peer_fd) {
 
 void init(char *port) {
   port = port ? port : "8080";
+  NAME = strdup(port);
   int fd = listen1(port);
-  printf("LISTENER port [%s], fd [%d]\n", port, fd);
+  log_info("LISTENER port [%s], fd [%d]\n", port, fd);
   epoll_cb *cb = alloc_cb(fd);
   cb->event.events = EPOLLIN;
   cb->on_EPOLLIN = accept_peer;
   epoll_ctl(EPFD, EPOLL_CTL_ADD, fd, &cb->event);
 
-  NAME = strdup(port);
   peers = hash_new(128, hash_str, (int (*)(void *, void *))strcmp);
 
   timer(tick_ms, peer_tick, NULL);
