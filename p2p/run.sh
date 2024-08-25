@@ -7,7 +7,7 @@ aliases() {
 }
 
 start_p2p() {
-    arg="peers"
+    arg="peers,nc"
     for i in {0..9}
     do
         port=$((8080 + i))
