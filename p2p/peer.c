@@ -9,7 +9,7 @@ extern int EPFD;
 
 char *NAME;
 static hashtable *peers;
-const int tick_ms = 3000;
+const int tick_ms = 2000;
 
 epoll_cb *init_peer(int fd);
 

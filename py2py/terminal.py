@@ -5,7 +5,7 @@ from output import Output
 
 class Terminal(Output):
     def __init__(self):
-        super().__init__(debounce=0.1)
+        super().__init__()
 
     def redraw(self):
         os.system('clear')

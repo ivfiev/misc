@@ -16,7 +16,7 @@ class ModelParser:
             if j.startswith('conn'):
                 node = i.split(' ')[0]
                 nodes = j.split(' ')[-1].split(',')
-                self.graph[node] = sorted(nodes)
+                self.graph[node] = [] if '' in nodes else sorted(nodes)
         self.graph = dict(sorted(self.graph.items()))
         self.notify()
 
