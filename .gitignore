@@ -5,4 +5,5 @@ ctf/output
 **/obj/
 **/cmake-build-debug
 **/cmake-build-release
+py2py_logs
 p2p/notes
