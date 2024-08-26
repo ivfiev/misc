@@ -1,4 +1,4 @@
-class Model:
+class ModelParser:
     def __init__(self, subs):
         self.subscribers = subs
         self.graph = None
@@ -7,7 +7,8 @@ class Model:
         self.graph = dict()
 
     def session_end(self):
-        self.graph = None
+        # self.graph = None
+        pass
 
     def handle(self, data):
         lines = data.split('\n')
@@ -15,7 +16,8 @@ class Model:
             if j.startswith('conn'):
                 node = i.split(' ')[0]
                 nodes = j.split(' ')[-1].split(',')
-                self.graph[node] = nodes
+                self.graph[node] = sorted(nodes)
+        self.graph = dict(sorted(self.graph.items()))
         self.notify()
 
     def notify(self):

@@ -1,21 +1,23 @@
+from diagram import Diagram
 from logs import FileAppender
-from model import Model
+from parser import ModelParser
 from server import Server
 from terminal import Terminal
 
 terminal = Terminal()
-diagram = None
+diagram = Diagram()
 
-model = Model([terminal])
+model = ModelParser([terminal, diagram])
 logger = FileAppender()
 
 handlers = [logger, model]
 
-try:
-    server = Server(1065, handlers)
-    server.run()
-except KeyboardInterrupt:
-    print('Exiting...')
-finally:
-    for h in handlers:
-        h.session_end()
+if __name__ == '__main__':
+    try:
+        server = Server(1065, handlers)
+        server.run()
+    except KeyboardInterrupt:
+        print('Exiting...')
+    finally:
+        for h in handlers:
+            h.session_end()
