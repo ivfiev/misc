@@ -1,24 +1,27 @@
-import time
-
-
-def now():
-    return int(time.time() * 1000)
+import threading
 
 
 class Output:
-    def __init__(self):
+    def __init__(self, debounce=0.0):
         self.model = None
-        self.timer = now()
+        self.timer = None
+        self.debounce = debounce if debounce > 0.0 else None
 
     def model_changed(self, model):
         self.model = model
-        if now() >= self.timer:
+        if not self.debounce:
             self.redraw()
-        self.init_timer()
+        elif not self.timer:
+            self.timer_init()
 
-    def init_timer(self):
-        if now() >= self.timer:
-            self.timer = now() + 100
+    def timer_init(self):
+        self.timer = threading.Timer(self.debounce, self.timer_run)
+        self.timer.start()
+
+    def timer_run(self):
+        self.redraw()
+        self.timer.cancel()
+        self.timer = None
 
     def redraw(self):
         pass
