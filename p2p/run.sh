@@ -11,7 +11,7 @@ start_p2p() {
     for i in {0..9}
     do
         port=$((8080 + i))
-        ./p2p "$port" &  # --logs 1065 &
+        ./p2p "$port" --logs 1065 &
         echo "Started p2p instance on port $port"
         arg="$arg,$port"
     done
