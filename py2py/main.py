@@ -1,13 +1,17 @@
+import sys
+
 from diagram import Diagram
 from logs import FileAppender
 from parser import ModelParser
 from server import Server
 from terminal import Terminal
 
-terminal = Terminal()
-diagram = Diagram()
+outputs = [Terminal()]
 
-model = ModelParser([terminal, diagram])
+if '--diagram' in sys.argv:
+    outputs.append(Diagram())
+
+model = ModelParser(outputs)
 logger = FileAppender()
 
 handlers = [logger, model]

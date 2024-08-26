@@ -13,7 +13,7 @@ class Diagram(Output):
     def redraw(self):
         plt.clf()
         G = nx.DiGraph()
-        for node in self.model.graph:
+        for node in self.get_nodes():
             G.add_node(node, label=node)
         for node, edges in self.model.graph.items():
             for edge in edges:
@@ -24,3 +24,9 @@ class Diagram(Output):
         nx.draw_networkx_labels(G, pos, labels, font_size=10, font_family='sans-serif')
         plt.draw()
         plt.pause(0.025)
+
+    def get_nodes(self):
+        s = set()
+        for node, edges in self.model.graph.items():
+            s.update([node, *edges])
+        return sorted(list(s))
