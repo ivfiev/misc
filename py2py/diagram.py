@@ -23,7 +23,7 @@ class Diagram(Output):
         nx.draw(G, pos, with_labels=False, node_size=1000, node_color='lightblue', edge_color='gray', font_size=10, arrows=True, arrowstyle='-|>')
         nx.draw_networkx_labels(G, pos, labels, font_size=10, font_family='sans-serif')
         plt.draw()
-        plt.pause(0.025)
+        plt.pause(0.001)
 
     def get_nodes(self):
         s = set()
