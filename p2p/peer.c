@@ -148,7 +148,7 @@ void peer_reconnect(epoll_cb *cb) {
       clear_pd(pd);
     }
   }
-  size_t count = (size_t)log((double)peers->len) + 1;
+  size_t count = (size_t)(log((double)peers->len) / 2.0 + 1);
   count = MIN(count, c);
   char **new = (char **)rand_select((void **)cands, c, count);
   for (int i = 0; i < count; i++) {
