@@ -11,3 +11,4 @@ class Terminal(Output):
         os.system('clear')
         for node, edges in self.model.graph.items():
             print(node, ' -> ', ','.join(edges))
+        print(f'\nDead: [{','.join(self.model.dead)}]')
