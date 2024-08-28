@@ -13,6 +13,7 @@
 
 #define EPOLL_MAX_EVENTS 128
 #define BUF_SIZE 4096
+#define TIMESTAMP(name) char name[32]; timestamp(name)
 
 // cb
 typedef struct epoll_cb {
@@ -99,3 +100,5 @@ void hash_free(hashtable *ht);
 void trim_end(char *);
 
 void **rand_select(void **elems, size_t len, size_t k);
+
+void timestamp(char *);

@@ -121,6 +121,8 @@ void log_stats(char **keys, size_t len) {
   int total = 0, conn = 0;
   char conn_buf[BUF_SIZE], total_buf[BUF_SIZE];
   char *conn_ptr = conn_buf, *total_ptr = total_buf;
+  memset(conn_ptr, 0, MIN(32, BUF_SIZE));
+  memset(total_ptr, 0, MIN(32, BUF_SIZE));
   for (int i = 0; i < len; i++) {
     PD *pd = hash_getv(peers, keys[i]);
     if (pd != NULL && pd->fd > 0) {

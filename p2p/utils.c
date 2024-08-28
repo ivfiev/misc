@@ -1,3 +1,5 @@
+#include <sys/time.h>
+#include <time.h>
 #include "p2p.h"
 
 void trim_end(char *str) {
@@ -43,4 +45,13 @@ void **rand_select(void **elems, size_t len, size_t k) {
     }
   }
   return result;
+}
+
+void timestamp(char *buf) {
+  struct timeval tv;
+  struct tm *tm_info;
+  gettimeofday(&tv, NULL);
+  tm_info = localtime(&tv.tv_sec);
+  size_t c = strftime(buf, 12, "%H:%M:%S", tm_info);
+  snprintf(buf + c, 19, ".%03ld", tv.tv_usec / 1000);
 }

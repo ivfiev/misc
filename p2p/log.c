@@ -4,6 +4,8 @@
 extern int EPFD;
 extern char *NAME;
 
+int DEBUG_ENABLED;
+
 struct log_data {
   int stdout_fd;
   int stderr_fd;
@@ -101,23 +103,28 @@ void init_log(char *port) {
   epoll_ctl(EPFD, EPOLL_CTL_ADD, rw_fd[0], &cb->event);
 
   timer(5000, reset_reconnect, data);
+
+  char *debug = getenv("DEBUG");
+  DEBUG_ENABLED = debug != NULL && !strcmp(debug, "1");
 }
 
 void err_fatal(const char *msg) {
-  printf("%s ***> %s\n", NAME, msg);
-  printf("%s ***> %s\n", NAME, strerror(errno));
+  TIMESTAMP(ts);
+  printf("[%s] %s ***> %s\n", ts, NAME, msg);
+  printf("[%s] %s ***> %s\n", ts, NAME, strerror(errno));
   exit(1);
 }
 
 void err_info(const char *msg) {
-  printf("%s ***> %s\n", NAME, msg);
-  printf("%s ***> %s\n", NAME, strerror(errno));
+  TIMESTAMP(ts);
+  printf("[%s] %s ***> %s\n", ts, NAME, msg);
+  printf("[%s] %s ***> %s\n", ts, NAME, strerror(errno));
 }
 
 void log_debug(const char *format, ...) {
-  char *debug = getenv("DEBUG");
-  if (debug != NULL && !strcmp(debug, "1")) {
-    printf("%s -> ", NAME);
+  TIMESTAMP(ts);
+  if (DEBUG_ENABLED) {
+    printf("[%s] %s -> ", ts, NAME);
     va_list args;
     va_start(args, format);
     vfprintf(stdout, format, args);
@@ -126,7 +133,8 @@ void log_debug(const char *format, ...) {
 }
 
 void log_info(const char *format, ...) {
-  printf("%s -> ", NAME);
+  TIMESTAMP(ts);
+  printf("[%s] %s -> ", ts, NAME);
   va_list args;
   va_start(args, format);
   vfprintf(stdout, format, args);
