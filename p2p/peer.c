@@ -1,3 +1,4 @@
+#include <signal.h>
 #include "p2p.h"
 
 typedef struct peer_descriptor {
@@ -37,6 +38,10 @@ void exec_cmd(char *cmd, char **args, int argc, epoll_cb *cb) {
       log_debug("disconnecting fd [%d] ...\n", pd->fd);
       close1(pd->cb);
       clear_pd(pd);
+    } else if (!strcmp(args[0], "fail")) {
+      int *x = malloc(sizeof(int));
+      free(x);
+      free(x);
     }
   } else if (!strcmp(cmd, "peers")) {
     if (strcmp(args[0], "nc") != 0 && strcmp(args[0], NAME) != 0) {

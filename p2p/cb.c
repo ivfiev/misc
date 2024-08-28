@@ -35,7 +35,8 @@ void close1(epoll_cb *cb) {
   }
   epoll_ctl(EPFD, EPOLL_CTL_DEL, cb->fd, NULL);
   if (close(cb->fd) < 0) {
-    err_fatal("close1.close");
+    err_info("close1.close");
+    return; // assume already cleaned up
   }
   free_cb(cb);
 }
