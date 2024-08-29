@@ -1,36 +1,44 @@
+import json
+import os
+import sys
 import time
 
+times = dict()
+prev = None
+model = {'graph': dict(), 'dead': []}
 
-class ModelParser:
-    def __init__(self, subs):
-        self.subscribers = subs
-        self.graph = None
-        self.times = None
 
-    @property
-    def dead(self):
-        now = time.time()
-        return [n for n, t in self.times.items() if now - t > 10]
+def read_lines():
+    lines = []
+    while True:
+        str = sys.stdin.readline()
+        if str:
+            lines.append(str.rstrip())
+        else:
+            return lines
 
-    def session_start(self):
-        self.graph = dict()
-        self.times = dict()
 
-    def session_end(self):
-        # self.graph = None
-        pass
-
-    def handle(self, data):
-        lines = data.split('\n')
+def run():
+    global prev
+    os.set_blocking(sys.stdin.fileno(), False)
+    while True:
+        changed = False
+        lines = read_lines()
         for (i, j) in zip(lines, lines[1:]):
             if j.startswith('conn'):
-                node = i.split(' ')[0]
+                node = i.split(' ')[1]
                 nodes = j.split(' ')[-1].split(',')
-                self.graph[node] = [] if '' in nodes else sorted(nodes)
-                self.times[node] = time.time()
-        self.graph = dict(sorted(self.graph.items()))
-        self.notify()
+                model['graph'][node] = [] if '' in nodes else sorted(nodes)
+                times[node] = time.time()
+                changed = True
+        model['graph'] = dict(sorted(model['graph'].items()))
+        model['dead'] = [n for n, t in times.items() if time.time() - t > 10]
+        new = json.dumps(model)
+        if changed and new != prev:
+            print(new, flush=True)
+            prev = new
+        time.sleep(0.1)
 
-    def notify(self):
-        for sub in self.subscribers:
-            sub.model_changed(self)
+
+if __name__ == '__main__':
+    run()

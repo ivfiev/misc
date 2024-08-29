@@ -1,32 +1,38 @@
+import json
+import os
+import sys
+
+import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import networkx as nx
 
-from output import Output
+os.set_blocking(sys.stdin.fileno(), False)
+fig, ax = plt.subplots(figsize=(7, 7))
 
 
-class Diagram(Output):
-    def __init__(self):
-        super().__init__()
-        plt.ion()
-        plt.show()
+def get_nodes(model):
+    s = set()
+    for node, edges in model['graph'].items():
+        s.update([node, *edges])
+    return sorted(list(s))
 
-    def redraw(self):
-        plt.clf()
-        G = nx.DiGraph()
-        for node in self.get_nodes():
-            G.add_node(node, label=node)
-        for node, edges in self.model.graph.items():
-            for edge in edges:
-                G.add_edge(node, edge)
-        pos = nx.circular_layout(G)
-        labels = nx.get_node_attributes(G, 'label')
-        nx.draw(G, pos, with_labels=False, node_size=1000, node_color='lightblue', edge_color='gray', font_size=10, arrows=True, arrowstyle='-|>')
-        nx.draw_networkx_labels(G, pos, labels, font_size=10, font_family='sans-serif')
-        plt.draw()
-        plt.pause(0.001)
 
-    def get_nodes(self):
-        s = set()
-        for node, edges in self.model.graph.items():
-            s.update([node, *edges])
-        return sorted(list(s))
+def update(_):
+    line = sys.stdin.readline()
+    if not line:
+        return
+    model = json.loads(line)
+    G = nx.DiGraph()
+    for node in get_nodes(model):
+        G.add_node(node, label=node)
+    for node, edges in model['graph'].items():
+        for edge in edges:
+            G.add_edge(node, edge)
+    pos = nx.circular_layout(G)
+    ax.clear()
+    nx.draw(G, pos, ax=ax, with_labels=True, node_color='lightblue', edge_color='gray', node_size=1000, font_size=10, font_color='black')
+
+
+ani = animation.FuncAnimation(fig, update, interval=100)
+
+plt.show()

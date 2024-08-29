@@ -1,53 +1,55 @@
 import selectors
 import socket
+import sys
+
+selector = selectors.EpollSelector()
+connected = set()
+port = 1065
+host = 'localhost'
 
 
-class Server:
-    def __init__(self, port, handlers):
-        self.selector = selectors.EpollSelector()
-        self.connected = set()
-        self.port = port
-        self.handlers = handlers
+def accept(sock):
+    conn, addr = sock.accept()
+    conn.setblocking(False)
+    selector.register(conn, selectors.EVENT_READ, read)
+    connected.add(conn)
 
-    def accept(self, sock):
-        if len(self.connected) == 0:
-            self.handle(lambda h: h.session_start())
-        conn, addr = sock.accept()
-        conn.setblocking(False)
-        self.selector.register(conn, selectors.EVENT_READ, self.read)
-        self.connected.add(conn)
 
-    def read(self, conn):
-        try:
-            data = conn.recv(4096)
-            if data:
-                self.handle(lambda h: h.handle(data.decode()))
-            else:
-                self.disconnect(conn)
-        except ConnectionResetError:
-            self.disconnect(conn)
+def read(conn):
+    try:
+        data = conn.recv(4096)
+        if data:
+            print(data.decode(), end='', flush=True)
+        else:
+            disconnect(conn)
+    except ConnectionResetError:
+        disconnect(conn)
 
-    def disconnect(self, conn):
-        self.selector.unregister(conn)
-        conn.close()
-        self.connected.remove(conn)
-        if len(self.connected) == 0:
-            self.handle(lambda h: h.session_end())
 
-    def handle(self, f):
-        for h in self.handlers:
-            f(h)
+def disconnect(conn):
+    selector.unregister(conn)
+    conn.close()
+    connected.remove(conn)
+    if len(connected) == 0:
+        print('<<END_OF_SESSION>>', flush=True)
 
-    def run(self):
-        host = 'localhost'
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind((host, self.port))
-        sock.listen(128)
-        sock.setblocking(False)
-        self.selector.register(sock, selectors.EVENT_READ, self.accept)
-        while True:
-            events = self.selector.select()
-            for key, mask in events:
-                callback = key.data
-                callback(key.fileobj)
+
+def run():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind((host, port))
+    sock.listen(128)
+    sock.setblocking(False)
+    selector.register(sock, selectors.EVENT_READ, accept)
+    while True:
+        events = selector.select()
+        for key, mask in events:
+            callback = key.data
+            callback(key.fileobj)
+
+
+if __name__ == '__main__':
+    try:
+        run()
+    except:
+        sys.stdout.flush()
