@@ -33,6 +33,6 @@ def update(_):
     nx.draw(G, pos, ax=ax, with_labels=True, node_color='lightblue', edge_color='gray', node_size=1000, font_size=10, font_color='black')
 
 
-ani = animation.FuncAnimation(fig, update, interval=100)
+ani = animation.FuncAnimation(fig, update, interval=100, cache_frame_data=False)
 
 plt.show()
