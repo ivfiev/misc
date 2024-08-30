@@ -209,7 +209,7 @@ void accept_peer(epoll_cb *cb) {
 
 epoll_cb *init_peer(int peer_fd) {
   if (peer_fd <= 0) {
-    err_info("init_peer");
+    ERROR_INFO("init_peer negative fd");
     return NULL;
   }
   epoll_cb *peer_cb = alloc_cb(peer_fd);

@@ -14,6 +14,8 @@
 #define EPOLL_MAX_EVENTS 128
 #define BUF_SIZE 4096
 #define TIMESTAMP(name) char name[32]; timestamp(name)
+#define ERROR_FATAL(msg) err_fatal("%s at %s:%d\n", msg, __FILE__, __LINE__)
+#define ERROR_INFO(msg) err_info("%s at %s:%d\n", msg, __FILE__, __LINE__)
 
 // cb
 typedef struct epoll_cb {
@@ -51,9 +53,9 @@ typedef struct timer_data {
 int timer(long ms, void (*on_tick)(epoll_cb *cb), void *data);
 
 // misc
-void err_fatal(const char *msg);
+void err_fatal(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
-void err_info(const char *msg);
+void err_info(const char *format, ...) __attribute__((format(printf, 1, 2)));
 
 void log_debug(const char *format, ...) __attribute__((format(printf, 1, 2)));
 

@@ -108,17 +108,23 @@ void init_log(char *port) {
   DEBUG_ENABLED = debug != NULL && !strcmp(debug, "1");
 }
 
-void err_fatal(const char *msg) {
+void err_fatal(const char *format, ...) {
   TIMESTAMP(ts);
-  printf("[%s] %s ***> %s\n", ts, NAME, msg);
   printf("[%s] %s ***> %s\n", ts, NAME, strerror(errno));
+  va_list args;
+  va_start(args, format);
+  vfprintf(stdout, format, args);
+  va_end(args);
   exit(1);
 }
 
-void err_info(const char *msg) {
+void err_info(const char *format, ...) {
   TIMESTAMP(ts);
-  printf("[%s] %s ***> %s\n", ts, NAME, msg);
   printf("[%s] %s ***> %s\n", ts, NAME, strerror(errno));
+  va_list args;
+  va_start(args, format);
+  vfprintf(stdout, format, args);
+  va_end(args);
 }
 
 void log_debug(const char *format, ...) {
