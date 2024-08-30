@@ -35,6 +35,10 @@ def run():
             if '[conn:' in line:
                 node = get_val(line, 'node:')
                 nodes = get_val(line, 'conn:').split(',')
+                known = get_val(line, 'total:').split(',')
+                for n in known:
+                    if not model['graph'].get(n):
+                        model['graph'][n] = []
                 model['graph'][node] = [] if '' in nodes else sorted(nodes)
                 times[node] = time.time()
                 changed = True
