@@ -49,7 +49,7 @@ int main(int argc, char **argv) {
       }
 
       if (events[i].events & (EPOLLHUP | EPOLLERR)) {
-        log_debug("EPOLLHUP | EPOLLERR - closing fd [%d]\n", cb->fd);
+        log_debug("EPOLLHUP | EPOLLERR - closing fd [%d]", cb->fd);
         close1(cb);
       }
     }
@@ -58,7 +58,7 @@ int main(int argc, char **argv) {
 
 void flush_logs(int sig) {
   // not reentrant-safe...
-  log_info("Signal [%s:%d] received, errno [%s], flushing & aborting...\n", strsignal(sig), sig, strerror(errno));
+  log_info("Signal [%s:%d] received, errno [%s], flushing & aborting...", strsignal(sig), sig, strerror(errno));
   on_error(NULL);
   exit(1);
 }
@@ -70,7 +70,7 @@ void init_logs_flush(void) {
   sig.sa_handler = flush_logs;
   for (int i = 0; sigs[i]; i++) {
     if (sigaction(sigs[i], &sig, NULL) < 0) {
-      log_info("Signal %d handler failed\n", sigs[i]);
+      log_info("Signal %d handler failed", sigs[i]);
     }
   }
 }

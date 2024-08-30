@@ -42,13 +42,13 @@ void on_print(epoll_cb *cb) {
   write(data->stdout_fd, buf, bytes);
   if (data->socket_fd < 0 && data->port != NULL && data->reconnect) {
     data->reconnect = false;
-    log_info("streaming logs to [%s]\n", data->port);
+    log_info("streaming logs to [%s]", data->port);
     data->socket_fd = connect1(data->port);
   }
   if (data->socket_fd > 0) {
     ssize_t sent = send(data->socket_fd, buf, bytes, MSG_NOSIGNAL);
     if (sent < bytes) {
-      log_info("logger socket closed\n");
+      log_info("logger socket closed");
       close(data->socket_fd);
       data->socket_fd = -1;
     }
@@ -67,7 +67,7 @@ void reset_stdout(epoll_cb *cb) {
   data->stderr_fd = -1;
   free(data->port);
   //setvbuf(stdout, NULL, _IOLBF, 0);
-  log_info("reset stdout\n");
+  log_info("reset stdout");
 }
 
 void reset_reconnect(epoll_cb *cb) {
@@ -110,39 +110,43 @@ void init_log(char *port) {
 
 void err_fatal(const char *format, ...) {
   TIMESTAMP(ts);
-  printf("[%s] %s ***> %s\n", ts, NAME, strerror(errno));
+  printf("[%s ERROR] [node:%s] [%s]: ", ts, NAME, strerror(errno));
   va_list args;
   va_start(args, format);
   vfprintf(stdout, format, args);
   va_end(args);
+  printf("\n");
   exit(1);
 }
 
 void err_info(const char *format, ...) {
   TIMESTAMP(ts);
-  printf("[%s] %s ***> %s\n", ts, NAME, strerror(errno));
+  printf("[%s ERROR] [node:%s] [%s]: ", ts, NAME, strerror(errno));
   va_list args;
   va_start(args, format);
   vfprintf(stdout, format, args);
   va_end(args);
+  printf("\n");
 }
 
 void log_debug(const char *format, ...) {
   TIMESTAMP(ts);
   if (DEBUG_ENABLED) {
-    printf("[%s] %s -> ", ts, NAME);
+    printf("[%s] [node:%s] ", ts, NAME);
     va_list args;
     va_start(args, format);
     vfprintf(stdout, format, args);
     va_end(args);
+    printf("\n");
   }
 }
 
 void log_info(const char *format, ...) {
   TIMESTAMP(ts);
-  printf("[%s] %s -> ", ts, NAME);
+  printf("[%s] [node:%s] ", ts, NAME);
   va_list args;
   va_start(args, format);
   vfprintf(stdout, format, args);
   va_end(args);
+  printf("\n");
 }

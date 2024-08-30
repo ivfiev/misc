@@ -3,10 +3,6 @@ import os
 import sys
 import time
 
-times = dict()
-prev = None
-model = {'graph': dict(), 'dead': []}
-
 
 def read_lines():
     lines = []
@@ -18,16 +14,27 @@ def read_lines():
             return lines
 
 
+def get_val(line, key):
+    i = line.find(key)
+    if i > 0:
+        return line[i + len(key):line.find(']', i)]
+    return None
+
+
 def run():
-    global prev
+    times = dict()
+    prev = None
     os.set_blocking(sys.stdin.fileno(), False)
     while True:
+        model = {'graph': dict(), 'dead': []}
         changed = False
         lines = read_lines()
-        for (i, j) in zip(lines, lines[1:]):
-            if j.startswith('conn'):
-                node = i.split(' ')[1]
-                nodes = j.split(' ')[-1].split(',')
+        for line in lines:
+            if '<END_OF_SESSION>' in line:
+                times = dict()
+            if '[conn:' in line:
+                node = get_val(line, 'node:')
+                nodes = get_val(line, 'conn:').split(',')
                 model['graph'][node] = [] if '' in nodes else sorted(nodes)
                 times[node] = time.time()
                 changed = True

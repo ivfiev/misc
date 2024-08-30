@@ -1,6 +1,5 @@
 import selectors
 import socket
-import sys
 
 selector = selectors.EpollSelector()
 connected = set()
@@ -52,4 +51,4 @@ if __name__ == '__main__':
     try:
         run()
     except:
-        sys.stdout.flush()
+        print('<<END_OF_SESSION>>', flush=True)

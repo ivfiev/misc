@@ -29,7 +29,7 @@ ssize_t read2(epoll_cb *cb, char *buf) {
 }
 
 void close1(epoll_cb *cb) {
-  log_debug("closing fd [%d]\n", cb->fd);
+  log_debug("closing fd [%d]", cb->fd);
   if (cb->on_close != NULL) {
     cb->on_close(cb);
   }

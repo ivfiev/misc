@@ -17,8 +17,18 @@ def get_nodes(model):
     return sorted(list(s))
 
 
+def read_last_line():
+    lines = []
+    while True:
+        str = sys.stdin.readline()
+        if str:
+            lines.append(str.rstrip())
+        else:
+            return lines.pop() if lines else None
+
+
 def update(_):
-    line = sys.stdin.readline()
+    line = read_last_line()
     if not line:
         return
     model = json.loads(line)
