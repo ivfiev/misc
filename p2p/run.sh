@@ -11,7 +11,7 @@ start_p2p() {
     for i in {0..9}
     do
         port=$((8080 + i))
-        ./p2p "$port" --logs 1065 &
+        ./p2p "$port" & # --logs 1065 &
         echo "Started p2p instance on port $port"
         arg="$arg,$port"
     done
@@ -26,9 +26,9 @@ kill_p2p() {
     echo "Killed all p2p instances"
 }
 
-if [ "$1" != "-a" ] && [ -d "cmake-build-debug" ]; then
-    cd cmake-build-debug || exit
-    echo "Changed directory to cmake-build-debug"
+if [ "$1" != "-a" ] && [ -d "bin" ]; then
+    cd bin || exit
+    echo "Changed directory to bin"
 fi
 
 if [ "$1" == "-a" ]; then 

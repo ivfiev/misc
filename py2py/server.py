@@ -16,7 +16,7 @@ def accept(sock):
 
 def read(conn):
     try:
-        data = conn.recv(4096)
+        data = conn.recv(16384)
         if data:
             print(data.decode(), end='', flush=True)
         else:
@@ -37,7 +37,7 @@ def run():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((host, port))
-    sock.listen(128)
+    sock.listen(256)
     sock.setblocking(False)
     selector.register(sock, selectors.EVENT_READ, accept)
     while True:

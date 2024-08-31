@@ -9,7 +9,7 @@ extern int EPFD;
 
 char *NAME;
 static hashtable *peers;
-const int tick_ms = 10000;
+const int tick_ms = 500;
 
 epoll_cb *init_peer(int fd);
 
@@ -83,7 +83,7 @@ void exec_cmd(char *cmd, char **args, int argc, epoll_cb *cb) {
 
 void peer_EPOLLIN(epoll_cb *cb) {
   char *cmd, *cmd_r = NULL;
-  char *toks[128];
+  char *toks[1024];
   const char *delim_tok = ",";
   const char *delim_cmd = "\0";
   int i;

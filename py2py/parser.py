@@ -22,28 +22,32 @@ def get_val(line, key):
 
 
 def run():
+    graph = dict()
     times = dict()
     prev = None
     os.set_blocking(sys.stdin.fileno(), False)
     while True:
-        model = {'graph': dict(), 'dead': []}
+        errors = []
         changed = False
         lines = read_lines()
         for line in lines:
             if '<END_OF_SESSION>' in line:
                 times = dict()
-            if '[conn:' in line:
+            elif 'ERROR' in line:
+                errors.append(line)
+            elif '[conn:' in line:
                 node = get_val(line, 'node:')
                 nodes = get_val(line, 'conn:').split(',')
                 known = get_val(line, 'total:').split(',')
                 for n in known:
-                    if not model['graph'].get(n):
-                        model['graph'][n] = []
-                model['graph'][node] = [] if '' in nodes else sorted(nodes)
+                    if not graph.get(n):
+                        graph[n] = []
+                graph[node] = [] if '' in nodes else sorted(nodes)
                 times[node] = time.time()
                 changed = True
-        model['graph'] = dict(sorted(model['graph'].items()))
-        model['dead'] = [n for n, t in times.items() if time.time() - t > 10]
+        graph = dict(sorted(graph.items()))
+        dead = [n for n, t in times.items() if time.time() - t > 10]
+        model = {'graph': graph, 'dead': dead, 'errors': errors}
         new = json.dumps(model)
         if changed and new != prev:
             print(new, flush=True)
