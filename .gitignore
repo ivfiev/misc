@@ -7,3 +7,4 @@ ctf/output
 **/cmake-build-release
 py2py_logs
 p2p/notes
+__pycache__
