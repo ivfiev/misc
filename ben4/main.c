@@ -9,7 +9,7 @@
 #define number int
 
 volatile int FINISH;
-volatile atomic_int RESULT;
+atomic_int EVENTS;
 
 void *sleep10(void *arg) {
   sleep(10);
@@ -38,25 +38,25 @@ void *work(void *arg) {
     }
   }
   printf("%d\n", count);
-  RESULT += count;
+  atomic_fetch_add(&EVENTS, count);
   return NULL;
 }
 
 int main(int argc, char **argv) {
-  int THREADS = atoi(argv[1]);
+  int threads = atoi(argv[1]);
   pthread_t id;
-  pthread_t workers[24];
+  pthread_t workers[threads];
 
   pthread_create(&id, NULL, sleep10, NULL);
-  for (int i = 0; i < THREADS; i++) {
+  for (int i = 0; i < threads; i++) {
     pthread_create(workers + i, NULL, work, NULL);
   }
 
   pthread_join(id, NULL);
-  for (int i = 0; i < THREADS; i++) {
+  for (int i = 0; i < threads; i++) {
     pthread_join(workers[i], NULL);
   }
 
-  printf("Events: %d\n", RESULT);
+  printf("Events: %d\n", EVENTS);
   return 0;
 }
