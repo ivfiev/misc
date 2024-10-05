@@ -9,4 +9,7 @@ add_executable(xax src/main.c
         src/proc.c
         src/util.c
         include/util.h
-        include/proc.h)
+        include/proc.h
+        src/impl/train.c
+        src/scan.c
+        include/scan.h)
