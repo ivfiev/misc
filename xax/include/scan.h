@@ -19,14 +19,16 @@ union word64 {
     char *memory = blk->bytes;                                                                                            \
     size_t memory_size = blk->size;                                                                                            \
     uintptr_t base_addr = blk->base_addr;                                                                                   \
-    for (uintptr_t offset = 0; offset < memory_size - 7; offset++) {                                                           \
-      union word64 word = {                                                                                     \
-        .bytes = {memory[offset], memory[offset + 1], memory[offset + 2], memory[offset + 3],                     \
-                  memory[offset + 4], memory[offset + 5], memory[offset + 6], memory[offset + 7]} };                      \
+    for (uintptr_t offset = 0; offset < memory_size - 7; offset += 4) {                                                           \
+      union word64 word;    \
+      memcpy(word.bytes, memory + offset, 8); \
       filter                                                                                                          \
     }                                                                                                                 \
   } while (0)                                                                                                         \
 
 #define WORD_ADDR (base_addr + offset)
+#define WORD(memory, offset)                                                                                      \
+  { .bytes = {memory[offset], memory[offset + 1], memory[offset + 2], memory[offset + 3],                      \
+              memory[offset + 4], memory[offset + 5], memory[offset + 6], memory[offset + 7]} };               \
 
 #endif //XAX_SCAN_H
