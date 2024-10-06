@@ -14,12 +14,12 @@ int main(int argc, char **argv) {
   size_t dss = read_mem_desc(pid, ds, sizearr(ds));
   mem_desc *map = find_mem_desc("[stack]", ds, sizearr(ds));
   int fd = open_mem(pid);
-  size_t addr = 0x7ffd3707bbcc;
-  printf("%d %d\n", addr, map->start);
+  uintptr_t addr = 0x7ffd3707bbcc;
+  printf("%lu %lu\n", addr, map->start);
   write_mem(fd, addr, "ABCD", 4);
   mem_block *block = read_mem(fd, map->start, map->size);
 
-  SCAN(block, offsets, 16, {
+  SCAN(block, offsets, {
     ret = int32 == 0x44434241 || 123 < float32 && float32 < 124;
   });
 
