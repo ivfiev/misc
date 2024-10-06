@@ -1,7 +1,9 @@
 #ifndef XAX_UTIL_H
 #define XAX_UTIL_H
 
-#define sizearr(arr) (sizeof(arr) / sizeof((arr)[0]))
+#define SIZEARR(arr) (sizeof(arr) / sizeof((arr)[0]))
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
 
 void err_fatal(char *);
 

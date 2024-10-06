@@ -2,6 +2,7 @@
 #define XAX_SCAN_H
 
 #include <stdint.h>
+#include <stdlib.h>
 
 #define SCAN(block, results, filter) \
   size_t results##_arr_size = 128;                                                                                    \

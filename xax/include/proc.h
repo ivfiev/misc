@@ -2,6 +2,7 @@
 #define XAX_PROC_H
 
 #include <stdint.h>
+#include <stdlib.h>
 
 typedef struct {
   char name[128];

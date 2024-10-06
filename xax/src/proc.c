@@ -1,32 +1,30 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <util.h>
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <stdint.h>
 #include "proc.h"
+#include "util.h"
 
 pid_t get_pid(char *proc_name) {
   char buf[32], cmd[32];
-  snprintf(cmd, sizearr(cmd), "pgrep %s", proc_name);
-  run_cmd(cmd, buf, sizearr(buf));
+  snprintf(cmd, SIZEARR(cmd), "pgrep %s", proc_name);
+  run_cmd(cmd, buf, SIZEARR(buf));
   pid_t pid = (pid_t)strtol(buf, NULL, 10);
   return pid;
 }
 
 size_t read_mem_desc(pid_t pid, mem_desc ds[], size_t size) {
-  char buf[16 * 1024], cmd[128];
-  char *lines[64];
-  snprintf(cmd, sizearr(cmd), "cat /proc/%d/maps | awk '{print $1,$6}'", pid);
-  run_cmd(cmd, buf, sizearr(buf));
-  size_t count = strsplit(buf, "\n", lines, sizearr(lines));
+  char buf[128 * size], cmd[128];
+  char *lines[size];
+  snprintf(cmd, SIZEARR(cmd), "cat /proc/%d/maps | awk '{print $1,$6}'", pid);
+  run_cmd(cmd, buf, SIZEARR(buf));
+  size_t count = strsplit(buf, "\n", lines, SIZEARR(lines));
   int i;
-  for (i = 0; i < count && i < size; i++) {
+  for (i = 0; i < MIN(count, size); i++) {
     char *words[2], *hexes[2];
-    strsplit(lines[i], " ", words, sizearr(words));
-    strsplit(words[0], "-", hexes, sizearr(hexes));
-    strncpy(ds[i].name, words[1], sizearr(ds->name));
+    strsplit(lines[i], " ", words, SIZEARR(words));
+    strsplit(words[0], "-", hexes, SIZEARR(hexes));
+    strncpy(ds[i].name, words[1], SIZEARR(ds->name));
     uintptr_t start = strtoull(hexes[0], NULL, 16);
     uintptr_t end = strtoull(hexes[1], NULL, 16);
     ds[i].start = start;
@@ -37,7 +35,7 @@ size_t read_mem_desc(pid_t pid, mem_desc ds[], size_t size) {
 
 mem_desc *find_mem_desc(char *key, mem_desc ds[], size_t size) {
   for (int i = 0; i < size; i++) {
-    if (!strncmp(key, ds[i].name, sizearr(ds->name))) {
+    if (strcasestr(ds[i].name, key)) {
       return &ds[i];
     }
   }
@@ -46,7 +44,7 @@ mem_desc *find_mem_desc(char *key, mem_desc ds[], size_t size) {
 
 int open_mem(pid_t pid) {
   char path[32];
-  snprintf(path, sizearr(path), "/proc/%d/mem", pid);
+  snprintf(path, SIZEARR(path), "/proc/%d/mem", pid);
   int fd = open(path, O_RDWR);
   return fd;
 }
