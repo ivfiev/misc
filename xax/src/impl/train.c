@@ -13,13 +13,21 @@ static void run() {
   int fd = open_mem(pid);
   mem_block *block = read_mem(fd, desc->start, desc->size);
 
-  SCAN(block, offsets, {
-    ret = int32 == 0x7921 || 123 < float32 && float32 < 124;
+  SCAN(block, {
+    if (word.int32 == 0x7921) {
+      printf("%lx\n", WORD_ADDR);
+      union word64 new = {.int32 = 0x7922};
+      write_mem(fd, WORD_ADDR, new.bytes, 4);
+    }
+    if (word.int32 == 0x7922) {
+      printf("%lx\n", WORD_ADDR);
+      union word64 new = {.int32 = 0x7921};
+      write_mem(fd, WORD_ADDR, new.bytes, 4);
+    }
+    if (123 < word.float32 && word.float32 < 124) {
+      printf("%lx\n", WORD_ADDR);
+    }
   });
-
-  for (int i = 0; i < offsets_count; i++) {
-    printf("%zx\n", offsets[i]);
-  }
 
   free_mem(block);
   close_mem(fd);

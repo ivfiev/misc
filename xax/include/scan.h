@@ -4,30 +4,29 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#define SCAN(block, results, filter) \
-  size_t results##_arr_size = 128;                                                                                    \
-  uintptr_t results[results##_arr_size];                                                                               \
-  size_t results##_count = 0;                                                                                         \
+union word64 {
+  char bytes[8];
+  int int32;
+  float float32;
+  long long int64;
+  double float64;
+  uintptr_t ptr64;
+};
+
+#define SCAN(block, filter) \
   do {                                                                                                                \
     mem_block *blk = (block);                                                                                         \
-    char *mem = blk->bytes;                                                                                            \
-    size_t ml = blk->size;                                                                                            \
-    uintptr_t base = blk->base_addr;                                                                                   \
-    for (uintptr_t offset = 0; offset < ml - 3 && results##_count < results##_arr_size; offset++) {                       \
-      uint word32 = (mem[offset] << 24) | (mem[offset + 1] << 16) | (mem[offset + 2] << 8) | mem[offset + 3];          \
-      uint int32 = ile(word32);                                                                                       \
-      float float32 = fle(word32);                                                                                    \
-      int ret = 0;                                                                                                    \
+    char *memory = blk->bytes;                                                                                            \
+    size_t memory_size = blk->size;                                                                                            \
+    uintptr_t base_addr = blk->base_addr;                                                                                   \
+    for (uintptr_t offset = 0; offset < memory_size - 7; offset++) {                                                           \
+      union word64 word = {                                                                                     \
+        .bytes = {memory[offset], memory[offset + 1], memory[offset + 2], memory[offset + 3],                     \
+                  memory[offset + 4], memory[offset + 5], memory[offset + 6], memory[offset + 7]} };                      \
       filter                                                                                                          \
-      if (ret) {                                                                                                      \
-        results[results##_count++] = base + offset;                                                                    \
-      }                                                                                                               \
     }                                                                                                                 \
   } while (0)                                                                                                         \
 
-
-int ile(uint word32);
-
-float fle(uint word32);
+#define WORD_ADDR (base_addr + offset)
 
 #endif //XAX_SCAN_H

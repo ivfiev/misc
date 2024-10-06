@@ -11,5 +11,4 @@ add_executable(xax src/main.c
         include/util.h
         include/proc.h
         src/impl/train.c
-        src/scan.c
         include/scan.h)
