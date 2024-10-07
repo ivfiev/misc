@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <malloc.h>
 #include <stdlib.h>
 
 struct player {

@@ -4,6 +4,7 @@
 #include "proc.h"
 #include "util.h"
 #include "scan.h"
+#include "args.h"
 
 extern void add_impl(char *, void (*impl)());
 
@@ -11,7 +12,7 @@ static char *MAPS[] = {"heap", "stack"};
 
 static void run() {
   mem_desc ds[32];
-  pid_t pid = get_pid("xax_train");
+  pid_t pid = get_pid("sample");
   size_t ds_count = read_mem_desc(pid, ds, SIZEARR(ds));
   int fd = open_mem(pid);
 
@@ -39,5 +40,5 @@ static void run() {
 
 __attribute__((constructor))
 void init(void) {
-  add_impl("xax_train", run);
+  args_add("sample", run);
 }
