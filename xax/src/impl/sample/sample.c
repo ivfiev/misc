@@ -14,7 +14,7 @@ int main(void) {
 
   struct player *p = malloc(sizeof(struct player));
   p->x = 0;
-  float mul = 1;
+  int mul = 1;
 
   for (;;) {
     printf("%p %x\n", &local, local);

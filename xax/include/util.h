@@ -4,6 +4,10 @@
 #define SIZEARR(arr) (sizeof(arr) / sizeof((arr)[0]))
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
+#define ABS(x) ((x) < 0 ? (-(x)) : (x))
+#define FLOAT_EQ(x, y) (ABS((x) - (y)) < 1e-6)
+#define FLOAT_DIFF(x, y, z) (ABS((x) - (y)) >= z)
+#define IN_RANGE(a, x, b) ((a) <= (x) && (x) <= (b))
 
 void err_fatal(char *);
 
