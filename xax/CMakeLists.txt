@@ -15,4 +15,6 @@ add_executable(xax src/main.c
         include/hashtable.h
         src/hashtable.c
         src/args.c
-        include/args.h)
+        include/args.h
+        src/impl/h3sod.c
+        src/impl/cli.c)

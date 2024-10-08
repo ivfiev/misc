@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
 
 union word64 {
   char bytes[8];
@@ -27,8 +28,5 @@ union word64 {
   } while (0)                                                                                                         \
 
 #define WORD_ADDR (base_addr + offset)
-#define WORD(memory, offset)                                                                                      \
-  { .bytes = {memory[offset], memory[offset + 1], memory[offset + 2], memory[offset + 3],                      \
-              memory[offset + 4], memory[offset + 5], memory[offset + 6], memory[offset + 7]} };               \
 
 #endif //XAX_SCAN_H

@@ -9,6 +9,8 @@
 #define FLOAT_DIFF(x, y, z) (ABS((x) - (y)) >= z)
 #define IN_RANGE(a, x, b) ((a) <= (x) && (x) <= (b))
 
+#define ERROR_FATAL(msg) err_fatal("%s at %s:%d", msg, __FILE_NAME__, __LINE__)
+
 void err_fatal(char *);
 
 size_t read_all(int fd, char buf[], size_t size);

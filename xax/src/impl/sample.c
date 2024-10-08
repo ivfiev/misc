@@ -65,13 +65,6 @@ static void run() {
     sleep(1);
   }
 
-//  for (int i = 0; i < ADDR_INFO->len; i++) {
-//    addr_info *info = hash_getv(ADDR_INFO, keys[i]).ptr;
-//    printf("%lx %.24f %f %f %f\n", keys[i].uint64, info->history[0], info->history[1], info->history[2],
-//           info->history[3]);
-//    printf("%d %d\n", FLOAT_EQ(info->history[0], 0), info->history[0] == 0);
-//  }
-
   for (int i = 0; i < ADDR_INFO->len; i++) {
     addr_info *info = hash_getv(ADDR_INFO, KV(.uint64=keys[i].uint64)).ptr;
     int j;
@@ -95,6 +88,6 @@ static void run() {
 }
 
 __attribute__((constructor))
-void init(void) {
+static void init(void) {
   args_add("sample", run);
 }

@@ -14,7 +14,7 @@ pid_t get_pid(char *proc_name) {
 }
 
 size_t read_mem_desc(pid_t pid, mem_desc ds[], size_t size) {
-  char buf[128 * size], cmd[128];
+  char buf[256 * size], cmd[128];
   char *lines[size];
   snprintf(cmd, SIZEARR(cmd), "cat /proc/%d/maps | awk '{print $1,$6}'", pid);
   run_cmd(cmd, buf, SIZEARR(buf));
@@ -24,7 +24,11 @@ size_t read_mem_desc(pid_t pid, mem_desc ds[], size_t size) {
     char *words[2], *hexes[2];
     strsplit(lines[i], " ", words, SIZEARR(words));
     strsplit(words[0], "-", hexes, SIZEARR(hexes));
-    strncpy(ds[i].name, words[1], SIZEARR(ds->name));
+    if (words[1] != NULL) {
+      strncpy(ds[i].name, words[1], SIZEARR(ds->name));
+    } else {
+      strncpy(ds[i].name, "NULL", SIZEARR(ds->name));
+    }
     uintptr_t start = strtoull(hexes[0], NULL, 16);
     uintptr_t end = strtoull(hexes[1], NULL, 16);
     ds[i].start = start;
@@ -33,13 +37,13 @@ size_t read_mem_desc(pid_t pid, mem_desc ds[], size_t size) {
   return i;
 }
 
-mem_desc *find_mem_desc(char *key, mem_desc ds[], size_t size) {
+int find_mem_desc(char *key, mem_desc ds[], size_t size) {
   for (int i = 0; i < size; i++) {
     if (strcasestr(ds[i].name, key)) {
-      return &ds[i];
+      return i;
     }
   }
-  return NULL;
+  return -1;
 }
 
 int open_mem(pid_t pid) {
