@@ -42,8 +42,9 @@ static void run() {
   int fd = open_mem(pid);
 
   for (int i = 0; i < SIZEARR(MAPS); i++) {
-    mem_desc *desc = find_mem_desc(MAPS[i], ds, ds_count);
-    mem_block *block = read_mem(fd, desc->start, desc->size);
+    int desc_ix = find_mem_desc(MAPS[i], ds, ds_count);
+    mem_desc desc = ds[desc_ix];
+    mem_block *block = read_mem_block(fd, desc.start, desc.size);
     filter(block);
     free_mem(block);
   }
@@ -52,8 +53,9 @@ static void run() {
 
   for (int j = 0; j < 3; j++) {
     for (int i = 0; i < SIZEARR(MAPS); i++) {
-      mem_desc *desc = find_mem_desc(MAPS[i], ds, ds_count);
-      mem_block *block = read_mem(fd, desc->start, desc->size);
+      int desc_ix = find_mem_desc(MAPS[i], ds, ds_count);
+      mem_desc desc = ds[desc_ix];
+      mem_block *block = read_mem_block(fd, desc.start, desc.size);
       SCAN(block, {
         kv k = KV(.uint64 = WORD_ADDR);
         if (hash_hask(ADDR_INFO, k)) {
