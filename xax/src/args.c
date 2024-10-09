@@ -1,6 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "hashtable.h"
+#include "util.h"
 
 static hashtable *ARGS;
 
@@ -16,11 +17,18 @@ void args_add(char *key, void *val) {
 }
 
 char *args_get(char *key) {
-  return hash_getv(ARGS, KV(.str = key)).str;
+  char *val = hash_getv(ARGS, KV(.str = key)).str;
+  if (val == NULL) {
+    printf("arg %s is null\n", key);
+  }
+  return val != NULL ? val : "";
 }
 
 void args_exec(char *key) {
   kv v = hash_getv(ARGS, KV(.str=key));
+  if (v.ptr == NULL) {
+    err_fatal("invalid key!");
+  }
   ((void (*)(void))v.ptr)();
 }
 

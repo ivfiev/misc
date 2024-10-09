@@ -6,15 +6,25 @@
 #include "util.h"
 #include "proc.h"
 
-static union word64 parse_value(char *val) {
+#define OPEN_MEM(proc_name) \
+  pid_t pid= get_pid(proc_name); \
+  if (pid <= 0) { \
+    err_fatal("pid"); \
+  } \
+  int fd = open_mem(pid); \
+
+
+static int use_stdin(void) {
+  return !strcmp("--stdin", args_get("arg2"));
+}
+
+static union word64 parse_value(char *val_str) {
   char *end = NULL;
   union word64 ret;
-  if (strstr(val, ".")) {
-    float f32 = (float)strtod(val, &end);
-    ret.float32 = f32;
+  if (strstr(val_str, ".")) {
+    ret.float32 = (float)strtod(val_str, &end);
   } else {
-    int i32 = (int)strtol(val, &end, 10);
-    ret.int32 = i32;
+    ret.int32 = (int)strtol(val_str, &end, 10);
   }
   if (*end != 0) {
     err_fatal("parse_value");
@@ -22,35 +32,70 @@ static union word64 parse_value(char *val) {
   return ret;
 }
 
-void equal32(void) {
-  char *proc_name = args_get("arg0");
-  char *value_str = args_get("arg1");
-  union word64 needle = parse_value(value_str);
-  // macro this
-  mem_desc ds[1024];
-  pid_t pid = get_pid(proc_name);
-  if (pid <= 0) {
-    err_fatal("pid");
+static uintptr_t parse_addr(char *addr_str) {
+  char *end = NULL;
+  uintptr_t addr = strtoull(addr_str, &end, 16);
+  if (*end != 0) {
+    err_fatal("parse_value");
   }
-  size_t ds_count = read_mem_desc(pid, ds, SIZEARR(ds));
-  int fd = open_mem(pid);
+  return addr;
+}
 
-  for (int i = 0; i < ds_count; i++) {
+static void equal32_full_scan(union word64 needle, int fd, mem_desc ds[], size_t ds_size) {
+  for (int i = 0; i < ds_size; i++) {
     mem_desc desc = ds[i];
-    mem_block *block = read_mem(fd, desc.start, desc.size);
+    mem_block *block = read_mem_block(fd, desc.start, desc.size);
     SCAN(block, {
       if (word.int32 == needle.int32) {
-        printf("%d %lx %lx\n", i, WORD_ADDR, offset);
+        printf("%d 0x%lx 0x%lx\n", i, WORD_ADDR, offset);
       }
     });
   }
 }
 
-void set32(void) {
+static void equal32_stdin_scan(union word64 needle, int fd) {
+  char line[128];
+  while ((fgets(line, SIZEARR(line), stdin) != NULL)) {
+    union word64 word;
+    int ix;
+    uintptr_t word_addr, offset;
+    if (sscanf(line, "%d %lx %lx", &ix, &word_addr, &offset) == 3) {
+      read_mem_bytes(fd, word_addr, word.bytes, 4);
+      if (word.int32 == needle.int32) {
+        printf("%d 0x%lx 0x%lx\n", ix, word_addr, offset);
+      }
+    } else {
+      printf("bad input: %s\n", line);
+    }
+  }
+}
 
+void equal32(void) {
+  char *proc_name = args_get("arg0");
+  char *value_str = args_get("arg1");
+  union word64 needle = parse_value(value_str);
+  OPEN_MEM(proc_name);
+  if (use_stdin()) {
+    equal32_stdin_scan(needle, fd);
+  } else {
+    mem_desc ds[1024];
+    size_t ds_size = read_mem_desc(pid, ds, SIZEARR(ds));
+    equal32_full_scan(needle, fd, ds, ds_size);
+  }
+}
+
+void set32(void) {
+  char *proc_name = args_get("arg0");
+  char *addr_str = args_get("arg1");
+  char *value_str = args_get("arg2");
+  OPEN_MEM(proc_name);
+  uintptr_t addr = parse_addr(addr_str);
+  union word64 value = parse_value(value_str);
+  write_mem(fd, addr, value.bytes, 4);
 }
 
 __attribute__((constructor))
 static void init(void) {
   args_add("equal32", equal32);
+  args_add("set32", set32);
 }

@@ -20,7 +20,7 @@ static void run(void) {
 //  write_mem(fd, addr, (union word64){.int32=9999999}.bytes, 4);
   for (int i = 0; i < ds_count - 1; i++) {
     mem_desc *desc = ds + i;
-    mem_block *block = read_mem(fd, desc->start, desc->size);
+    mem_block *block = read_mem_block(fd, desc->start, desc->size);
     SCAN(block, {
       if (word.int32 == 14675) {
         printf("%s -> %lx, %lx\n", desc->name, WORD_ADDR, offset);
@@ -32,7 +32,7 @@ static void run(void) {
   sleep(10);
   for (int i = 0; i < ds_count - 1; i++) {
     mem_desc *desc = ds + i;
-    mem_block *block = read_mem(fd, desc->start, desc->size);
+    mem_block *block = read_mem_block(fd, desc->start, desc->size);
     SCAN(block, {
       if (word.int32 == 14700) {
         printf("%s -> %lx, %lx\n", desc->name, WORD_ADDR, offset);
