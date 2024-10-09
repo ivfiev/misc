@@ -53,7 +53,7 @@ int open_mem(pid_t pid) {
   return fd;
 }
 
-mem_block *read_mem(int fd, uintptr_t addr, size_t size) {
+mem_block *read_mem_block(int fd, uintptr_t addr, size_t size) {
   mem_block *mem = malloc(sizeof(mem_block));
   mem->bytes = calloc(size, sizeof(char));
   lseek(fd, (off_t)addr, SEEK_SET);
@@ -61,6 +61,11 @@ mem_block *read_mem(int fd, uintptr_t addr, size_t size) {
   mem->base_addr = addr;
   mem->size = count;
   return mem;
+}
+
+size_t read_mem_bytes(int fd, uintptr_t addr, char buf[], size_t size) {
+  lseek(fd, (off_t)addr, SEEK_SET);
+  return read_all(fd, buf, size);
 }
 
 size_t write_mem(int fd, uintptr_t addr, char buf[], size_t size) {
