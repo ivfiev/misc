@@ -118,7 +118,6 @@ void info32(void) {
 }
 
 void ptr_scan32(void) {
-  size_t count2 = 0;
   char *proc_name = args_get("arg0");
   char *addr_str = args_get("arg1");
   uintptr_t addr = parse_addr(addr_str);
@@ -126,7 +125,6 @@ void ptr_scan32(void) {
   FOREACH_BLOCK({
     SCAN(block, {
       for (int step = 0; step <= 80; step += 4) {
-        count2++;
         if (word.ptr32 == addr - step && is_ptr32(word, ds, ds_size)) {
           printf("%d 0x%lx 0x%lx 0x%lx     [%s]\n", i, offset, WORD_ADDR, addr - step, ds[i].name);
         }
