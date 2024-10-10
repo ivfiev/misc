@@ -17,4 +17,6 @@ add_executable(xax src/main.c
         src/args.c
         include/args.h
         src/impl/h3sod.c
-        src/impl/cli32.c)
+        src/impl/cli32.c
+        src/scan.c
+)

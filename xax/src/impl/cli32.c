@@ -21,58 +21,13 @@
   float from = parse_value(from_str, FLOAT32_TYPE).float32; \
   float to = parse_value(to_str, FLOAT32_TYPE).float32                \
 
-// TODO delet?
-#define FOREACH_BLOCK(code) \
-  do {                          \
-  mem_desc ds[1024]; \
-  size_t ds_size = read_mem_desc(pid, ds, SIZEARR(ds));  \
-  for (int i = 0; i < ds_size - 3; i++) { \
-    mem_desc desc = ds[i]; \
-    mem_block *block = read_mem_block(fd, desc.start, desc.size); \
-    code \
-    free_mem(block); \
-  }                         \
-  } while (0)               \
-
 #define READ_DS(size) \
   mem_desc ds[size]; \
   size_t ds_size = read_mem_desc(pid, ds, SIZEARR(ds))
 
-#define INFER_TYPE 0
-#define FLOAT32_TYPE 1
-
 
 static int use_stdin(void) {
   return !strcmp("--stdin", args_get("arg2"));
-}
-
-static union word64 parse_value(char *val_str, int type) {
-  char *end = NULL;
-  union word64 ret;
-  if (type == INFER_TYPE) {
-    if (strstr(val_str, ".") != NULL) {
-      ret.float32 = (float)strtod(val_str, &end);
-    } else {
-      ret.int32 = (int)strtol(val_str, &end, 10);
-    }
-  } else {
-    if (type == FLOAT32_TYPE) {
-      ret.float32 = (float)strtod(val_str, &end);
-    }
-  }
-  if (end == NULL || *end != 0) {
-    err_fatal("parse_value");
-  }
-  return ret;
-}
-
-static uintptr_t parse_addr(char *addr_str) {
-  char *end = NULL;
-  uintptr_t addr = strtoull(addr_str, &end, 16);
-  if (*end != 0) {
-    err_fatal("parse_addr");
-  }
-  return addr;
 }
 
 void set32(void) {
@@ -128,6 +83,7 @@ void delta32(void) {
       printf("bad input: %s\n", line);
     }
   }
+  close_mem(fd);
 }
 
 void info32(void) {
@@ -138,10 +94,10 @@ void info32(void) {
   PARSE_RANGE();
   uintptr_t addr = parse_addr(addr_str);
   if (addr % 4 != 0) {
-    err_fatal("bad addrs");
+    err_fatal("bad addr");
   }
   READ_DS(1536);
-  for (uintptr_t ptr = addr + (int)from * 4; ptr <= addr + (int)to * 4; ptr += 4) {
+  for (uintptr_t ptr = addr + from * 4; ptr <= addr + to * 4; ptr += 4) {
     int off = 0;
     char line[128];
     union word64 word = {.int64 = 0};
@@ -168,6 +124,11 @@ void info32(void) {
     }
     printf("%s\n", line);
   }
+  close_mem(fd);
+}
+
+void ptr_scan32(void) {
+
 }
 
 __attribute__((constructor))

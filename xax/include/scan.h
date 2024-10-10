@@ -27,6 +27,25 @@ union word64 {
     }                                                                                                                 \
   } while (0)                                                                                                         \
 
+#define FOREACH_BLOCK(code) \
+  do {                          \
+  mem_desc ds[1024]; \
+  size_t ds_size = read_mem_desc(pid, ds, SIZEARR(ds));  \
+  for (int i = 0; i < ds_size - 3; i++) { \
+    mem_desc desc = ds[i]; \
+    mem_block *block = read_mem_block(fd, desc.start, desc.size); \
+    code \
+    free_mem(block); \
+  }                         \
+  } while (0)               \
+
 #define WORD_ADDR (base_addr + offset)
 
-#endif //XAX_SCAN_H
+#define INFER_TYPE 0
+#define FLOAT32_TYPE 1
+
+union word64 parse_value(char *val, int type);
+
+uintptr_t parse_addr(char *val);
+
+#endif
