@@ -28,6 +28,9 @@ uintptr_t parse_addr(char *addr_str) {
   if (*end != 0) {
     err_fatal("parse_addr");
   }
+  if (addr % 4 != 0) {
+    err_fatal("parse_addr % 4");
+  }
   return addr;
 }
 
@@ -39,9 +42,9 @@ int is_float32(union word64 word) {
   return IN_RANGE(-1000000.0, word.float32, 1000000.0);
 }
 
-int is_ptr(union word64 ptr, mem_desc ds[], size_t ds_size) {
+int is_ptr32(union word64 ptr, mem_desc ds[], size_t ds_size) {
   for (int i = 0; i < ds_size; i++) {
-    if (IN_RANGE(ds[i].start, ptr.ptr64, ds[i].start + ds[i].size)) {
+    if (IN_RANGE(ds[i].start, ptr.ptr32, ds[i].start + ds[i].size)) {
       return 1;
     }
   }

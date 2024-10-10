@@ -93,9 +93,6 @@ void info32(void) {
   OPEN_MEM(proc_name);
   PARSE_RANGE();
   uintptr_t addr = parse_addr(addr_str);
-  if (addr % 4 != 0) {
-    err_fatal("bad addr");
-  }
   READ_DS(1536);
   for (uintptr_t ptr = addr + from * 4; ptr <= addr + to * 4; ptr += 4) {
     int off = 0;
@@ -103,14 +100,14 @@ void info32(void) {
     union word64 word = {.int64 = 0};
     read_mem_bytes(fd, ptr, word.bytes, 4);
     off += snprintf(line, SIZEARR(line), "0x%lx  ", ptr);
-    if (is_int32(word)) {
-      off += snprintf(line + off, SIZEARR(line) - off, "Integer %d", word.int32);
+    if (is_ptr32(word, ds, ds_size)) {
+      off += snprintf(line + off, SIZEARR(line) - off, "Pointer  0x%lx", word.ptr64);
+    } else if (is_int32(word)) {
+      off += snprintf(line + off, SIZEARR(line) - off, "Integer  %d", word.int32);
     } else if (is_float32(word)) {
-      off += snprintf(line + off, SIZEARR(line) - off, "Float32 %f", word.float32);
-    } else if (is_ptr(word, ds, ds_size)) {
-      off += snprintf(line + off, SIZEARR(line) - off, "Pointer 0x%lx", word.ptr64);
+      off += snprintf(line + off, SIZEARR(line) - off, "Float32  %f", word.float32);
     } else {
-      off += snprintf(line + off, SIZEARR(line) - off, "Unknown %lx", word.ptr64);
+      off += snprintf(line + off, SIZEARR(line) - off, "Unknown  %lx", word.ptr64);
     }
     if (ptr == addr) {
       snprintf(line + off, SIZEARR(line) - off, "  -----");
@@ -121,7 +118,22 @@ void info32(void) {
 }
 
 void ptr_scan32(void) {
-
+  size_t count2 = 0;
+  char *proc_name = args_get("arg0");
+  char *addr_str = args_get("arg1");
+  uintptr_t addr = parse_addr(addr_str);
+  OPEN_MEM(proc_name);
+  FOREACH_BLOCK({
+    SCAN(block, {
+      for (int step = 0; step <= 80; step += 4) {
+        count2++;
+        if (word.ptr32 == addr - step && is_ptr32(word, ds, ds_size)) {
+          printf("%d 0x%lx 0x%lx 0x%lx     [%s]\n", i, offset, WORD_ADDR, addr - step, ds[i].name);
+        }
+      }
+    });
+  });
+  close_mem(fd);
 }
 
 __attribute__((constructor))
@@ -130,4 +142,5 @@ static void init(void) {
   args_add("range32", range32);
   args_add("delta32", delta32);
   args_add("info32", info32);
+  args_add("ptr_scan32", ptr_scan32);
 }

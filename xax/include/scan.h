@@ -12,6 +12,7 @@ union word64 {
   float float32;
   long long int64;
   double float64;
+  uint32_t ptr32;
   uintptr_t ptr64;
 };
 
@@ -30,7 +31,7 @@ union word64 {
 
 #define FOREACH_BLOCK(code) \
   do {                          \
-  mem_desc ds[1024]; \
+  mem_desc ds[1536]; \
   size_t ds_size = read_mem_desc(pid, ds, SIZEARR(ds));  \
   for (int i = 0; i < ds_size - 3; i++) { \
     mem_desc desc = ds[i]; \
@@ -53,6 +54,6 @@ int is_int32(union word64 word);
 
 int is_float32(union word64 word);
 
-int is_ptr(union word64 ptr, mem_desc ds[], size_t ds_size);
+int is_ptr32(union word64 ptr, mem_desc ds[], size_t ds_size);
 
 #endif

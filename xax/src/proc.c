@@ -21,7 +21,8 @@ size_t read_mem_desc(pid_t pid, mem_desc ds[], size_t size) {
   size_t count = strsplit(buf, "\n", lines, SIZEARR(lines));
   int i;
   for (i = 0; i < MIN(count, size); i++) {
-    char *words[2], *hexes[2];
+    char *words[] = {NULL, NULL};
+    char *hexes[] = {NULL, NULL};
     strsplit(lines[i], " ", words, SIZEARR(words));
     strsplit(words[0], "-", hexes, SIZEARR(hexes));
     if (words[1] != NULL) {
