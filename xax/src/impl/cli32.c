@@ -103,21 +103,14 @@ void info32(void) {
     union word64 word = {.int64 = 0};
     read_mem_bytes(fd, ptr, word.bytes, 4);
     off += snprintf(line, SIZEARR(line), "0x%lx  ", ptr);
-    if (IN_RANGE(-10000000, word.int32, 10000000)) {
+    if (is_int32(word)) {
       off += snprintf(line + off, SIZEARR(line) - off, "Integer %d", word.int32);
-    } else if (IN_RANGE(-1000000.0, word.float32, 1000000.0)) {
+    } else if (is_float32(word)) {
       off += snprintf(line + off, SIZEARR(line) - off, "Float32 %f", word.float32);
+    } else if (is_ptr(word, ds, ds_size)) {
+      off += snprintf(line + off, SIZEARR(line) - off, "Pointer 0x%lx", word.ptr64);
     } else {
-      int i;
-      for (i = 0; i < ds_size; i++) {
-        if (IN_RANGE(ds[i].start, word.ptr64, ds[i].start + ds[i].size)) {
-          off += snprintf(line + off, SIZEARR(line) - off, "Pointer 0x%lx", word.ptr64);
-          break;
-        }
-      }
-      if (i == ds_size) {
-        off += snprintf(line + off, SIZEARR(line) - off, "Unknown %lx", word.ptr64);
-      }
+      off += snprintf(line + off, SIZEARR(line) - off, "Unknown %lx", word.ptr64);
     }
     if (ptr == addr) {
       snprintf(line + off, SIZEARR(line) - off, "  -----");

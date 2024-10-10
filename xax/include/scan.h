@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "proc.h"
 
 union word64 {
   char bytes[8];
@@ -47,5 +48,11 @@ union word64 {
 union word64 parse_value(char *val, int type);
 
 uintptr_t parse_addr(char *val);
+
+int is_int32(union word64 word);
+
+int is_float32(union word64 word);
+
+int is_ptr(union word64 ptr, mem_desc ds[], size_t ds_size);
 
 #endif
