@@ -5,26 +5,7 @@
 #include "scan.h"
 #include "util.h"
 #include "proc.h"
-
-#define OPEN_MEM(proc_name) \
-  pid_t pid = get_pid(proc_name); \
-  if (pid <= 0) { \
-    err_fatal("pid"); \
-  } \
-  int fd = open_mem(pid)   \
-
-#define PARSE_RANGE() \
-  char from_str[16], to_str[16]; \
-  if (sscanf(range_str, "(%15[^,],%15[^)])", from_str, to_str) != 2) { \
-    err_fatal("bad range32 input"); \
-  } \
-  float from = parse_value(from_str, FLOAT32_TYPE).float32; \
-  float to = parse_value(to_str, FLOAT32_TYPE).float32                \
-
-#define READ_DS(size) \
-  mem_desc ds[size]; \
-  size_t ds_size = read_mem_desc(pid, ds, SIZEARR(ds))
-
+#include "impl.h"
 
 static int use_stdin(void) {
   return !strcmp("--stdin", args_get("arg2"));
@@ -124,14 +105,16 @@ void ptr_scan32(void) {
   OPEN_MEM(proc_name);
   FOREACH_BLOCK({
     SCAN(block, {
-      for (int step = 0; step <= 80; step += 4) {
+      for (uintptr_t step = 0; step <= 100; step += 4) {
         if (word.ptr32 == addr - step && is_ptr32(word, ds, ds_size)) {
-          printf("%d 0x%lx 0x%lx 0x%lx     [%s]\n", i, offset, WORD_ADDR, addr - step, ds[i].name);
+          printf("[%d:0x%lx] [0x%lx] -> [0x%lx+0x%lx]    [str:%s]\n", i, offset, WORD_ADDR, addr - step, step,
+            ds[i].name);
         }
       }
     });
   });
   close_mem(fd);
+  puts("");
 }
 
 __attribute__((constructor))
