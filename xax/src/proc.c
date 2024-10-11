@@ -58,13 +58,19 @@ mem_block *read_mem_block(int fd, uintptr_t addr, size_t size) {
   mem_block *mem = malloc(sizeof(mem_block));
   mem->bytes = calloc(size, sizeof(char));
   lseek(fd, (off_t)addr, SEEK_SET);
-  size_t count = read_all(fd, mem->bytes, size);
-  mem->base_addr = addr;
-  mem->size = count;
+  ssize_t count = read_all(fd, mem->bytes, size);
+  if (count <= 0) {
+    fprintf(stderr, "failed to read block 0x%lx\n", addr);
+    mem->base_addr = addr;
+    mem->size = 0;
+  } else {
+    mem->base_addr = addr;
+    mem->size = count;
+  }
   return mem;
 }
 
-size_t read_mem_bytes(int fd, uintptr_t addr, char buf[], size_t size) {
+ssize_t read_mem_bytes(int fd, uintptr_t addr, char buf[], size_t size) {
   lseek(fd, (off_t)addr, SEEK_SET);
   return read_all(fd, buf, size);
 }

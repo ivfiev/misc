@@ -9,13 +9,14 @@ void err_fatal(char *s) {
   exit(1);
 }
 
-size_t read_all(int fd, char buf[], size_t size) {
+ssize_t read_all(int fd, char buf[], size_t size) {
   size_t total = 0;
   ssize_t bytes;
   do {
     bytes = read(fd, buf + total, size - total);
     if (bytes < 0) {
-      err_fatal(strerror(errno));
+      fprintf(stderr, "%s\n", strerror(errno));
+      return -1;
     }
     total += bytes;
   } while (bytes > 0);
@@ -28,10 +29,11 @@ size_t run_cmd(char *cmd, char buf[], size_t size) {
     err_fatal(cmd);
   }
   int fd = fileno(fp);
-  size_t total = read_all(fd, buf, size - 1);
-  if (total > 0) {
-    buf[total] = 0;
+  ssize_t total = read_all(fd, buf, size - 1);
+  if (total <= 0) {
+    err_fatal(cmd);
   }
+  buf[total] = 0;
   fclose(fp);
   return total;
 }

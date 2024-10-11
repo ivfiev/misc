@@ -26,7 +26,7 @@ int open_mem(pid_t pid);
 
 mem_block *read_mem_block(int fd, uintptr_t addr, size_t size);
 
-size_t read_mem_bytes(int fd, uintptr_t addr, char buf[], size_t size);
+ssize_t read_mem_bytes(int fd, uintptr_t addr, char buf[], size_t size);
 
 size_t write_mem(int fd, uintptr_t addr, char buf[], size_t size);
 

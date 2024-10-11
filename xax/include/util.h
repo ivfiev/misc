@@ -13,7 +13,7 @@
 
 void err_fatal(char *);
 
-size_t read_all(int fd, char buf[], size_t size);
+ssize_t read_all(int fd, char buf[], size_t size);
 
 size_t run_cmd(char *cmd, char buf[], size_t size);
 
