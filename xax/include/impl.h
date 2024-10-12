@@ -11,7 +11,7 @@
 #define PARSE_RANGE() \
   char from_str[16], to_str[16]; \
   if (sscanf(range_str, "(%15[^,],%15[^)])", from_str, to_str) != 2) { \
-    err_fatal("bad range32 input"); \
+    err_fatal("bad range input"); \
   } \
   float from = parse_value(from_str, FLOAT32_TYPE).float32; \
   float to = parse_value(to_str, FLOAT32_TYPE).float32                \

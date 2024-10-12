@@ -50,3 +50,12 @@ int is_ptr32(union word64 ptr, mem_desc ds[], size_t ds_size) {
   }
   return 0;
 }
+
+int is_ptr64(union word64 ptr, mem_desc ds[], size_t ds_size) {
+  for (int i = 0; i < ds_size; i++) {
+    if (IN_RANGE(ds[i].start, ptr.ptr64, ds[i].start + ds[i].size)) {
+      return 1;
+    }
+  }
+  return 0;
+}

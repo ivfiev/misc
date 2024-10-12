@@ -16,6 +16,11 @@ union word64 {
   uintptr_t ptr64;
 };
 
+union word32 {
+  char bytes[4];
+  float float32;
+};
+
 #define SCAN(block, filter) \
   do {                                                                                                                \
     mem_block *blk = (block);                                                                                         \
@@ -26,7 +31,7 @@ union word64 {
       break;                                \
     }                        \
     for (uintptr_t offset = 0; offset < memory_size - 7; offset += 4) {                                                           \
-      union word64 word;    \
+      union word64 word = {.int64 = 0};    \
       memcpy(word.bytes, memory + offset, 8); \
       filter                                                                                                          \
     }                                                                                                                 \
@@ -58,5 +63,7 @@ int is_int32(union word64 word);
 int is_float32(union word64 word);
 
 int is_ptr32(union word64 ptr, mem_desc ds[], size_t ds_size);
+
+int is_ptr64(union word64 ptr, mem_desc ds[], size_t ds_size);
 
 #endif

@@ -20,4 +20,6 @@ add_executable(xax src/main.c
         src/impl/cli32.c
         src/scan.c
         include/impl.h
+        src/impl/cli64.c
+        src/impl/rh.c
 )
