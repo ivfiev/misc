@@ -18,7 +18,9 @@ union word64 {
 
 union word32 {
   char bytes[4];
+  int int32;
   float float32;
+  uint32_t ptr;
 };
 
 #define SCAN(block, filter) \
