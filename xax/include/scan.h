@@ -18,6 +18,7 @@ union word64 {
 
 union word32 {
   char bytes[4];
+  short int16[2];
   int int32;
   float float32;
   uint32_t ptr;
