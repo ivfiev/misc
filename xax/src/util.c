@@ -5,7 +5,7 @@
 #include <errno.h>
 
 void err_fatal(char *s) {
-  printf("%s\n", s);
+  printf("%s\n%s\n", s, strerror(errno));
   exit(1);
 }
 

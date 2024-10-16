@@ -14,10 +14,11 @@ pid_t get_pid(char *proc_name) {
 }
 
 size_t read_mem_desc(pid_t pid, mem_desc ds[], size_t size) {
-  char buf[256 * size], cmd[128];
+  char buf[256 * size];
+  char cmd[128];
   char *lines[size];
   snprintf(cmd, SIZEARR(cmd), "cat /proc/%d/maps | awk '{print $1,$6}'", pid);
-  run_cmd(cmd, buf, SIZEARR(buf));
+  run_cmd(cmd, buf, 256 * size);
   size_t count = strsplit(buf, "\n", lines, SIZEARR(lines));
   int i;
   for (i = 0; i < MIN(count, size); i++) {
