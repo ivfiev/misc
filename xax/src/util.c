@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <ctype.h>
 
 void err_fatal(char *s) {
   printf("%s\n%s\n", s, strerror(errno));
@@ -20,6 +21,18 @@ ssize_t read_all(int fd, char buf[], size_t size) {
     }
     total += bytes;
   } while (bytes > 0);
+  return total;
+}
+
+ssize_t write_all(int fd, char buf[], size_t size) {
+  ssize_t total = 0;
+  do {
+    ssize_t written = write(fd, buf + total, size - total);
+    if (written <= 0) {
+      err_fatal("write");
+    }
+    total += written;
+  } while (total < size);
   return total;
 }
 
@@ -49,4 +62,11 @@ size_t strsplit(char *str, const char *sep, char **toks, size_t size) {
     }
   }
   return i;
+}
+
+void trim_end(char *str) {
+  char *ptr = str + strlen(str) - 1;
+  while (str <= ptr && isspace(*ptr)) {
+    *ptr-- = '\0';
+  }
 }

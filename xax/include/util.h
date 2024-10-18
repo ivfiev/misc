@@ -15,8 +15,12 @@ void err_fatal(char *);
 
 ssize_t read_all(int fd, char buf[], size_t size);
 
+ssize_t write_all(int fd, char buf[], size_t size);
+
 size_t run_cmd(char *cmd, char buf[], size_t size);
 
 size_t strsplit(char *str, const char *sep, char **toks, size_t size);
+
+void trim_end(char *str);
 
 #endif

@@ -34,18 +34,18 @@ union word32 {
       break;                                \
     }                        \
     for (uintptr_t offset = 0; offset < memory_size - 7; offset += 4) {                                                           \
-      union word64 word = {.int64 = 0};    \
+      union word64 word = {.int64 = 0};                                                                               \
       memcpy(word.bytes, memory + offset, 8); \
       filter                                                                                                          \
     }                                                                                                                 \
   } while (0)                                                                                                         \
 
-#define FOREACH_BLOCK(code) \
-  do {                          \
-  mem_desc ds[1536]; \
+#define FOREACH_BLOCK(start_ix, end_ix, code) \
+  do {                                        \
+  mem_desc ds[end_ix + 1]; \
   size_t ds_size = read_mem_desc(pid, ds, SIZEARR(ds)); \
-  for (int i = 0; i < ds_size; i++) { \
-    mem_desc desc = ds[i]; \
+  for (int i = start_ix; i <= end_ix && i < ds_size; i++) { \
+    mem_desc desc = ds[i];                    \
     mem_block *block = read_mem_block(fd, desc.start, desc.size); \
     code \
     free_mem(block); \

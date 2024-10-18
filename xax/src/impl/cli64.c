@@ -38,7 +38,7 @@ void range64(void) {
       }
     }
   } else {
-    FOREACH_BLOCK({
+    FOREACH_BLOCK(0, 1024, {
       SCAN(block, {
         if (IN_RANGE(from, (float)word.int64, to)) {
           printf("%d 0x%lx 0x%lx %d\n", i, WORD_ADDR, offset, word.int32);
@@ -118,7 +118,7 @@ void ptr_scan64(void) {
   char *addr_str = args_get("arg1");
   uintptr_t addr = parse_addr(addr_str);
   OPEN_MEM(proc_name);
-  FOREACH_BLOCK({
+  FOREACH_BLOCK(0, 1024, {
     SCAN(block, {
       for (uintptr_t step = 0; step <= 100; step += 4) {
         if (word.ptr64 == addr - step && is_ptr32(word, ds, ds_size)) {

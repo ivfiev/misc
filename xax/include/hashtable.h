@@ -6,6 +6,15 @@
 
 #define KV(def) ((kv) {def})
 
+#define FOREACH_KV(hash_tbl, code) \
+  kv *kvs = hash_keys(hash_tbl); \
+  for (int k_ix = 0; k_ix < hash_tbl->len; k_ix++) { \
+    kv key = kvs[k_ix];       \
+    kv val = hash_getv(hash_tbl, key);  \
+    code \
+  } \
+  free(kvs) \
+
 typedef union keyval_t {
   void *ptr;
   char *str;

@@ -9,15 +9,9 @@
 #define BLOCKS 4096
 
 int PATTERN[] = {176, 68, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 128, 63, -1,
-                 -1, 128, 63, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-                 -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-                 -1, -1, -1, -1, 1, -1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-                 128, 60, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-                 -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 128};
+                 -1, 128, 63};
 
 static void run(void) {
-  char c = 128;
-  printf("%d\n", (uint8_t)c);
   OPEN_MEM("cs2$");
 //  char buf[4000];
 //  read_mem_bytes(fd, 0x788cca148338 - 822, buf, 4000);
@@ -71,9 +65,11 @@ static void run(void) {
         int first_byte = j + 819;
         union word32 x_pos;
         union word32 y_pos;
+        union word32 angle;
         for (int n = 0; n < 4; n++) {
           x_pos.bytes[n] = bytes[first_byte + n];
           y_pos.bytes[n] = bytes[first_byte + n + 4];
+//          angle.bytes[n] = bytes[first_byte + n + 12];
         }
         printf("%f %f\n", x_pos.float32, y_pos.float32);
         return;
