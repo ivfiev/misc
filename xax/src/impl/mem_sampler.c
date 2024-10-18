@@ -50,13 +50,15 @@ static void samples_refine(int fd, hashtable *tbl, float target) {
 }
 
 static void samples_dump(char *filename, int mem_fd, hashtable *tbl) {
+  uint8_t byte_sample[SAMPLE_SIZE];
+  char byte_str[BYTE_STR_LEN];
   int file_fd = open(filename, O_WRONLY | O_CREAT | O_APPEND, 0666);
   FOREACH_KV(tbl, {
-    if (!sample_addr(mem_fd, key.uint64, ADDR_RANGE, BYTE_SAMPLE)) {
+    if (!sample_addr(mem_fd, key.uint64, SAMPLE_RADIUS, byte_sample)) {
       err_fatal("sample_addr");
     }
-    byteline(BYTE_STR, BYTE_SAMPLE, ADDR_LEN);
-    if (write_all(file_fd, BYTE_STR, BYTE_STR_LEN - 1) < BYTE_STR_LEN
+    byteline(byte_str, byte_sample, SAMPLE_SIZE);
+    if (write_all(file_fd, byte_str, BYTE_STR_LEN - 1) < BYTE_STR_LEN
         || write(file_fd, "\n", 1) <= 0) {
       puts("error writing");
     }

@@ -1,54 +1,112 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include "args.h"
+#include "util.h"
+#include "mem.h"
+#include "hashtable.h"
 
+char *FILENAMES[MAX_FILES];
+hashtable *BYTES[MAX_FILES];
 
+static int filenames(void) {
+  char key[8];
+  int i;
+  for (i = 0; i < SIZEARR(FILENAMES); i++) {
+    snprintf(key, 8, "arg%d", i);
+    char *filename = args_get(key);
+    if (!strcmp(filename, "")) {
+      break;
+    }
+    FILENAMES[i] = filename;
+  }
+  return i;
+}
 
-//static void compare(void) {
-//  int fd = open("bytes.txt", O_RDONLY);
-//  if (fd <= 0) {
-//    err_fatal("read");
-//  }
-//  ssize_t size = read(fd, FILEBUF, SIZEARR(FILEBUF));
-//  FILEBUF[size] = 0;
-//  size_t lines = strsplit(FILEBUF, "\n", LINE_STRS, 10);
-//  for (int i = 0; i < lines; i++) {
-//    size_t line_len = strsplit(LINE_STRS[i], " ", BYTE_STRS[i], ADDR_LEN);
-//    printf("Line %d with %zu bytes\n", i, line_len);
-//  }
-//  for (int i = 0; i < ADDR_LEN; i++) {
-//    int j;
-//    for (j = 0; j < lines - 1; j++) {
-//      if (!strcmp(BYTE_STRS[j][i], "00") || strcmp(BYTE_STRS[j][i], BYTE_STRS[j + 1][i])) {
-//        break;
-//      }
-//    }
-//    if (j == lines - 1) {
-//      printf("%d ", i);
-//    }
-//  }
-//  printf("\n");
-//}
-//
-//static void pattern(void) {
-//  char *indexes_str = args_get("arg0");
-//  char *indexes_strs[512];
-//  int fd = open("bytes.txt", O_RDONLY);
-//  if (fd <= 0) {
-//    err_fatal("read");
-//  }
-//  ssize_t size = read(fd, FILEBUF, SIZEARR(FILEBUF));
-//  FILEBUF[size] = 0;
-//  size_t lines = strsplit(FILEBUF, "\n", LINE_STRS, 10);
-//  strsplit(LINE_STRS[0], " ", BYTE_STRS[0], ADDR_LEN);
-//  size_t ixs = strsplit(indexes_str, " ", indexes_strs, SIZEARR(indexes_strs));
-//  for (int i = 0; i < ixs; i++) {
-//    int ix = (int)strtol(indexes_strs[i], NULL, 10);
-//    int byte = (uint8_t)strtol(BYTE_STRS[0][ix], NULL, 16);
-//    printf("%d, ", byte);
-//    if (i < ixs - 1) {
-//      int ix2 = (int)strtol(indexes_strs[i + 1], NULL, 10);
-//      for (int j = 0; j < ix2 - ix - 1; j++) {
-//        printf("-1, ");
-//      }
-//    }
-//  }
-//  printf("\n");
-//}
+void readfiles(void) {
+  char line_buf[32 * 1024];
+  char *byte_toks[SAMPLE_SIZE];
+  for (int file = 0; FILENAMES[file]; file++) {
+    BYTES[file] = hash_new(MAX_LINES, hash_int, hash_cmp_int);
+    FILE *fs = fopen(FILENAMES[file], "r");
+    for (int line = 0; fgets(line_buf, SIZEARR(line_buf), fs); line++) {
+      size_t size = strsplit(line_buf, " ", byte_toks, SIZEARR(byte_toks));
+      uint8_t *bytes = calloc(size, sizeof(uint8_t));
+      hash_set(BYTES[file], KV(.int32 = line), KV(.ptr = bytes));
+      for (int i = 0; i < size; i++) {
+        uint8_t byte = (uint8_t)strtol(byte_toks[i], NULL, 16);
+        bytes[i] = byte;
+      }
+    }
+  }
+}
+
+static int CURR_LINE_IXS[16];
+static int MAX_SCORE;
+static int MAX_SCORE_LINE_IXS[16];
+
+int score(int depth) {
+  if (!BYTES[depth]) {
+    return -1;
+  }
+  int curr_score = 0, j = 1;
+  uint8_t *bytes[16];
+  for (int line = 0; line < BYTES[depth]->len; line++) {
+    CURR_LINE_IXS[depth] = line;
+    if (score(depth + 1) < 0) {
+      for (j = 0; j < depth; j++) {
+        bytes[j] = hash_getv(BYTES[j], KV(.int32 = CURR_LINE_IXS[j])).ptr;
+      }
+      for (int i = 0; i < SAMPLE_SIZE; i++) {
+        for (j = 1; j < depth; j++) {
+          if (bytes[0][i] != bytes[j][i]) {
+            break;
+          }
+        }
+        if (j == depth) {
+          curr_score++;
+        }
+      }
+      if (curr_score > MAX_SCORE) {
+        MAX_SCORE = curr_score;
+        for (int i = 0; i <= depth; i++) {
+          MAX_SCORE_LINE_IXS[i] = CURR_LINE_IXS[i];
+        }
+      }
+    }
+  }
+  return curr_score;
+}
+
+void printsig(void) {
+  for (int i = 0; i < SAMPLE_SIZE; i++) {
+    int j;
+    uint8_t byte0, byte1;
+    for (j = 0; BYTES[j + 1]; j++) {
+      byte0 = ((uint8_t *)hash_getv(BYTES[j], KV(.int32 = MAX_SCORE_LINE_IXS[j])).ptr)[i];
+      byte1 = ((uint8_t *)hash_getv(BYTES[j + 1], KV(.int32 = MAX_SCORE_LINE_IXS[j + 1])).ptr)[i];
+      if (byte0 != byte1) {
+        break;
+      }
+    }
+    if (!BYTES[j + 1]) {
+      printf("%d ", byte0);
+    } else {
+      printf("-1 ");
+    }
+  }
+  puts("");
+}
+
+static void sigscan(void) {
+  filenames();
+  readfiles();
+  score(0);
+  printsig();
+}
+
+__attribute__((constructor))
+static void init(void) {
+  args_add("sigscan", sigscan);
+}
