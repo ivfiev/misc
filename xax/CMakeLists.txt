@@ -10,17 +10,16 @@ add_executable(xax src/main.c
         src/util.c
         include/util.h
         include/proc.h
-        src/impl/sample.c
         include/scan.h
         include/hashtable.h
         src/hashtable.c
         src/args.c
         include/args.h
         src/impl/h3sod.c
-        src/impl/cli32.c
         src/scan.c
         include/impl.h
-        src/impl/cli64.c
-        src/impl/rh.c
-        src/impl/memdump.c
+        src/impl/csrh.c
+        src/impl/mem_sampler.c
+        src/impl/mem_analysis.c
+        src/impl/mem.h
 )
