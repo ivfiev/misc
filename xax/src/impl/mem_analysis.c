@@ -1,11 +1,24 @@
 #include <stdio.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "args.h"
 #include "util.h"
 #include "mem.h"
 #include "hashtable.h"
+
+#define ZIP(arr1, arr2, new_arr_name, score_name) \
+  int new_arr_name[SAMPLE_SIZE];                  \
+  int score_name = 0;                                            \
+  do {                              \
+    for (int i = 0; i < SAMPLE_SIZE; i++) { \
+      if (arr1[i] == arr2[i] && arr1[i] > 0) { \
+        new_arr_name[i] = arr1[i];                \
+        score_name++;                                      \
+      } else {                                \
+        new_arr_name[i] = -1;                                        \
+      }\
+    }\
+  } while (0)                                  \
 
 char *FILENAMES[MAX_FILES];
 hashtable *BYTES[MAX_FILES];
@@ -32,85 +45,50 @@ void readfiles(void) {
     FILE *fs = fopen(FILENAMES[file], "r");
     for (int line = 0; fgets(line_buf, SIZEARR(line_buf), fs); line++) {
       size_t size = strsplit(line_buf, " ", byte_toks, SIZEARR(byte_toks));
-      uint8_t *bytes = calloc(size, sizeof(uint8_t));
+      int *bytes = calloc(size, sizeof(int));
       hash_set(BYTES[file], KV(.int32 = line), KV(.ptr = bytes));
       for (int i = 0; i < size; i++) {
-        uint8_t byte = (uint8_t)strtol(byte_toks[i], NULL, 16);
+        int byte = (int)strtol(byte_toks[i], NULL, 16);
         bytes[i] = byte;
       }
     }
   }
 }
 
-static int CURR_LINE_IXS[16];
-static int MAX_SCORE;
-static int MAX_SCORE_LINE_IXS[16];
-
-int score(int file) {
-  if (!BYTES[file]) {
-    return -1;
-  }
-  uint8_t *bytes[16];
-  for (int line = 0; line < BYTES[file]->len; line++) {
-    CURR_LINE_IXS[file] = line;
-    if (score(file + 1) < 0) {
-      int curr_score = 0, j = 1;
-      for (j = 0; j <= file; j++) {
-        bytes[j] = hash_getv(BYTES[j], KV(.int32 = CURR_LINE_IXS[j])).ptr;
-      }
-      for (int i = 0; i < SAMPLE_SIZE; i++) {
-        if (bytes[0][i] == 0) {
-          continue;
-        }
-        for (j = 1; j <= file; j++) {
-          if (bytes[0][i] != bytes[j][i]) {
-            break;
-          }
-        }
-        if (j > file) {
-          curr_score++;
-        }
-      }
-      if (curr_score > MAX_SCORE) {
-        MAX_SCORE = curr_score;
-        for (int i = 0; i <= file; i++) {
-          MAX_SCORE_LINE_IXS[i] = CURR_LINE_IXS[i];
-        }
-      }
-    }
-  }
-  return MAX_SCORE;
+int *get_row(int file_ix, int line_ix) {
+  return (int *)hash_getv(BYTES[file_ix], KV(.int32 = line_ix)).ptr;
 }
 
-void printsig(void) {
-  for (int i = 0; i < SAMPLE_SIZE; i++) {
-    int j;
-    uint8_t byte0, byte1;
-    for (j = 0; BYTES[j + 1]; j++) {
-      byte0 = ((uint8_t *)hash_getv(BYTES[j], KV(.int32 = MAX_SCORE_LINE_IXS[j])).ptr)[i];
-      byte1 = ((uint8_t *)hash_getv(BYTES[j + 1], KV(.int32 = MAX_SCORE_LINE_IXS[j + 1])).ptr)[i];
-      if (byte0 != byte1) {
-        break;
-      }
+static int MAX_SCORE;
+static int MAX_PATTERN[SAMPLE_SIZE];
+
+void max_pattern(int file_ix, int *curr_pattern, int curr_score) {
+  if (!BYTES[file_ix]) {
+    MAX_SCORE = curr_score;
+    memcpy(MAX_PATTERN, curr_pattern, sizeof(MAX_PATTERN));
+    return;
+  }
+  for (int line_ix = 0; line_ix < BYTES[file_ix]->len; line_ix++) {
+    int *row = get_row(file_ix, line_ix);
+    if (curr_pattern == NULL) {
+      max_pattern(file_ix + 1, row, -1);
+      continue;
     }
-    if (!BYTES[j + 1]) {
-      printf("%d ", byte0);
-    } else {
-      printf("-1 ");
+    ZIP(curr_pattern, row, new_pattern, new_score);
+    if (new_score > MAX_SCORE) {
+      max_pattern(file_ix + 1, new_pattern, new_score);
     }
   }
-  puts("");
 }
 
 static void sigscan(void) {
   filenames();
   readfiles();
-  score(0);
-  for (int i = 0; BYTES[i]; i++) {
-    printf("%d ", MAX_SCORE_LINE_IXS[i]);
+  max_pattern(0, NULL, -1);
+  for (int i = 0; i < SAMPLE_SIZE; i++) {
+    printf("%d ", MAX_PATTERN[i]);
   }
   puts("");
-  printsig();
 }
 
 __attribute__((constructor))
