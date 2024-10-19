@@ -46,37 +46,40 @@ static int CURR_LINE_IXS[16];
 static int MAX_SCORE;
 static int MAX_SCORE_LINE_IXS[16];
 
-int score(int depth) {
-  if (!BYTES[depth]) {
+int score(int file) {
+  if (!BYTES[file]) {
     return -1;
   }
-  int curr_score = 0, j = 1;
   uint8_t *bytes[16];
-  for (int line = 0; line < BYTES[depth]->len; line++) {
-    CURR_LINE_IXS[depth] = line;
-    if (score(depth + 1) < 0) {
-      for (j = 0; j < depth; j++) {
+  for (int line = 0; line < BYTES[file]->len; line++) {
+    CURR_LINE_IXS[file] = line;
+    if (score(file + 1) < 0) {
+      int curr_score = 0, j = 1;
+      for (j = 0; j <= file; j++) {
         bytes[j] = hash_getv(BYTES[j], KV(.int32 = CURR_LINE_IXS[j])).ptr;
       }
       for (int i = 0; i < SAMPLE_SIZE; i++) {
-        for (j = 1; j < depth; j++) {
+        if (bytes[0][i] == 0) {
+          continue;
+        }
+        for (j = 1; j <= file; j++) {
           if (bytes[0][i] != bytes[j][i]) {
             break;
           }
         }
-        if (j == depth) {
+        if (j > file) {
           curr_score++;
         }
       }
       if (curr_score > MAX_SCORE) {
         MAX_SCORE = curr_score;
-        for (int i = 0; i <= depth; i++) {
+        for (int i = 0; i <= file; i++) {
           MAX_SCORE_LINE_IXS[i] = CURR_LINE_IXS[i];
         }
       }
     }
   }
-  return curr_score;
+  return MAX_SCORE;
 }
 
 void printsig(void) {
@@ -103,6 +106,10 @@ static void sigscan(void) {
   filenames();
   readfiles();
   score(0);
+  for (int i = 0; BYTES[i]; i++) {
+    printf("%d ", MAX_SCORE_LINE_IXS[i]);
+  }
+  puts("");
   printsig();
 }
 
