@@ -7,8 +7,9 @@
 #define KV(def) ((kv) {def})
 
 #define FOREACH_KV(hash_tbl, code) \
-  kv *kvs = hash_keys(hash_tbl); \
-  for (int k_ix = 0; k_ix < hash_tbl->len; k_ix++) { \
+  kv *kvs = hash_keys(hash_tbl);   \
+  size_t tbl_len = hash_tbl->len;                                 \
+  for (int k_ix = 0; k_ix < tbl_len; k_ix++) { \
     kv key = kvs[k_ix];       \
     kv val = hash_getv(hash_tbl, key);  \
     code \

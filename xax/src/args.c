@@ -19,7 +19,7 @@ void args_add(char *key, void *val) {
 char *args_get(char *key) {
   char *val = hash_getv(ARGS, KV(.str = key)).str;
   if (val == NULL) {
-    printf("arg %s is null\n", key);
+    fprintf(stderr, "arg %s is null\n", key);
   }
   return val != NULL ? val : "";
 }

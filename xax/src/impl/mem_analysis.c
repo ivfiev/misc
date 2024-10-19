@@ -89,6 +89,7 @@ static void sigscan(void) {
     printf("%d ", MAX_PATTERN[i]);
   }
   puts("");
+  fprintf(stderr, "%d\n", MAX_SCORE); // meh
 }
 
 __attribute__((constructor))
