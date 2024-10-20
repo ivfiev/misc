@@ -59,7 +59,7 @@ static void samples_sieve(int fd, hashtable *tbl) {
   FOREACH_KV(tbl, {
     read_mem_bytes(fd, key.uint64, original.bytes, 4);
     write_mem(fd, key.uint64, test.bytes, 4);
-    usleep(100 * 1000);
+    usleep(80 * 1000);
     int changed = 0;
     for (int i = 0; i < tbl_len; i++) {
       if (kvs[i].uint64 == key.uint64) {
@@ -77,7 +77,7 @@ static void samples_sieve(int fd, hashtable *tbl) {
     } else {
       hash_del(tbl, key);
     }
-    usleep(5 * 1000);
+    usleep(20 * 1000);
   });
 }
 
@@ -98,13 +98,51 @@ static void samples_dump(char *filename, int mem_fd, hashtable *tbl) {
   close(file_fd);
 }
 
+static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl) {
+  const int byte_dist = 1024;
+  mem_block *bs[256];
+  read_mem_blocks(pid, mem_fd, bs, SIZEARR(bs));
+  FOREACH_KV(tbl, {
+    uintptr_t val_addr = key.uint64;
+    hashtable *visited = hash_new(256, hash_int, hash_cmp_int);
+    PTR_SCAN_START:
+    if (!hash_getv(visited, KV(.uint64 = val_addr)).int32) {
+      hash_set(visited, KV(.uint64 = val_addr), KV(.int32 = 1));
+      for (int i = 0; i <= byte_dist / 4; i++) {
+        uintptr_t addr = val_addr - i * 4;
+        for (int j = 0; j < SIZEARR(bs); j++) {
+          SCAN(bs[j], {
+            if (word.ptr64 == addr) {
+              printf("[0x%lx + 0x%x] <- [0x%lx] (0x%lx - 0x%lx = |0x%lx|)\n",
+                addr, i * 4, WORD_ADDR, addr, WORD_ADDR, MAX(addr, WORD_ADDR) - MIN(addr, WORD_ADDR));
+              val_addr = WORD_ADDR;
+              goto PTR_SCAN_START;
+            }
+          });
+        }
+      }
+    }
+    puts("---");
+    hash_free(visited);
+  });
+  for (int i = 0; i < SIZEARR(bs); i++) {
+    free_mem(bs[i]);
+  }
+}
+
+static void samples_add(int mem_fd, hashtable *tbl, uintptr_t addr) {
+  union word32 word;
+  read_mem_bytes(mem_fd, addr, word.bytes, 4);
+  hash_set(tbl, KV(.uint64 = addr), KV(.float32 = word.float32));
+}
+
 static void sampler(void) {
   char *proc_name = args_get("arg0");
   char *filename = args_get("arg1");
   char input[128];
   char *tokens[8];
   float target;
-  hashtable *tbl = NULL;
+  hashtable *tbl = hash_new(128 * 128, hash_int, hash_cmp_int);
   OPEN_MEM(proc_name);
   for (;;) {
     printf("> ");
@@ -116,18 +154,15 @@ static void sampler(void) {
     strsplit(input, " ", tokens, SIZEARR(tokens));
     if (strcasestr("reset", tokens[0])) {
       // cleanup & reset session
-      if (tbl != NULL) {
-        hash_free(tbl);
-        tbl = NULL;
-      }
+      hash_free(tbl);
+      tbl = hash_new(128 * 128, hash_int, hash_cmp_int);
     } else if (strcasestr("scan", tokens[0])) {
-      if (tbl == NULL) {
+      if (tbl->len == 0) {
         // initial scan
         if (!parsef(tokens[1], &target)) {
           puts("bad float");
           continue;
         }
-        tbl = hash_new(128 * 128, hash_int, hash_cmp_int);
         samples_init(pid, fd, tbl, target);
         printf("Address count [%zu]\n", tbl->len);
       } else {
@@ -142,10 +177,16 @@ static void sampler(void) {
     } else if (strcasestr("dump", tokens[0])) {
       // sample & dump to filename
       samples_dump(filename, fd, tbl);
-      printf("samples dumped to [%s]\n", filename);
+      printf("Samples dumped to [%s]\n", filename);
       break;
     } else if (strcasestr("sieve", tokens[0])) {
       samples_sieve(fd, tbl);
+      printf("Address count: [%zu]\n", tbl->len);
+    } else if (strcasestr("ptrbfs", tokens[0])) {
+      samples_ptrbfs(pid, fd, tbl);
+    } else if (strcasestr("add", tokens[0])) {
+      uintptr_t addr = parse_addr(tokens[1]);
+      samples_add(fd, tbl, addr);
       printf("Address count: [%zu]\n", tbl->len);
     } else {
       printf("unknown command [%s]\n", tokens[0]);
@@ -153,6 +194,7 @@ static void sampler(void) {
   }
   if (tbl != NULL) {
     hash_free(tbl);
+    close_mem(fd);
   }
 }
 

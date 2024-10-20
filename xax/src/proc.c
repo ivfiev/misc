@@ -39,6 +39,15 @@ size_t read_mem_desc(pid_t pid, mem_desc ds[], size_t size) {
   return i;
 }
 
+size_t read_mem_blocks(pid_t pid, int mem_fd, mem_block *bs[], size_t size) {
+  mem_desc ds[size];
+  size_t ds_count = read_mem_desc(pid, ds, size);
+  for (int i = 0; i < size; i++) {
+    bs[i] = read_mem_block(mem_fd, ds[i].start, ds[i].size);
+  }
+  return ds_count;
+}
+
 int find_mem_desc(char *key, mem_desc ds[], size_t size) {
   for (int i = 0; i < size; i++) {
     if (strcasestr(ds[i].name, key)) {

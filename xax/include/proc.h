@@ -20,6 +20,8 @@ pid_t get_pid(char *);
 
 size_t read_mem_desc(pid_t pid, mem_desc ds[], size_t size);
 
+size_t read_mem_blocks(pid_t pid, int mem_fd, mem_block *bs[], size_t size);
+
 int find_mem_desc(char *key, mem_desc ds[], size_t size);
 
 int open_mem(pid_t pid);
