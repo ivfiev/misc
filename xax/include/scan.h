@@ -69,4 +69,6 @@ int is_ptr32(union word64 ptr, mem_desc ds[], size_t ds_size);
 
 int is_ptr64(union word64 ptr, mem_desc ds[], size_t ds_size);
 
+union word32 read_mem_word32(int fd, uintptr_t addr);
+
 #endif

@@ -59,3 +59,9 @@ int is_ptr64(union word64 ptr, mem_desc ds[], size_t ds_size) {
   }
   return 0;
 }
+
+union word32 read_mem_word32(int mem_fd, uintptr_t addr) {
+  union word32 word = {.int32 = 0};
+  read_mem_bytes(mem_fd, addr, word.bytes, 4);
+  return word;
+}
