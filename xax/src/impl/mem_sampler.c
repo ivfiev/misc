@@ -98,7 +98,7 @@ static void samples_dump(char *filename, int mem_fd, hashtable *tbl) {
   close(file_fd);
 }
 
-static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl) {
+static void samples_ptrdfs(pid_t pid, int mem_fd, hashtable *tbl) {
   const int byte_dist = 1024;
   mem_block *bs[256];
   read_mem_blocks(pid, mem_fd, bs, SIZEARR(bs));
@@ -124,6 +124,30 @@ static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl) {
     }
     puts("---");
     hash_free(visited);
+  });
+  for (int i = 0; i < SIZEARR(bs); i++) {
+    free_mem(bs[i]);
+  }
+}
+
+static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl) {
+  const int byte_dist = 1024;
+  mem_block *bs[256];
+  read_mem_blocks(pid, mem_fd, bs, SIZEARR(bs));
+  FOREACH_KV(tbl, {
+    uintptr_t val_addr = key.uint64;
+    for (int i = 0; i <= byte_dist / 4; i++) {
+      uintptr_t addr = val_addr - i * 4;
+      for (int j = 0; j < SIZEARR(bs); j++) {
+        SCAN(bs[j], {
+          if (word.ptr64 == addr) {
+            printf("[0x%lx + 0x%x] <- [0x%lx] (0x%lx - 0x%lx = |0x%lx|)\n",
+              addr, i * 4, WORD_ADDR, addr, WORD_ADDR, MAX(addr, WORD_ADDR) - MIN(addr, WORD_ADDR));
+          }
+        });
+      }
+    }
+    puts("---");
   });
   for (int i = 0; i < SIZEARR(bs); i++) {
     free_mem(bs[i]);
@@ -184,6 +208,8 @@ static void sampler(void) {
       printf("Address count: [%zu]\n", tbl->len);
     } else if (strcasestr("ptrbfs", tokens[0])) {
       samples_ptrbfs(pid, fd, tbl);
+    } else if (strcasestr("ptrdfs", tokens[0])) {
+      samples_ptrdfs(pid, fd, tbl);
     } else if (strcasestr("add", tokens[0])) {
       uintptr_t addr = parse_addr(tokens[1]);
       samples_add(fd, tbl, addr);
