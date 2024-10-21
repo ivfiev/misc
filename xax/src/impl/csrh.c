@@ -6,8 +6,63 @@
 #include "impl.h"
 #include "hashtable.h"
 #include <pthread.h>
+#include <string.h>
 
 #define BLOCKS 256
+#define HISTORY_LEN 8
+#define TICKS_PER_SEC 10
+#define MAX_SPEED 250.0 + 2.5
+
+struct history {
+  float xs[HISTORY_LEN];
+  float ys[HISTORY_LEN];
+  int i;
+  int count;
+};
+
+static struct history *history_new() {
+  struct history *h = malloc(sizeof(struct history));
+  memset(h, 0, sizeof(struct history));
+  return h;
+}
+
+static int history_change(struct history *h, float x, float y) {
+  if (!FLOAT_EQ(h->xs[h->i], x) || !FLOAT_EQ(h->ys[h->i], y)) {
+    h->count = MIN(HISTORY_LEN, h->count + 1);
+    h->xs[h->i] = x;
+    h->ys[h->i] = y;
+    h->i++;
+    h->i %= HISTORY_LEN;
+    return 1;
+  }
+  return 0;
+}
+
+static int coord_legit(float xy) {
+  return IN_RANGE(-5000, xy, 5000) && !FLOAT_EQ(xy, 0) && !is_div_by(xy, 0.000250);
+}
+
+static int history_legit(struct history *h) {
+  if (h->count != HISTORY_LEN) {
+    return 0;
+  }
+  float total = 0, total_x = 0, total_y = 0;
+  for (int i = h->i;; i = (i + 1) % HISTORY_LEN) {
+    int j = (i + 1) % HISTORY_LEN;
+    if (j == h->i) {
+      break;
+    }
+    float d = dist(h->xs[i], h->ys[i], h->xs[j], h->ys[j]);
+    total += d;
+    if (d > MAX_SPEED / TICKS_PER_SEC) {
+      return 0;
+    }
+    if (!coord_legit(h->xs[i]) || !coord_legit(h->ys[i])) {
+      return 0;
+    }
+  }
+  return total > (HISTORY_LEN / 10.0) * (MAX_SPEED / TICKS_PER_SEC) / 10;
+}
 
 static const int OFFSET_X = 66;
 static int SAMPLE_PATTERN_X[] =
@@ -20,10 +75,6 @@ static int SAMPLE_PATTERN_Ps[] =
 pthread_mutex_t LOCK;
 hashtable *MY_XS;
 hashtable *PS_XS;
-
-static int coord_legit(float xy) {
-  return IN_RANGE(-5000, xy, 5000) && !FLOAT_EQ(xy, 0) && !is_div_by(xy, 0.000250);
-}
 
 static void *run_bg_scans(void *) {
   OPEN_MEM("cs2$");
@@ -38,12 +89,12 @@ static void *run_bg_scans(void *) {
         uintptr_t x_addr = desc.start + j + OFFSET_X;
         if (matches(bytes + j, SAMPLE_PATTERN_X, SIZEARR(SAMPLE_PATTERN_X))
             && !hash_hask(MY_XS, KV(.uint64 = x_addr))) {
-          hash_set(MY_XS, KV(.uint64 = x_addr), KV(.uint64 = 0));
+          hash_set(MY_XS, KV(.uint64 = x_addr), KV(.ptr = history_new()));
         }
         uintptr_t p_addr = desc.start + j + OFFSET_Ps;
         if (matches(bytes + j, SAMPLE_PATTERN_Ps, SIZEARR(SAMPLE_PATTERN_Ps))
             && !hash_hask(PS_XS, KV(.uint64 = p_addr))) {
-          hash_set(PS_XS, KV(.uint64 = p_addr), KV(.uint64 = 0));
+          hash_set(PS_XS, KV(.uint64 = p_addr), KV(.ptr = history_new()));
         }
       }
       free_mem(bs[i]);
@@ -53,24 +104,30 @@ static void *run_bg_scans(void *) {
 }
 
 static void print(int fd, hashtable *tbl) {
-  int output = 0;
+  float dedup[4096];
+  int d = 0, j = 0;
   size_t len = tbl->len;
   kv *x_keys = hash_keys(tbl);
   len = tbl->len;
   printf("LEN: %ld\n", len);
   for (int i = 0; i < len; i++) {
-    float prev_x = hash_getv(tbl, x_keys[i]).float32;
+    struct history *h = hash_getv(tbl, x_keys[i]).ptr;
     float curr_x = read_mem_word32(fd, x_keys[i].uint64).float32;
-    if (coord_legit(curr_x) && FLOAT_DIFF(curr_x, prev_x, 1)) {
-      float curr_y = read_mem_word32(fd, x_keys[i].uint64 + 4).float32;
-      if (!coord_legit(curr_y)) {
-        continue;
+    float curr_y = read_mem_word32(fd, x_keys[i].uint64 + 4).float32;
+    if (history_change(h, curr_x, curr_y) && history_legit(h)) {
+      for (j = 0; j < d; j++) {
+        if (dist(curr_x, curr_y, dedup[j], dedup[j + 1]) < 30.0) {
+          break;
+        }
       }
-      printf("0x%lx  (%f,%f)\n", x_keys[i].uint64, curr_x, curr_y);
-      hash_set(tbl, x_keys[i], KV(.float32 = curr_x));
-      output = 1;
+      if (j == d) {
+        printf("(%f,%f) ", curr_x, curr_y);
+        dedup[d++] = curr_x;
+        dedup[d++] = curr_y;
+      }
     }
   }
+  puts("");
 }
 
 static void *run_bg_output(void *) {
@@ -78,7 +135,7 @@ static void *run_bg_output(void *) {
   for (;;) {
     print(fd, MY_XS);
     print(fd, PS_XS);
-    usleep(1000 * 1000);
+    usleep(1000 / TICKS_PER_SEC * 1000);
   }
 }
 

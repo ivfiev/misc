@@ -86,3 +86,7 @@ int matches(char *ptr, int *pattern, int len) {
   }
   return len == 0;
 }
+
+float dist(float x0, float y0, float x1, float y1) {
+  return sqrt(pow(x0 - x1, 2) + pow(y0 - y1, 2));
+}
