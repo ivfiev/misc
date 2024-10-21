@@ -23,6 +23,7 @@ add_executable(xax src/main.c
         src/impl/mem_analysis.c
         src/impl/mem.h
         src/impl/mem_format.c
+        include/types.h
 )
 
 target_link_libraries(xax m)

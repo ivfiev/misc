@@ -1,28 +1,7 @@
 #ifndef XAX_SCAN_H
 #define XAX_SCAN_H
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <string.h>
-#include "proc.h"
-
-union word64 {
-  char bytes[8];
-  int int32;
-  float float32;
-  long long int64;
-  double float64;
-  uint32_t ptr32;
-  uintptr_t ptr64;
-};
-
-union word32 {
-  char bytes[4];
-  short int16[2];
-  int int32;
-  float float32;
-  uint32_t ptr;
-};
+#include "types.h"
 
 #define SCAN(block, filter) \
   do {                                                                                                                \
@@ -68,7 +47,5 @@ int is_float32(union word64 word);
 int is_ptr32(union word64 ptr, mem_desc ds[], size_t ds_size);
 
 int is_ptr64(union word64 ptr, mem_desc ds[], size_t ds_size);
-
-union word32 read_mem_word32(int fd, uintptr_t addr);
 
 #endif

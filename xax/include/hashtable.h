@@ -1,8 +1,7 @@
 #ifndef XAX_HASHTABLE_H
 #define XAX_HASHTABLE_H
 
-#include <stddef.h>
-#include <stdint.h>
+#include "types.h"
 
 #define KV(def) ((kv) {def})
 
@@ -16,29 +15,6 @@
   } \
   free(kvs) \
 
-typedef union keyval_t {
-  void *ptr;
-  char *str;
-  uint64_t uint64;
-  int int32;
-  float float32;
-} kv;
-
-struct node {
-  kv key;
-  kv val;
-  struct node *next;
-};
-
-typedef struct hashtable {
-  struct node **nodes;
-  size_t cap;
-  size_t len;
-
-  int (*cmp)(kv k1, kv k2);
-
-  uint64_t (*hash)(kv k, uint64_t N);
-} hashtable;
 
 hashtable *hash_new(size_t cap, uint64_t (*hash)(kv k, size_t N), int (*cmp)(kv k1, kv k2));
 

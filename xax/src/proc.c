@@ -85,6 +85,12 @@ ssize_t read_mem_bytes(int fd, uintptr_t addr, char buf[], size_t size) {
   return read_all(fd, buf, size);
 }
 
+union word32 read_mem_word32(int mem_fd, uintptr_t addr) {
+  union word32 word = {.int32 = 0};
+  read_mem_bytes(mem_fd, addr, word.bytes, 4);
+  return word;
+}
+
 size_t write_mem(int fd, uintptr_t addr, char buf[], size_t size) {
   lseek(fd, (off_t)addr, SEEK_SET);
   return write(fd, buf, size);

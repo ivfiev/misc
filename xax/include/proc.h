@@ -1,20 +1,7 @@
 #ifndef XAX_PROC_H
 #define XAX_PROC_H
 
-#include <stdint.h>
-#include <stdlib.h>
-
-typedef struct {
-  char name[128];
-  uintptr_t start;
-  size_t size;
-} mem_desc;
-
-typedef struct {
-  char *bytes;
-  uintptr_t base_addr;
-  size_t size; // bytes count, arr may be larger.
-} mem_block;
+#include "types.h"
 
 pid_t get_pid(char *);
 
@@ -29,6 +16,8 @@ int open_mem(pid_t pid);
 mem_block *read_mem_block(int fd, uintptr_t addr, size_t size);
 
 ssize_t read_mem_bytes(int fd, uintptr_t addr, char buf[], size_t size);
+
+union word32 read_mem_word32(int fd, uintptr_t addr);
 
 size_t write_mem(int fd, uintptr_t addr, char buf[], size_t size);
 
