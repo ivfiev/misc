@@ -21,6 +21,7 @@ void hash_set(hashtable *ht, kv k, kv v) {
     if (!ht->cmp(k, node->key)) {
       kv prev_val = node->val;
       node->val = v;
+      return;
     }
     prev = node;
     node = node->next;

@@ -4,6 +4,8 @@
 #include <string.h>
 #include <errno.h>
 #include <ctype.h>
+#include <math.h>
+#include "types.h"
 
 void err_fatal(char *s) {
   printf("%s\n%s\n", s, strerror(errno));
@@ -69,4 +71,18 @@ void trim_end(char *str) {
   while (str <= ptr && isspace(*ptr)) {
     *ptr-- = '\0';
   }
+}
+
+int is_div_by(double x, double y) {
+  double r = x / y;
+  return fabs(r - round(r)) < 10e-12;
+}
+
+int matches(char *ptr, int *pattern, int len) {
+  while (len > 0 && ((uint8_t)*ptr == *pattern) || *pattern == -1) {
+    len--;
+    pattern++;
+    ptr++;
+  }
+  return len == 0;
 }

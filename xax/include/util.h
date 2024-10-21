@@ -23,4 +23,8 @@ size_t strsplit(char *str, const char *sep, char **toks, size_t size);
 
 void trim_end(char *str);
 
+int is_div_by(double x, double y);
+
+int matches(char *ptr, int *pattern, int len);
+
 #endif
