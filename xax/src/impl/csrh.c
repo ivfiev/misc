@@ -11,7 +11,7 @@
 #define BLOCKS 256
 #define HISTORY_LEN 8
 #define TICKS_PER_SEC 10
-#define MAX_SPEED 250.0 + 2.5
+#define MAX_SPEED (250.0 + 2.5)
 
 struct history {
   float xs[HISTORY_LEN];
