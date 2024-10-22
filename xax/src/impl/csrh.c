@@ -66,7 +66,7 @@ static int history_legit(struct history *h) {
 
 static const int OFFSET_X = 66;
 static int SAMPLE_PATTERN_X[] =
-  {128, 63, 2, -1, 3, 128, -1, -1, -1, -1, 13};
+  {128, 63, 2, -1, 3, 128, -1, -1, -1, -1, 13}; // add -1 -1 to make div by 4?
 
 static int OFFSET_Ps = -800;
 static int SAMPLE_PATTERN_Ps[] =
@@ -77,15 +77,14 @@ hashtable *MY_XS;
 hashtable *PS_XS;
 
 static void *run_bg_scans(void *) {
-  OPEN_MEM("cs2$");
-  READ_DS(BLOCKS);
-  mem_block *bs[BLOCKS];
+  OPEN_MEM("cs2$"); // reboot on game restart... same for output thread
   for (;;) {
+    READ_DS(BLOCKS);
     for (int i = 100; i < 180; i++) {
       mem_desc desc = ds[i];
-      bs[i] = read_mem_block(fd, desc.start, desc.size);
-      char *bytes = bs[i]->bytes;
-      for (size_t j = 0; j < bs[i]->size; j++) {
+      mem_block *block = read_mem_block(fd, desc.start, desc.size);
+      char *bytes = block->bytes;
+      for (size_t j = 0; j < block->size; j++) {
         uintptr_t x_addr = desc.start + j + OFFSET_X;
         if (matches(bytes + j, SAMPLE_PATTERN_X, SIZEARR(SAMPLE_PATTERN_X))
             && !hash_hask(MY_XS, KV(.uint64 = x_addr))) {
@@ -97,7 +96,7 @@ static void *run_bg_scans(void *) {
           hash_set(PS_XS, KV(.uint64 = p_addr), KV(.ptr = history_new()));
         }
       }
-      free_mem(bs[i]);
+      free_mem(block);
     }
     sleep(30);
   }
@@ -109,30 +108,35 @@ static void print(int fd, hashtable *tbl) {
   size_t len = tbl->len;
   kv *x_keys = hash_keys(tbl);
   len = tbl->len;
-  printf("LEN: %ld\n", len);
+  //printf("LEN: %ld\n", len);
   for (int i = 0; i < len; i++) {
     struct history *h = hash_getv(tbl, x_keys[i]).ptr;
     float curr_x = read_mem_word32(fd, x_keys[i].uint64).float32;
     float curr_y = read_mem_word32(fd, x_keys[i].uint64 + 4).float32;
     if (history_change(h, curr_x, curr_y) && history_legit(h)) {
-      for (j = 0; j < d; j++) {
+      for (j = 0; j < d; j += 2) {
         if (dist(curr_x, curr_y, dedup[j], dedup[j + 1]) < 30.0) {
           break;
         }
       }
       if (j == d) {
-        printf("(%f,%f) ", curr_x, curr_y);
+        printf("(%.02f,%.02f) ", curr_x, curr_y);
         dedup[d++] = curr_x;
         dedup[d++] = curr_y;
+      }
+      if (d >= SIZEARR(dedup)) {
+        err_fatal("too many coords!");
       }
     }
   }
   puts("");
+  fflush(stdout);
 }
 
 static void *run_bg_output(void *) {
   OPEN_MEM("cs2$");
   for (;;) {
+    //printf("\e[1;1H\e[2J");
     print(fd, MY_XS);
     print(fd, PS_XS);
     usleep(1000 / TICKS_PER_SEC * 1000);
