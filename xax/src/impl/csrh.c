@@ -8,7 +8,7 @@
 #include <pthread.h>
 #include <string.h>
 
-#define BLOCKS 256
+#define BLOCKS 1024
 #define HISTORY_LEN 8
 #define TICKS_PER_SEC 10
 #define MAX_SPEED (250.0 + 2.5)
@@ -54,33 +54,37 @@ static int history_legit(struct history *h) {
     }
     float d = dist(h->xs[i], h->ys[i], h->xs[j], h->ys[j]);
     total += d;
-    if (d > MAX_SPEED / TICKS_PER_SEC) {
+    if (d > 5 * MAX_SPEED / TICKS_PER_SEC) {
       return 0;
     }
     if (!coord_legit(h->xs[i]) || !coord_legit(h->ys[i])) {
       return 0;
     }
   }
-  return total > (HISTORY_LEN / 10.0) * (MAX_SPEED / TICKS_PER_SEC) / 10;
+  return total > (MAX_SPEED / TICKS_PER_SEC) * HISTORY_LEN / 25.0;
 }
 
 static const int OFFSET_X = 66;
 static int SAMPLE_PATTERN_X[] =
   {128, 63, 2, -1, 3, 128, -1, -1, -1, -1, 13}; // add -1 -1 to make div by 4?
 
-static int OFFSET_Ps = -800;
+static int OFFSET_Ps = -344;
 static int SAMPLE_PATTERN_Ps[] =
-  {97, -1, -1, 252, -1, -1, -1, -1, 208, -1, -1, -1, -1, -1, -1, -1, 64, 112, 18};
+  {16, 22, 152, -1, -1, -1, -1, -1, 176, 176, 146,};
+
 
 pthread_mutex_t LOCK;
 hashtable *MY_XS;
 hashtable *PS_XS;
 
 static void *run_bg_scans(void *) {
-  OPEN_MEM("cs2$"); // reboot on game restart... same for output thread
+  OPEN_MEM("cs2$"); // reboot on game restart... same for output thread. keep sliding window
+  int min = 1, max = BLOCKS - 1;
   for (;;) {
     READ_DS(BLOCKS);
-    for (int i = 100; i < 180; i++) {
+    fprintf(stderr, "starting a scan over [%d, %d]\n", min, max);
+    int scan_min = BLOCKS, scan_max = -1;
+    for (int i = min; i < max; i++) {
       mem_desc desc = ds[i];
       mem_block *block = read_mem_block(fd, desc.start, desc.size);
       char *bytes = block->bytes;
@@ -89,15 +93,23 @@ static void *run_bg_scans(void *) {
         if (matches(bytes + j, SAMPLE_PATTERN_X, SIZEARR(SAMPLE_PATTERN_X))
             && !hash_hask(MY_XS, KV(.uint64 = x_addr))) {
           hash_set(MY_XS, KV(.uint64 = x_addr), KV(.ptr = history_new()));
+          scan_min = MIN(scan_min, i - 10);
+          scan_max = MAX(scan_max, i + 10);
         }
         uintptr_t p_addr = desc.start + j + OFFSET_Ps;
         if (matches(bytes + j, SAMPLE_PATTERN_Ps, SIZEARR(SAMPLE_PATTERN_Ps))
             && !hash_hask(PS_XS, KV(.uint64 = p_addr))) {
           hash_set(PS_XS, KV(.uint64 = p_addr), KV(.ptr = history_new()));
+          scan_min = MIN(scan_min, i - 10);
+          scan_max = MAX(scan_max, i + 10);
         }
       }
       free_mem(block);
     }
+    min = scan_min < BLOCKS ? scan_min : min;
+    max = scan_max > 0 ? scan_max : max;
+    fprintf(stderr, "scan complete [%d, %d]\n", min, max);
+    fprintf(stderr, "#stored addresses (%zu, %zu)\n", MY_XS->len, PS_XS->len);
     sleep(30);
   }
 }
@@ -115,7 +127,7 @@ static void print(int fd, hashtable *tbl) {
     float curr_y = read_mem_word32(fd, x_keys[i].uint64 + 4).float32;
     if (history_change(h, curr_x, curr_y) && history_legit(h)) {
       for (j = 0; j < d; j += 2) {
-        if (dist(curr_x, curr_y, dedup[j], dedup[j + 1]) < 30.0) {
+        if (dist(curr_x, curr_y, dedup[j], dedup[j + 1]) < 30.0) { // TODO smoothing
           break;
         }
       }
