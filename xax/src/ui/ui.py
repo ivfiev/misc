@@ -1,20 +1,28 @@
-import os
 import signal
 import tkinter as tk
 import threading
 import sys
 import time
+from math import atan2, cos, sin, pi
 
 
 class FadingCircle:
-    def __init__(self, canvas, x, y):
+    def __init__(self, canvas, x1, y1, x2, y2, t):
         self.canvas = canvas
-        self.x = x
-        self.y = y
+        self.x0 = 0
+        self.y0 = 0
+        self.x1 = x1
+        self.y1 = y1
+        self.t = t
+        self.recalc_effective(x2, y2, t)
         self.size = 20
         self.alpha = 1.0
         self.circle = self.canvas.create_oval(
-            x, y, x + self.size, y + self.size, fill=self._get_color(), outline=''
+            self.x0 - self.size / 2,
+            self.y0 - self.size / 2,
+            self.x0 + self.size,
+            self.y0 + self.size,
+            fill=self._get_color(), outline=''
         )
         self.fading_thread = threading.Thread(target=self.fade, daemon=True)
         self.fading_thread.start()
@@ -32,6 +40,21 @@ class FadingCircle:
             time.sleep(0.1)
         self.canvas.delete(self.circle)
 
+    def recalc_effective(self, x2, y2, t):
+        (x, y) = (self.x1 - x2, self.y1 - y2)
+        t = -t
+        (x, y) = (x * cos(t) - y * sin(t), x * sin(t) + y * cos(t))
+        (x, y) = ((x + 3500.0 - 10.0) / 10.0, (3500.0 - y + 10.0) / 10.0)
+        self.x0 = x
+        self.y0 = y
+
+    def place(self):
+        self.canvas.coords(self.circle,
+                           self.x0 - self.size / 2,
+                           self.y0 - self.size / 2,
+                           self.x0 + self.size,
+                           self.y0 + self.size)
+
 
 class CircleOverlayApp(tk.Tk):
     def __init__(self):
@@ -46,41 +69,47 @@ class CircleOverlayApp(tk.Tk):
         self.stop_thread = False
         self.stdin_thread = threading.Thread(target=self.read_stdin, daemon=True)
         self.stdin_thread.start()
-        self.prev1 = (1.0, 1.0)
-        self.prev2 = (0.0, 0.0)
+        self.prev = (0.0, 0.0)
+        self.angle = 0
+        self.govno = self.canvas.create_oval(
+            696 / 2 - 5, 696 / 2 - 5,
+            696 / 2 + 5, 696 / 2 + 5,
+            fill=f'#{120:02x}{80:02x}{180:02x}', outline=''
+        )
 
     def read_stdin(self):
-        os.set_blocking(sys.stdin.fileno(), False)
         while True:
             line = sys.stdin.readline()
-            while line is None:
-                line = sys.stdin.readline()
-            try:
-                for coords in line.split():
-                    me = False
-                    if coords[0] == 'ME':
-                        me = True
-                        coords = coords[1:]
-                    [x, y] = map(lambda xy: float(xy), coords.strip('()').split(','))
-                    x = (x + 3500.0 - 10.0) / 10.0
-                    y = (3500.0 - y + 10.0) / 10.0
-                    if me:
-                        self.prev2 = self.prev1
-                        self.prev1 = (x, y)
-                    self.draw_circle(int(x), int(y))
-            except ValueError:
-                continue
+            for coords in line.split():
+                me = False
+                if coords.startswith('ME'):
+                    me = True
+                    coords = coords[2:]
+                [x, y] = map(lambda xy: float(xy), coords.strip('()').split(','))
+                if me and (abs(x - self.prev[0]) > 0.5 or abs(y - self.prev[1]) > 0.5):
+                    (u0, v0) = (0, 1)
+                    (u1, v1) = (x - self.prev[0], y - self.prev[1])
+                    t = atan2(u0 * v1 - v0 * u1, u0 * u1 + v0 * v1)
+                    for circle in self.circles:
+                        circle.recalc_effective(x, y, t)
+                        circle.place()
+                    self.prev = (x, y)
+                    self.angle = t
+                    print((x, y))
+                    print(t)
+                else:
+                    self.draw_circle(x, y, self.prev[0], self.prev[1], self.angle)
             time.sleep(0.01)
 
-    def draw_circle(self, x, y):
-        vector = self.prev1[0] - self.prev2[0], self.prev1[1] - self.prev2[1]
-        self.circles.append(FadingCircle(self.canvas, x, y))
+    def draw_circle(self, x1, y1, x2, y2, t):
+        self.circles.append(FadingCircle(self.canvas, x1, y1, x2, y2, t))
 
     def on_closing(self):
         self.destroy()
 
 
 if __name__ == "__main__":
+    print('starting')
     app = CircleOverlayApp()
     app.protocol("WM_DELETE_WINDOW", app.on_closing)
     signal.signal(signal.SIGINT, lambda x, y: app.destroy())
