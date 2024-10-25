@@ -3,7 +3,8 @@ import tkinter as tk
 import threading
 import sys
 import time
-from math import atan2, cos, sin
+from math import atan2, cos, sin, pi
+from pynput import keyboard
 
 
 class FadingCircle:
@@ -71,6 +72,8 @@ class CircleOverlayApp(tk.Tk):
         self.stdin_thread.start()
         self.prev = (0.0, 0.0)
         self.angle = 0
+        self.angle_offset = 0
+        self.hidden = False
 
     def read_stdin(self):
         while True:
@@ -86,7 +89,7 @@ class CircleOverlayApp(tk.Tk):
                     (u1, v1) = (x - self.prev[0], y - self.prev[1])
                     t = atan2(u0 * v1 - v0 * u1, u0 * u1 + v0 * v1)
                     for circle in self.circles:
-                        circle.recalc_effective(x, y, t)
+                        circle.recalc_effective(x, y, t + self.angle_offset)
                         circle.place()
                     self.prev = (x, y)
                     self.angle = t
@@ -105,10 +108,53 @@ class CircleOverlayApp(tk.Tk):
     def on_closing(self):
         self.destroy()
 
+    def toggle(self):
+        if self.hidden:
+            self.deiconify()
+            self.hidden = False
+        else:
+            self.withdraw()
+            self.hidden = True
+
+
+class KbdListener():
+    def __init__(self, app):
+        self.held = set()
+        self.app = app
+        self.listener = keyboard.Listener(on_press=self.on_press, on_release=self.on_release)
+        self.listener.start()
+
+    def on_press(self, key):
+        if hasattr(key, 'char'):
+            self.held.add(key.char)
+            self.set_offset()
+
+    def on_release(self, key):
+        if hasattr(key, 'char'):
+            self.held.remove(key.char)
+            self.set_offset()
+        elif key == keyboard.Key.alt_l:
+            self.app.toggle()
+
+    def set_offset(self):
+        if 'a' in self.held and 'w' in self.held:
+            self.app.angle_offset = -pi / 8
+        elif 'd' in self.held and 'w' in self.held:
+            self.app.angle_offset = pi / 8
+        elif 'a' in self.held:
+            self.app.angle_offset = -pi / 4
+        elif 'd' in self.held:
+            self.app.angle_offset = pi / 4
+        elif 's' in self.held:
+            self.app.angle_offset = pi
+        else:
+            self.app.angle_offset = 0
+
 
 if __name__ == "__main__":
     print('starting')
     app = CircleOverlayApp()
+    listener = KbdListener(app)
     app.protocol("WM_DELETE_WINDOW", app.on_closing)
     signal.signal(signal.SIGINT, lambda x, y: app.destroy())
     tk_check = lambda: app.after(100, tk_check)
