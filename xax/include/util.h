@@ -10,7 +10,6 @@
 #define FLOAT_EQ(x, y) (ABS((x) - (y)) < 1e-6)
 #define FLOAT_DIFF(x, y, z) (ABS((x) - (y)) >= z)
 #define IN_RANGE(a, x, b) ((a) <= (x) && (x) <= (b))
-#define WRAP_IX(ix, max) ((ix) - 1 < 0 ? (max) - 1 : (ix) - 1)
 
 #define ERROR_FATAL(msg) err_fatal("%s at %s:%d", msg, __FILE_NAME__, __LINE__)
 

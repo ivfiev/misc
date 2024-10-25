@@ -1,11 +1,12 @@
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include "csrh.h"
 #include "util.h"
 
 #define READ_COORDS(h, count) \
   float coords[(count) * 2]; \
-  size_t coords_count = history_read(h, coords, count) \
+  size_t coords_count2 = history_read(h, coords, count) \
 
 
 struct history *history_new() {
@@ -19,7 +20,7 @@ static int history_head_ix(struct history *h) {
   if (h->count < HISTORY_LEN) {
     return ix;
   }
-  return WRAP_IX(ix, HISTORY_LEN);
+  return ix < 0 ? HISTORY_LEN - 1 : ix;
 }
 
 static size_t history_read(struct history *h, float coords[], size_t count) {
@@ -27,12 +28,12 @@ static size_t history_read(struct history *h, float coords[], size_t count) {
   if (hi < 0) {
     return 0;
   }
-  for (int i = 0; i < MIN(count, h->count) * 2; i += 2) {
+  for (int i = 0; i < 2 * MIN(count, h->count); i += 2) {
     coords[i] = h->xs[hi];
     coords[i + 1] = h->ys[hi];
-    hi = WRAP_IX(hi, HISTORY_LEN);
+    hi = hi - 1 < 0 ? HISTORY_LEN - 1 : hi - 1;
   }
-  return MIN(count, h->count);
+  return 2 * MIN(count, h->count);
 }
 
 static size_t history_write(struct history *h, float x, float y) {
@@ -46,7 +47,7 @@ static size_t history_write(struct history *h, float x, float y) {
 
 int history_change(struct history *h, float x, float y) {
   READ_COORDS(h, 1);
-  if (coords_count == 0 || !FLOAT_EQ(coords[0], x) || !FLOAT_EQ(coords[1], y)) {
+  if (coords_count2 == 0 || !FLOAT_EQ(coords[0], x) || !FLOAT_EQ(coords[1], y)) {
     history_write(h, x, y);
     return 1;
   }
@@ -61,18 +62,15 @@ int history_legit(struct history *h) {
   if (h->count != HISTORY_LEN) {
     return 0;
   }
+  READ_COORDS(h, HISTORY_LEN);
   float total = 0;
-  for (int i = h->i;; i = (i + 1) % HISTORY_LEN) {
-    int j = (i + 1) % HISTORY_LEN;
-    if (j == h->i) {
-      break;
-    }
-    float d = dist(h->xs[i], h->ys[i], h->xs[j], h->ys[j]);
+  for (int i = 0; i < coords_count2 - 2; i += 2) {
+    float d = dist(coords[i], coords[i + 1], coords[i + 2], coords[i + 3]);
     total += d;
     if (d > 5 * MAX_SPEED / TICKS_PER_SEC) {
       return 0;
     }
-    if (!coord_legit(h->xs[i]) || !coord_legit(h->ys[i])) {
+    if (!coord_legit(coords[i]) || !coord_legit(coords[i + 1])) {
       return 0;
     }
   }
