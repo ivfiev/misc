@@ -8,7 +8,7 @@
 #include <pthread.h>
 #include <string.h>
 
-#define BLOCKS 1024
+#define BLOCKS 512
 #define HISTORY_LEN 8
 #define TICKS_PER_SEC 10
 #define MAX_SPEED (250.0 + 2.5)
@@ -79,7 +79,7 @@ hashtable *PS_XS;
 
 static void *run_bg_scans(void *) {
   OPEN_MEM("cs2$"); // reboot on game restart... same for output thread. keep sliding window
-  int min = 1, max = BLOCKS - 1;
+  int min = 100, max = 180;
   for (;;) {
     READ_DS(BLOCKS);
     fprintf(stderr, "starting a scan over [%d, %d]\n", min, max);
@@ -114,43 +114,48 @@ static void *run_bg_scans(void *) {
   }
 }
 
-static void print(int fd, hashtable *tbl) {
-  float dedup[4096];
-  int d = 0, j = 0;
+static void print(int fd, hashtable *tbl, char *prefix) {
+  double votes[1024];
+  int j = 0, v = 0;
   size_t len = tbl->len;
   kv *x_keys = hash_keys(tbl);
   len = tbl->len;
-  //printf("LEN: %ld\n", len);
   for (int i = 0; i < len; i++) {
     struct history *h = hash_getv(tbl, x_keys[i]).ptr;
     float curr_x = read_mem_word32(fd, x_keys[i].uint64).float32;
     float curr_y = read_mem_word32(fd, x_keys[i].uint64 + 4).float32;
     if (history_change(h, curr_x, curr_y) && history_legit(h)) {
-      for (j = 0; j < d; j += 2) {
-        if (dist(curr_x, curr_y, dedup[j], dedup[j + 1]) < 30.0) { // TODO smoothing
+      for (j = 0; j < v; j += 3) {
+        if (dist(curr_x, curr_y, votes[j], votes[j + 1]) < 30.0) {
+          votes[j] = (votes[j + 2] * votes[j] + curr_x) / (votes[j + 2] + 1);
+          votes[j + 1] = (votes[j + 2] * votes[j + 1] + curr_y) / (votes[j + 2] + 1);
+          votes[j + 2]++;
           break;
         }
       }
-      if (j == d) {
-        printf("(%.02f,%.02f) ", curr_x, curr_y);
-        dedup[d++] = curr_x;
-        dedup[d++] = curr_y;
+      if (j == v) {
+        votes[v++] = curr_x;
+        votes[v++] = curr_y;
+        votes[v++] = 1;
       }
-      if (d >= SIZEARR(dedup)) {
+      if (v >= SIZEARR(votes)) {
         err_fatal("too many coords!");
       }
     }
   }
-  puts("");
+  // TODO - only print if high #votes?
+  for (int i = 0; i < v; i += 3) {
+    printf("%s(%.02f,%.02f)\n", (prefix != NULL ? prefix : ""), votes[i], votes[i + 1]);
+  }
+  free(x_keys);
   fflush(stdout);
 }
 
 static void *run_bg_output(void *) {
   OPEN_MEM("cs2$");
   for (;;) {
-    //printf("\e[1;1H\e[2J");
-    print(fd, MY_XS);
-    print(fd, PS_XS);
+    print(fd, MY_XS, "ME");
+    print(fd, PS_XS, NULL);
     usleep(1000 / TICKS_PER_SEC * 1000);
   }
 }
