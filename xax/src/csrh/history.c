@@ -67,12 +67,12 @@ int history_legit(struct history *h) {
   for (int i = 0; i < coords_count2 - 2; i += 2) {
     float d = dist(coords[i], coords[i + 1], coords[i + 2], coords[i + 3]);
     total += d;
-    if (d > 5 * MAX_SPEED / TICKS_PER_SEC) {
+    if (d > 2 * MAX_SPEED / TICKS_PER_SEC) {
       return 0;
     }
     if (!coord_legit(coords[i]) || !coord_legit(coords[i + 1])) {
       return 0;
     }
   }
-  return total > (MAX_SPEED / TICKS_PER_SEC) * HISTORY_LEN / 25.0;
+  return total > (MAX_SPEED / TICKS_PER_SEC) * HISTORY_LEN / 5.0;
 }
