@@ -138,13 +138,13 @@ class KbdListener():
 
     def set_offset(self):
         if 'a' in self.held and 'w' in self.held:
-            self.app.angle_offset = -pi / 8
-        elif 'd' in self.held and 'w' in self.held:
-            self.app.angle_offset = pi / 8
-        elif 'a' in self.held:
             self.app.angle_offset = -pi / 4
-        elif 'd' in self.held:
+        elif 'd' in self.held and 'w' in self.held:
             self.app.angle_offset = pi / 4
+        elif 'a' in self.held:
+            self.app.angle_offset = -pi / 2
+        elif 'd' in self.held:
+            self.app.angle_offset = pi / 2
         elif 's' in self.held:
             self.app.angle_offset = pi
         else:
@@ -154,7 +154,7 @@ class KbdListener():
 if __name__ == "__main__":
     print('starting')
     app = CircleOverlayApp()
-    listener = KbdListener(app)
+    # listener = KbdListener(app)
     app.protocol("WM_DELETE_WINDOW", app.on_closing)
     signal.signal(signal.SIGINT, lambda x, y: app.destroy())
     tk_check = lambda: app.after(100, tk_check)

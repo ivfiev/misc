@@ -47,6 +47,9 @@ static void *run_bg_scans(void *) {
           scan_min = MIN(scan_min, i - 10);
           scan_max = MAX(scan_max, i + 10);
         }
+        if ((j & 0x7FFFFF) == 0x7FFFFF) {
+          usleep(5 * 1000);
+        }
       }
       free_mem(block);
     }
@@ -118,7 +121,8 @@ static void init(void) {
   args_add("csrh", run);
 }
 
-// ts + legit flag
-// keys & pynput
-// del old addrs (lock)
+// id t/ct
+// sig for angles
+// reset min/max if none found
+// del old addrs? (lock)
 // refresh pid
