@@ -7,62 +7,7 @@
 #include "hashtable.h"
 #include <pthread.h>
 #include <string.h>
-
-#define BLOCKS 512
-#define HISTORY_LEN 8
-#define TICKS_PER_SEC 10
-#define MAX_SPEED (250.0 + 2.5)
-
-struct history {
-  float xs[HISTORY_LEN];
-  float ys[HISTORY_LEN];
-  int i;
-  int count;
-};
-
-static struct history *history_new() {
-  struct history *h = malloc(sizeof(struct history));
-  memset(h, 0, sizeof(struct history));
-  return h;
-}
-
-static int history_change(struct history *h, float x, float y) {
-  if (!FLOAT_EQ(h->xs[h->i], x) || !FLOAT_EQ(h->ys[h->i], y)) {
-    h->count = MIN(HISTORY_LEN, h->count + 1);
-    h->xs[h->i] = x;
-    h->ys[h->i] = y;
-    h->i++;
-    h->i %= HISTORY_LEN;
-    return 1;
-  }
-  return 0;
-}
-
-static int coord_legit(float xy) {
-  return IN_RANGE(-5000, xy, 5000) && !FLOAT_EQ(xy, 0) && !is_div_by(xy, 0.000250);
-}
-
-static int history_legit(struct history *h) {
-  if (h->count != HISTORY_LEN) {
-    return 0;
-  }
-  float total = 0, total_x = 0, total_y = 0;
-  for (int i = h->i;; i = (i + 1) % HISTORY_LEN) {
-    int j = (i + 1) % HISTORY_LEN;
-    if (j == h->i) {
-      break;
-    }
-    float d = dist(h->xs[i], h->ys[i], h->xs[j], h->ys[j]);
-    total += d;
-    if (d > 5 * MAX_SPEED / TICKS_PER_SEC) {
-      return 0;
-    }
-    if (!coord_legit(h->xs[i]) || !coord_legit(h->ys[i])) {
-      return 0;
-    }
-  }
-  return total > (MAX_SPEED / TICKS_PER_SEC) * HISTORY_LEN / 25.0;
-}
+#include "csrh.h"
 
 static const int OFFSET_X = 66;
 static int SAMPLE_PATTERN_X[] =
@@ -70,15 +15,14 @@ static int SAMPLE_PATTERN_X[] =
 
 static int OFFSET_Ps = -344;
 static int SAMPLE_PATTERN_Ps[] =
-  {16, 22, 152, -1, -1, -1, -1, -1, 176, 176, 146,};
-
+  {16, 22, 152, -1, -1, -1, -1, -1, 176, 176, 146};
 
 pthread_mutex_t LOCK;
 hashtable *MY_XS;
 hashtable *PS_XS;
 
 static void *run_bg_scans(void *) {
-  OPEN_MEM("cs2$"); // reboot on game restart... same for output thread. keep sliding window
+  OPEN_MEM("cs2$");
   int min = 100, max = 180;
   for (;;) {
     READ_DS(BLOCKS);
@@ -143,7 +87,6 @@ static void print(int fd, hashtable *tbl, char *prefix) {
       }
     }
   }
-  // TODO - only print if high #votes?
   for (int i = 0; i < v; i += 3) {
     printf("%s(%.02f,%.02f)\n", (prefix != NULL ? prefix : ""), votes[i], votes[i + 1]);
   }
@@ -170,7 +113,6 @@ static void run(void) {
   pthread_join(bg_output, NULL);
 }
 
-
 __attribute__((constructor))
 static void init(void) {
   args_add("csrh", run);
@@ -179,3 +121,4 @@ static void init(void) {
 // ts + legit flag
 // keys & pynput
 // del old addrs (lock)
+// refresh pid
