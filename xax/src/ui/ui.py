@@ -3,7 +3,7 @@ import tkinter as tk
 import threading
 import sys
 import time
-from math import atan2, cos, sin, pi
+from math import atan2, cos, sin
 
 
 class FadingCircle:
@@ -92,12 +92,12 @@ class CircleOverlayApp(tk.Tk):
                     self.angle = t
                 else:
                     self.draw_circle(x, y, self.prev[0], self.prev[1], self.angle)
+            new_circles = []
+            for c in self.circles:
+                if c.alpha > 0:
+                    new_circles.append(c)
+            self.circles = new_circles
             time.sleep(0.001)
-            # new_circles = []
-            # for c in self.circles:
-            #     if c.alpha > 0.0:
-            #         new_circles.append(c)
-            # self.circles = new_circles
 
     def draw_circle(self, x1, y1, x2, y2, t):
         self.circles.append(FadingCircle(self.canvas, x1, y1, x2, y2, t))
