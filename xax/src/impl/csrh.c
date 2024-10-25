@@ -175,3 +175,7 @@ __attribute__((constructor))
 static void init(void) {
   args_add("csrh", run);
 }
+
+// ts + legit flag
+// keys & pynput
+// del old addrs (lock)

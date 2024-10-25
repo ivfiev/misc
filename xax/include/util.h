@@ -1,6 +1,8 @@
 #ifndef XAX_UTIL_H
 #define XAX_UTIL_H
 
+#include <time.h>
+
 #define SIZEARR(arr) (sizeof(arr) / sizeof((arr)[0]))
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
@@ -28,5 +30,7 @@ int is_div_by(double x, double y);
 int matches(char *ptr, int *pattern, int len);
 
 float dist(float x0, float y0, float x1, float y1);
+
+time_t timestamp(void);
 
 #endif

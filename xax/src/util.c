@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <math.h>
+#include <sys/time.h>
 #include "types.h"
 
 void err_fatal(char *s) {
@@ -89,4 +90,10 @@ int matches(char *ptr, int *pattern, int len) {
 
 float dist(float x0, float y0, float x1, float y1) {
   return sqrt(pow(x0 - x1, 2) + pow(y0 - y1, 2));
+}
+
+time_t timestamp(void) {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  return (tv.tv_sec * 1000LL) + (tv.tv_usec / 1000);
 }
