@@ -160,6 +160,50 @@ static void samples_add(int mem_fd, hashtable *tbl, uintptr_t addr) {
   hash_set(tbl, KV(.uint64 = addr), KV(.float32 = word.float32));
 }
 
+static void samples_delta(int mem_fd, hashtable *tbl, int secs, float min, float max) {
+  size_t tbl_len = tbl->len;
+  kv *addrs = hash_keys(tbl);
+  hashtable *deltas[tbl_len];
+  int uniques[tbl_len];
+  memset(uniques, 0, sizeof(uniques));
+  for (int k = 0; k < tbl_len; k++) {
+    deltas[k] = hash_new(1024, hash_int, hash_cmp_int);
+  }
+  for (int i = 0; i < secs; i++) {
+    for (int j = 0; j < 1000; j++) {
+      for (int k = 0; k < tbl_len; k++) {
+        float val = read_mem_word32(mem_fd, addrs[k].uint64).float32;
+        if (uniques[k] < 0 || !IN_RANGE(min, val, max)) {
+          uniques[k] = -1;
+          continue;
+        }
+        int key = (int)(val * 1000);
+        hash_set(deltas[k], KV(.int32 = key), KV(.int32 = 1));
+      }
+      usleep(969);
+    }
+  }
+  for (int k = 0; k < tbl_len; k++) {
+    if (uniques[k] == 0) {
+      uniques[k] = deltas[k]->len;
+    }
+  }
+  qsort(uniques, tbl_len, sizeof(int), intcmp);
+  for (int i = 1; i <= 3; i++) {
+    printf("top%d - [%d]\n", i, uniques[tbl_len - i]);
+  }
+  int top1 = uniques[tbl_len - 1];
+  for (int k = 0; k < tbl_len; k++) {
+    if (deltas[k]->len < top1) {
+      hash_del(tbl, addrs[k]);
+    }
+  }
+  free(addrs);
+  for (int k = 0; k < tbl_len; k++) {
+    hash_free(deltas[k]);
+  }
+}
+
 static void sampler(void) {
   char *proc_name = args_get("arg0");
   char *filename = args_get("arg1");
@@ -213,6 +257,12 @@ static void sampler(void) {
     } else if (strcasestr("add", tokens[0])) {
       uintptr_t addr = parse_addr(tokens[1]);
       samples_add(fd, tbl, addr);
+      printf("Address count: [%zu]\n", tbl->len);
+    } else if (strcasestr("deltas", tokens[0])) {
+      int secs = parse_value(tokens[1], INFER_TYPE).int32; // meh
+      float min = parse_value(tokens[2], FLOAT32_TYPE).float32;
+      float max = parse_value(tokens[3], FLOAT32_TYPE).float32;
+      samples_delta(fd, tbl, secs, min, max);
       printf("Address count: [%zu]\n", tbl->len);
     } else {
       printf("unknown command [%s]\n", tokens[0]);

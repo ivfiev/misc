@@ -1,7 +1,6 @@
 #include <string.h>
 #include "scan.h"
 #include "util.h"
-#include "proc.h"
 
 union word64 parse_value(char *val_str, int type) {
   char *end = NULL;

@@ -19,7 +19,6 @@ void hash_set(hashtable *ht, kv k, kv v) {
   struct node *prev = NULL;
   while (node) {
     if (!ht->cmp(k, node->key)) {
-      kv prev_val = node->val;
       node->val = v;
       return;
     }
@@ -74,7 +73,7 @@ void hash_del(hashtable *ht, kv k) {
         prev->next = node->next;
       }
       ht->len--;
-      free(node);
+      free(node); // free the node's mem outside
       return;
     }
     prev = node;

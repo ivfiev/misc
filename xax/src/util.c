@@ -97,3 +97,9 @@ time_t timestamp(void) {
   gettimeofday(&tv, NULL);
   return (tv.tv_sec * 1000LL) + (tv.tv_usec / 1000);
 }
+
+int intcmp(const void *ptr1, const void *ptr2) {
+  int i = *(int *)ptr1;
+  int j = *(int *)ptr2;
+  return i - j;
+}

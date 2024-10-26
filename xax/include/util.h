@@ -33,4 +33,6 @@ float dist(float x0, float y0, float x1, float y1);
 
 time_t timestamp(void);
 
+int intcmp(const void *, const void *);
+
 #endif
