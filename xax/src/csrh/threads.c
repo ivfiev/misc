@@ -122,7 +122,9 @@ static void init(void) {
 }
 
 // id t/ct
-// sig for angles
+// sig for angles (viewMat)
 // reset min/max if none found
 // del old addrs? (lock)
 // refresh pid
+// faster ptrbfs, just check range +-4kb
+// use gtk/imgui

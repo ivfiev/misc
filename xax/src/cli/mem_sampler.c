@@ -136,7 +136,7 @@ static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl) {
   read_mem_blocks(pid, mem_fd, bs, SIZEARR(bs));
   FOREACH_KV(tbl, {
     uintptr_t val_addr = key.uint64;
-    for (int i = 0; i <= byte_dist / 4; i++) {
+    for (int i = 0; i <= byte_dist / 4; i++) { // TODO - del inner loop
       uintptr_t addr = val_addr - i * 4;
       for (int j = 0; j < SIZEARR(bs); j++) {
         SCAN(bs[j], {
