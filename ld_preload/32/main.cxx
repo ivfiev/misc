@@ -2,11 +2,12 @@
 
 int func(int i, int j) {
   int k = i * j;
+  puts("starting loop");
   while (k) {
     i += j;
     k--;
   }
-  printf("%d\n", j - i);
+  printf("(%d, %d) -> %d\n", i, j, j - i);
   return j - i;
 }
 
