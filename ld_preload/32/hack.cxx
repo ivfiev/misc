@@ -19,6 +19,7 @@ uintptr_t get_base_addr() {
     }
   }
   perror("no base addr");
+  return 0;
 }
 
 void print_bytes(uint8_t *ptr, size_t n) {
@@ -31,27 +32,26 @@ void print_bytes(uint8_t *ptr, size_t n) {
 }
 
 void patch(uintptr_t ptr, uint8_t *bytes, size_t n) {
-  if(mprotect((void *)(ptr - ptr % 0x1000), 0x1000, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+  if (mprotect((void *)(ptr - ptr % 0x1000), 0x1000, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
     perror(strerror(errno));
   }
   memcpy((void *)ptr, bytes, n);
-  if(mprotect((void *)(ptr - ptr % 0x1000), 0x1000, PROT_READ | PROT_EXEC) != 0) {
+  if (mprotect((void *)(ptr - ptr % 0x1000), 0x1000, PROT_READ | PROT_EXEC) != 0) {
     perror(strerror(errno));
   }
 }
 
 void detour() {
-  // asm volatile (
-  //   "push %%ebx \n\t"
-  //   "sub $0x14,%%esp \n\t"
-  // : : :);
-  // puts("detour!");
   asm volatile (
     "push %%ebx \n\t"
     "sub $0x14,%%esp \n\t"
+  : : :);
+  puts("detour!");
+  printf("0x%x\n", get_base_addr());
+  asm volatile (
     "jmp *%0 \n\t" 
     : 
-    : "r" (FUNC_ADDR + 7) 
+    : "r" (FUNC_ADDR + 7)
     :
   );
 }
@@ -73,6 +73,6 @@ void cons() {
   instr[0] = 0xE9;
   *(uintptr_t *)(instr + 1) = DETOUR_ADDR - FUNC_ADDR - 5;
   patch(FUNC_ADDR, instr, 5);
-  print_bytes((uint8_t *)FUNC_ADDR, 20);
+  // print_bytes((uint8_t *)FUNC_ADDR, 20);
   puts("exit constructor");
 }
