@@ -50,12 +50,15 @@ machine_code patch(uintptr_t ptr, machine_code code) {
   return old;
 }
 
-void detour() {
+void detour(void *self) {
   asm volatile (
     "push %%ebx \n\t"
     "sub $0x4,%%esp \n\t"
-  : : :);
-  puts("detour!");
+    :
+    : 
+    :
+  );
+  *(int *)self -= 2;
   asm volatile (
     "jmp *%0 \n\t" 
     : 
