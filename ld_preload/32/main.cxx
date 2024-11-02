@@ -1,17 +1,25 @@
 #include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-int func(int i, int j) {
-  int k = i * j;
-  puts("starting loop");
-  while (k) {
-    i += j;
-    k--;
+class Entity {
+public:
+  Entity() {
+    time = 0;
   }
-  printf("(%d, %d) -> %d\n", i, j, j - i);
-  return j - i;
-}
+  void tick() {
+    time++;
+    printf("Time: %d\n", time);
+  }
+private:
+  uint time;
+};
 
 int main() {
-  printf("%d\n", func(10, 20));
+  Entity e;
+  for (;;) {
+    e.tick();
+    sleep(4);
+  }
   return 0;
 }

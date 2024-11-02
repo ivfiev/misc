@@ -69,12 +69,12 @@ void set_addrs() {
 __attribute__((constructor))
 void cons() {
   puts("constructor");
-  set_addrs();
-  uint8_t instr[5];
-  instr[0] = 0xE9;
-  *(uintptr_t *)(instr + 1) = DETOUR_ADDR - FUNC_ADDR - sizeof(instr);
-  patch(FUNC_ADDR, instr, sizeof(instr));
-  print_bytes((uint8_t *)DETOUR_ADDR, 20);
+  // set_addrs();
+  // uint8_t instr[5];
+  // instr[0] = 0xE9;
+  // *(uintptr_t *)(instr + 1) = DETOUR_ADDR - FUNC_ADDR - sizeof(instr);
+  // patch(FUNC_ADDR, instr, sizeof(instr));
+  // print_bytes((uint8_t *)DETOUR_ADDR, 20);
   puts("exit constructor");
 }
 // what accesses this addr
