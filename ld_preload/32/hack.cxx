@@ -67,7 +67,7 @@ void set_addrs() {
 }
 
 __attribute__((constructor))
-void cons() {
+void ctor() {
   puts("constructor");
   // set_addrs();
   // uint8_t instr[5];
@@ -77,8 +77,13 @@ void cons() {
   // print_bytes((uint8_t *)DETOUR_ADDR, 20);
   puts("exit constructor");
 }
-// what accesses this addr
+
+
+__attribute__((destructor))
+void dtor() {
+  puts("destructor");
+  puts("exit destructor");
+}
 // static/dynamic ptr
-// attach/detach dynamically
 // access func args
 // vtable hax
