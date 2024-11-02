@@ -50,7 +50,9 @@ machine_code patch(uintptr_t ptr, machine_code code) {
   return old;
 }
 
+__attribute__((optimize("O0")))
 void detour(void *self) {
+  // do not declare any locals
   asm volatile (
     "push %%ebx \n\t"
     "sub $0x4,%%esp \n\t"
@@ -121,5 +123,4 @@ void dtor() {
   puts("exit destructor");
 }
 // static/dynamic ptr
-// access func args
 // vtable hax
