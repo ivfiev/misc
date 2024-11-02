@@ -48,6 +48,7 @@ void detour() {
   : : :);
   puts("detour!");
   printf("0x%x\n", get_base_addr());
+  printf("0x%x\n", BASE_ADDR);
   asm volatile (
     "jmp *%0 \n\t" 
     : 
@@ -71,8 +72,13 @@ void cons() {
   set_addrs();
   uint8_t instr[5];
   instr[0] = 0xE9;
-  *(uintptr_t *)(instr + 1) = DETOUR_ADDR - FUNC_ADDR - 5;
-  patch(FUNC_ADDR, instr, 5);
-  // print_bytes((uint8_t *)FUNC_ADDR, 20);
+  *(uintptr_t *)(instr + 1) = DETOUR_ADDR - FUNC_ADDR - sizeof(instr);
+  patch(FUNC_ADDR, instr, sizeof(instr));
+  print_bytes((uint8_t *)DETOUR_ADDR, 20);
   puts("exit constructor");
 }
+// what accesses this addr
+// static/dynamic ptr
+// attach/detach dynamically
+// access func args
+// vtable hax
