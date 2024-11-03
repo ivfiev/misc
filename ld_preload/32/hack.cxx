@@ -138,5 +138,3 @@ void dtor() {
   delete H;
   puts("exit destructor");
 }
-// static/dynamic ptr
-// vtable hax
