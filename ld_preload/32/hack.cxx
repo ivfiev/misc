@@ -64,9 +64,13 @@ void detour(void *self) {
   asm volatile (
     "jmp *%0 \n\t" 
     : 
-    : "r" (FUNC_ADDR + 7)
+    : "r" (FUNC_ADDR + 7) // TODO NOPs
     :
   );
+}
+
+void tick_override(void *self) {
+  printf("instance addr [%p]\n", self);
 }
 
 void set_addrs() {
@@ -112,7 +116,19 @@ __attribute__((constructor))
 void ctor() {
   puts("constructor");
   H = new Hoock;
-  H->write();
+  uintptr_t p0_addr = BASE_ADDR + 0x400c;
+  uintptr_t p1_addr = *(uintptr_t *)(BASE_ADDR + 0x4014);
+  // printf("talbe ptr [%p]\n", *(uintptr_t *)p0_addr);
+  // printf("0th ptr [%p]\n", **(uintptr_t **)p0_addr);
+  // printf("talbe ptr [%p]\n", *(uintptr_t *)p1_addr);
+  // printf("0th ptr [%p]\n", **(uintptr_t **)p1_addr);
+  machine_code code;
+  *(uintptr_t *)code.bytes = (uintptr_t)tick_override;
+  code.size = 4;
+  printf("before %p %p\n", tick_override, **(uintptr_t **)p0_addr);
+  patch(*(uintptr_t *)p0_addr, code);
+  printf("after %p %p\n", tick_override, **(uintptr_t **)p0_addr);
+  // H->write();
   puts("exit constructor");
 }
 

@@ -7,19 +7,38 @@ public:
   Entity() {
     time = 0;
   }
-  void tick() {
+  virtual void tick() {
     time++;
-    printf("Time: %d\n", time);
   }
-private:
+protected:
   uint time;
 };
 
+class Player : public Entity {
+public:
+  void tick() override {
+    Entity::tick();
+    printf("Time: %d\n", time);
+  }
+};
+
+Player p0;
+Player *p1;
+
+void tick(Entity *e) {
+  e->tick();
+}
+
 int main() {
-  Entity e;
+  p1 = new Player;
+  Player *p2 = new Player;
+  Player p3;
   for (;;) {
-    e.tick();
-    sleep(4);
+    tick(&p0);
+    tick(p1);
+    tick(p2);
+    tick(&p3);
+    sleep(3);
   }
   return 0;
 }
