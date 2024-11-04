@@ -3,13 +3,13 @@
 __attribute__((constructor))
 void ctor() {
   log("constructor");
-  attach();
+  inject();
   log("exit constructor");
 }
 
 __attribute__((destructor))
 void dtor() {
   log("destructor");
-  detach();
+  unject();
   log("exit destructor");
 }

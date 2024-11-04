@@ -2,7 +2,7 @@
 #define H3SO_H
 
 void log(const char *format, ...);
-void attach();
-void detach();
+void inject();
+void unject();
 
 #endif // H3SO_H

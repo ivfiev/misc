@@ -22,9 +22,8 @@ void award_thread() {
 
 void inject() {
   std::thread {award_thread}.detach();
-  log("thread started");
+  log("injected");
 }
 
 void unject() {
-  log("thread still runs...");
 }
