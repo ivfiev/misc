@@ -1,4 +1,5 @@
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <errno.h>
 #include <string.h>
@@ -6,6 +7,7 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <time.h>
+#include <sys/mman.h>
 
 #define LOG_FILE "/home/fi/dev/misc/h3so/h3sod.log"
 
@@ -32,4 +34,29 @@ void log(const char *format, ...) {
   fprintf(log_file, "\n");
   va_end(args);
   fclose(log_file);
+}
+
+binary patch_rx(uintptr_t ptr, binary code) {
+  binary old;
+  old.size = code.size;
+  memcpy(old.bytes, (void *)ptr, old.size);
+  if (mprotect((void *)(ptr - ptr % 0x1000), 0x1000, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) {
+    perror(strerror(errno));
+  }
+  memcpy((void *)ptr, code.bytes, code.size);
+  if (mprotect((void *)(ptr - ptr % 0x1000), 0x1000, PROT_READ | PROT_EXEC) != 0) {
+    perror(strerror(errno));
+  }
+  return old;
+}
+
+binary get_jmp_code(uintptr_t from, uintptr_t to, size_t size) {
+  binary code;
+  code.size = size;
+  code.bytes[0] = 0xE9;
+  *(uintptr_t *)(code.bytes + 1) = to - from - 5;
+  for (int i = code.size; i < size; i++) {
+    code.bytes[i] = 0x90;
+  }
+  return code;
 }
