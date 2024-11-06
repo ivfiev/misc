@@ -43,7 +43,8 @@ void init_hs() {
 
 void new_day_award_xp() {
   for (int i = 0; i < 156; i++) {
-    uint award = (uint)ceil(0.01 * (double)Hs[i]->get_xp());
+    uint award = (uint)floor(0.01 * (double)Hs[i]->get_xp());
+    award = award > 1 ? award : 1;
     Hs[i]->award_xp(award);
   }
 }
@@ -54,10 +55,8 @@ void new_day_detour() {
     "push %%edx \n\t"
     "push %%ecx \n\t"
     : : :);
-  // new_day_award_xp();
-  log("new day");
+  new_day_award_xp();
   asm volatile (
-    //"sub $0x4,%%esp \n\t"
     "pop %%ecx \n\t"
     "pop %%edx \n\t"
     "add $0x4,%%esp \n\t"
