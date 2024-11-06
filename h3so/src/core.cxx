@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #define STATIC_PTR 0x699538
+#define H_COUNT 156
 
 typedef void (*award_xp_t)(uint32_t, uint32_t, uint32_t);
 static award_xp_t AWARD_XP_FUNC = (award_xp_t)0x4e3620;
@@ -31,26 +32,27 @@ public:
   }
 };
 
-static H *Hs[156];
+static H *Hs[H_COUNT];
 
 void init_hs() {
   uintptr_t state = *(uintptr_t *)STATIC_PTR + 0x21620;
   log("state: [0x%lx]", state);
-  for (int i = 0; i < 156; i++) {
+  for (int i = 0; i < H_COUNT; i++) {
     Hs[i] = new H(state + i * 0x492);
   }
 }
 
 void new_day_award_xp() {
-  for (int i = 0; i < 156; i++) {
-    uint award = (uint)floor(0.01 * (double)Hs[i]->get_xp());
+  for (auto h : Hs) {
+    uint award = (uint)floor(0.01 * (double)h->get_xp());
     award = award > 1 ? award : 1;
-    Hs[i]->award_xp(award);
+    h->award_xp(award);
   }
 }
 
 __attribute__((optimize("O0")))
 void new_day_detour() {
+  // __fastcall ecx & edx
   asm volatile(
     "push %%edx \n\t"
     "push %%ecx \n\t"
