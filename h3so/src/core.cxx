@@ -27,6 +27,7 @@ public:
 
   __attribute__((optimize("O0")))
   void award_xp(uint32_t xp) {
+    // __thiscall ecx
     asm("mov %0, %%ecx" : : "r"(addr) : "%ecx");
     AWARD_XP_FUNC(xp, 0, 0);
   }
@@ -53,7 +54,7 @@ void new_day_award_xp() {
 __attribute__((optimize("O0")))
 void new_day_detour() {
   // __fastcall ecx & edx
-  asm volatile(
+  asm volatile (
     "push %%edx \n\t"
     "push %%ecx \n\t"
     : : :);
