@@ -42,7 +42,7 @@ size_t read_mem_desc(pid_t pid, mem_desc ds[], size_t size) {
 size_t read_mem_blocks(pid_t pid, int mem_fd, mem_block *bs[], size_t size) {
   mem_desc ds[size];
   size_t ds_count = read_mem_desc(pid, ds, size);
-  for (int i = 0; i < size; i++) {
+  for (int i = 0; i < ds_count; i++) {
     bs[i] = read_mem_block(mem_fd, ds[i].start, ds[i].size);
   }
   return ds_count;
@@ -88,6 +88,12 @@ ssize_t read_mem_bytes(int fd, uintptr_t addr, char buf[], size_t size) {
 union word32 read_mem_word32(int mem_fd, uintptr_t addr) {
   union word32 word = {.int32 = 0};
   read_mem_bytes(mem_fd, addr, word.bytes, 4);
+  return word;
+}
+
+union word64 read_mem_word64(int mem_fd, uintptr_t addr) {
+  union word64 word = {.int64 = 0};
+  read_mem_bytes(mem_fd, addr, word.bytes, 8);
   return word;
 }
 

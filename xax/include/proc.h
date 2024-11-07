@@ -19,6 +19,8 @@ ssize_t read_mem_bytes(int fd, uintptr_t addr, char buf[], size_t size);
 
 union word32 read_mem_word32(int fd, uintptr_t addr);
 
+union word64 read_mem_word64(int fd, uintptr_t addr);
+
 size_t write_mem(int fd, uintptr_t addr, char buf[], size_t size);
 
 int close_mem(int fd);

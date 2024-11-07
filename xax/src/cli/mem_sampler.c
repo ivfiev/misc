@@ -71,7 +71,7 @@ static void samples_sieve(int fd, hashtable *tbl) {
       }
     }
     write_mem(fd, key.uint64, original.bytes, 4);
-    if ((double)changed / (double)tbl_len > 0.05) {
+    if ((double)changed / (double)tbl_len > 0.05) { //0x7b19b5680344
       count++;
       printf("0x%lx\n", key.uint64);
     } else {
@@ -98,58 +98,33 @@ static void samples_dump(char *filename, int mem_fd, hashtable *tbl) {
   close(file_fd);
 }
 
-static void samples_ptrdfs(pid_t pid, int mem_fd, hashtable *tbl) {
-  const int byte_dist = 1024;
-  mem_block *bs[256];
-  read_mem_blocks(pid, mem_fd, bs, SIZEARR(bs));
-  FOREACH_KV(tbl, {
-    uintptr_t val_addr = key.uint64;
-    hashtable *visited = hash_new(256, hash_int, hash_cmp_int);
-    PTR_SCAN_START:
-    if (!hash_getv(visited, KV(.uint64 = val_addr)).int32) {
-      hash_set(visited, KV(.uint64 = val_addr), KV(.int32 = 1));
-      for (int i = 0; i <= byte_dist / 4; i++) {
-        uintptr_t addr = val_addr - i * 4;
-        for (int j = 0; j < SIZEARR(bs); j++) {
-          SCAN(bs[j], {
-            if (word.ptr64 == addr) {
-              printf("[0x%lx + 0x%x] <- [0x%lx] (0x%lx - 0x%lx = |0x%lx|)\n",
-                addr, i * 4, WORD_ADDR, addr, WORD_ADDR, MAX(addr, WORD_ADDR) - MIN(addr, WORD_ADDR));
-              val_addr = WORD_ADDR;
-              goto PTR_SCAN_START;
-            }
-          });
-        }
-      }
-    }
-    puts("---");
-    hash_free(visited);
-  });
-  for (int i = 0; i < SIZEARR(bs); i++) {
-    free_mem(bs[i]);
-  }
-}
-
 static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl) {
-  const int byte_dist = 1024;
-  mem_block *bs[256];
-  read_mem_blocks(pid, mem_fd, bs, SIZEARR(bs));
+  const int radius = 4096;
+  mem_desc ds[4096];
+  mem_block *bs[4096];
+  read_mem_desc(pid, ds, SIZEARR(ds));
+  for (int i = 0; i < SIZEARR(ds); i++) {
+    bs[i] = read_mem_block(mem_fd, ds[i].start, ds[i].size);
+  }
   FOREACH_KV(tbl, {
     uintptr_t val_addr = key.uint64;
-    for (int i = 0; i <= byte_dist / 4; i++) { // TODO - del inner loop
-      uintptr_t addr = val_addr - i * 4;
-      for (int j = 0; j < SIZEARR(bs); j++) {
-        SCAN(bs[j], {
-          if (word.ptr64 == addr) {
-            printf("[0x%lx + 0x%x] <- [0x%lx] (0x%lx - 0x%lx = |0x%lx|)\n",
-              addr, i * 4, WORD_ADDR, addr, WORD_ADDR, MAX(addr, WORD_ADDR) - MIN(addr, WORD_ADDR));
+    for (int j = 0; j < SIZEARR(ds); j++) {
+      SCAN(bs[j], {
+        if (IN_RANGE(val_addr - radius, word.ptr64, val_addr)) {
+          uintptr_t val_offset = val_addr - word.ptr64;
+          printf("[[0x%lx]] [0x%lx + 0x%lx] ", WORD_ADDR, word.ptr64, val_offset);
+          int base_ix = find_mem_desc(ds[j].name, ds, SIZEARR(ds));
+          if (base_ix >= 0 && strcmp("NULL", ds[base_ix].name) != 0) {
+            uintptr_t base_offset = WORD_ADDR - ds[base_ix].start;
+            printf("[%s + 0x%lx]", ds[j].name, base_offset);
           }
-        });
-      }
+          printf("\n");
+        }
+      });
     }
     puts("---");
   });
-  for (int i = 0; i < SIZEARR(bs); i++) {
+  for (int i = 0; i < SIZEARR(ds); i++) {
     free_mem(bs[i]);
   }
 }
@@ -158,6 +133,19 @@ static void samples_add(int mem_fd, hashtable *tbl, uintptr_t addr) {
   union word32 word;
   read_mem_bytes(mem_fd, addr, word.bytes, 4);
   hash_set(tbl, KV(.uint64 = addr), KV(.float32 = word.float32));
+}
+
+static void samples_set_ptrs(int mem_fd, hashtable *tbl, char *addr_str) {
+  char *addr_toks[256];
+  size_t count = strsplit(addr_str, ",", addr_toks, SIZEARR(addr_toks));
+  FOREACH_KV(tbl, {
+    hash_del(tbl, key);
+  });
+  for (int i = 0; i < count; i++) {
+    uintptr_t addr = parse_addr(addr_toks[i]);
+    uintptr_t ptr = read_mem_word64(mem_fd, addr).ptr64;
+    hash_set(tbl, KV(.uint64 = addr), KV(.uint64 = ptr));
+  }
 }
 
 static void samples_delta(int mem_fd, hashtable *tbl, int secs, float min, float max) {
@@ -252,11 +240,12 @@ static void sampler(void) {
       printf("Address count: [%zu]\n", tbl->len);
     } else if (strcasestr("ptrbfs", tokens[0])) {
       samples_ptrbfs(pid, fd, tbl);
-    } else if (strcasestr("ptrdfs", tokens[0])) {
-      samples_ptrdfs(pid, fd, tbl);
     } else if (strcasestr("add", tokens[0])) {
       uintptr_t addr = parse_addr(tokens[1]);
       samples_add(fd, tbl, addr);
+      printf("Address count: [%zu]\n", tbl->len);
+    } else if (strcasestr("set_ptrs", tokens[0])) {
+      samples_set_ptrs(fd, tbl, tokens[1]);
       printf("Address count: [%zu]\n", tbl->len);
     } else if (strcasestr("deltas", tokens[0])) {
       int secs = parse_value(tokens[1], INFER_TYPE).int32; // meh
