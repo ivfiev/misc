@@ -17,14 +17,14 @@ size_t read_mem_desc(pid_t pid, mem_desc ds[], size_t size) {
   char buf[256 * size];
   char cmd[128];
   char *lines[size];
-  snprintf(cmd, SIZEARR(cmd), "cat /proc/%d/maps | awk '{print $1,$6}'", pid);
+  snprintf(cmd, SIZEARR(cmd), "cat /proc/%d/maps | grep -v render | awk '{print $1 \"|\" $6,$7,$8,$9}'", pid);
   run_cmd(cmd, buf, 256 * size);
   size_t count = strsplit(buf, "\n", lines, SIZEARR(lines));
   int i;
   for (i = 0; i < MIN(count, size); i++) {
     char *words[] = {NULL, NULL};
     char *hexes[] = {NULL, NULL};
-    strsplit(lines[i], " ", words, SIZEARR(words));
+    strsplit(lines[i], "|", words, SIZEARR(words));
     strsplit(words[0], "-", hexes, SIZEARR(hexes));
     if (words[1] != NULL) {
       strncpy(ds[i].name, words[1], SIZEARR(ds->name));

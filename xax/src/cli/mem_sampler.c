@@ -98,33 +98,37 @@ static void samples_dump(char *filename, int mem_fd, hashtable *tbl) {
   close(file_fd);
 }
 
-static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl) {
-  const int radius = 4096;
-  mem_desc ds[4096];
-  mem_block *bs[4096];
-  read_mem_desc(pid, ds, SIZEARR(ds));
-  for (int i = 0; i < SIZEARR(ds); i++) {
+static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl, char *lib_name, size_t lib_size, int depth) {
+  const int ptr_radius = 4096;
+  mem_desc ds[2048];
+  mem_block *bs[2048];
+  size_t ds_count = read_mem_desc(pid, ds, SIZEARR(ds));
+  for (int i = 0; i < ds_count; i++) {
     bs[i] = read_mem_block(mem_fd, ds[i].start, ds[i].size);
   }
-  FOREACH_KV(tbl, {
-    uintptr_t val_addr = key.uint64;
-    for (int j = 0; j < SIZEARR(ds); j++) {
-      SCAN(bs[j], {
-        if (IN_RANGE(val_addr - radius, word.ptr64, val_addr)) {
-          uintptr_t val_offset = val_addr - word.ptr64;
-          printf("[[0x%lx]] [0x%lx + 0x%lx] ", WORD_ADDR, word.ptr64, val_offset);
-          int base_ix = find_mem_desc(ds[j].name, ds, SIZEARR(ds));
-          if (base_ix >= 0 && strcmp("NULL", ds[base_ix].name) != 0) {
-            uintptr_t base_offset = WORD_ADDR - ds[base_ix].start;
-            printf("[%s + 0x%lx]", ds[j].name, base_offset);
+  int lib_ix = find_mem_desc(lib_name, ds, ds_count);
+  size_t lib_start = ds[lib_ix].start;
+  while (depth > 0) {
+    printf("scanning depth %d, addrs %ld, [0x%lx-0x%lx]...\n", depth, tbl->len, lib_start, lib_start + lib_size);
+    depth--;
+    FOREACH_KV(tbl, {
+      uintptr_t val_addr = key.uint64;
+      printf("ptrs remaining - %ld, current [0x%lx]\n", tbl_len - k_ix, val_addr);
+      for (int j = 0; j < ds_count; j++) {
+        SCAN(bs[j], {
+          if (IN_RANGE(val_addr - ptr_radius, word.ptr64, val_addr)) {
+            uintptr_t val_offset = val_addr - word.ptr64;
+            hash_set(tbl, KV(.uint64 = WORD_ADDR), KV(.uint64 = word.ptr64));
+            if (IN_RANGE(lib_start, WORD_ADDR, lib_start + lib_size)) {
+              printf("************************** [STATIC] [0x%lx]\n", WORD_ADDR - lib_start);
+            }
           }
-          printf("\n");
-        }
-      });
-    }
-    puts("---");
-  });
-  for (int i = 0; i < SIZEARR(ds); i++) {
+        });
+        hash_del(tbl, key);
+      }
+    });
+  }
+  for (int i = 0; i < ds_count; i++) {
     free_mem(bs[i]);
   }
 }
@@ -195,17 +199,25 @@ static void samples_delta(int mem_fd, hashtable *tbl, int secs, float min, float
 static void sampler(void) {
   char *proc_name = args_get("arg0");
   char *filename = args_get("arg1");
+  char *arg_cmds_str = args_get("arg2");
+  char *arg_cmds[16];
+  size_t arg_cmds_count = strlen(arg_cmds_str) > 0 ? strsplit(arg_cmds_str, "~", arg_cmds, 16) : 0;
   char input[128];
   char *tokens[8];
   float target;
   hashtable *tbl = hash_new(128 * 128, hash_int, hash_cmp_int);
   OPEN_MEM(proc_name);
-  for (;;) {
+  for (int i = 0;; i++) {
     printf("> ");
-    fflush(stdin);
-    if (!fgets(input, SIZEARR(input), stdin)) {
-      break;
+    if (i < arg_cmds_count) {
+      memcpy(input, arg_cmds[i], strlen(arg_cmds[i]) + 1);
+      puts(arg_cmds[i]);
+    } else {
+      if (!fgets(input, SIZEARR(input), stdin)) {
+        break;
+      }
     }
+    fflush(stdin);
     trim_end(input);
     strsplit(input, " ", tokens, SIZEARR(tokens));
     if (strcasestr("reset", tokens[0])) {
@@ -239,7 +251,10 @@ static void sampler(void) {
       samples_sieve(fd, tbl);
       printf("Address count: [%zu]\n", tbl->len);
     } else if (strcasestr("ptrbfs", tokens[0])) {
-      samples_ptrbfs(pid, fd, tbl);
+      char *lib_name = tokens[1];
+      size_t lib_size = parse_addr(tokens[2]);
+      int depth = parse_value(tokens[3], INFER_TYPE).int32;
+      samples_ptrbfs(pid, fd, tbl, lib_name, lib_size, depth);
     } else if (strcasestr("add", tokens[0])) {
       uintptr_t addr = parse_addr(tokens[1]);
       samples_add(fd, tbl, addr);

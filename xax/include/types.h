@@ -23,7 +23,7 @@ union word32 {
 };
 
 typedef struct {
-  char name[128];
+  char name[256];
   uintptr_t start;
   size_t size;
 } mem_desc;
