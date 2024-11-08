@@ -103,3 +103,7 @@ int intcmp(const void *ptr1, const void *ptr2) {
   int j = *(int *)ptr2;
   return i - j;
 }
+
+void msleep(int ms) {
+  usleep(ms * 1000);
+}

@@ -35,4 +35,6 @@ time_t timestamp(void);
 
 int intcmp(const void *, const void *);
 
+void msleep(int ms);
+
 #endif

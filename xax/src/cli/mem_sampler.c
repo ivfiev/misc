@@ -108,6 +108,7 @@ static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl, char *lib_name
   }
   int lib_ix = find_mem_desc(lib_name, ds, ds_count);
   size_t lib_start = ds[lib_ix].start;
+  hashtable *vis = hash_new(4096, hash_int, hash_cmp_int);
   while (depth > 0) {
     printf("scanning depth %d, addrs %ld, [0x%lx-0x%lx]...\n", depth, tbl->len, lib_start, lib_start + lib_size);
     depth--;
@@ -119,8 +120,18 @@ static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl, char *lib_name
           if (IN_RANGE(val_addr - ptr_radius, word.ptr64, val_addr)) {
             uintptr_t val_offset = val_addr - word.ptr64;
             hash_set(tbl, KV(.uint64 = WORD_ADDR), KV(.uint64 = word.ptr64));
+            hash_set(vis, KV(.uint64 = WORD_ADDR), KV(.uint64 = val_offset));
             if (IN_RANGE(lib_start, WORD_ADDR, lib_start + lib_size)) {
-              printf("************************** [STATIC] [0x%lx]\n", WORD_ADDR - lib_start);
+              size_t lib_offset = WORD_ADDR - lib_start;
+              printf("***** [STATIC] ***** [0x%lx %s:0x%lx]\n", WORD_ADDR, lib_name, lib_offset);
+              hash_set(vis, KV(.uint64 = lib_offset), KV(.uint64 = val_addr - word.ptr64));
+              for (uintptr_t ptr = WORD_ADDR; hash_hask(vis, KV(.uint64 = ptr)); ) {
+                uintptr_t field_offset = hash_getv(vis, KV(.uint64 = ptr)).uint64;
+                uintptr_t next = read_mem_word64(mem_fd, ptr).ptr64 + field_offset;
+                printf("[*0x%lx + 0x%lx] = [0x%lx], ", ptr, field_offset, next);
+                ptr = next;
+              }
+              puts("");
             }
           }
         });
@@ -131,6 +142,7 @@ static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl, char *lib_name
   for (int i = 0; i < ds_count; i++) {
     free_mem(bs[i]);
   }
+  hash_free(vis);
 }
 
 static void samples_add(int mem_fd, hashtable *tbl, uintptr_t addr) {

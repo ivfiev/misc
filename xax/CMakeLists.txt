@@ -18,14 +18,12 @@ add_executable(xax src/main.c
         src/h3sod/h3sod.c
         src/scan.c
         include/impl.h
-        src/csrh/threads.c
+        src/csrh/csrh.c
         src/cli/mem_sampler.c
         src/cli/mem_analysis.c
         src/cli/mem.h
         src/cli/mem_format.c
         include/types.h
-        src/csrh/history.c
-        src/csrh/csrh.h
 )
 
 target_link_libraries(xax m)
