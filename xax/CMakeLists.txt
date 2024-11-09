@@ -24,6 +24,7 @@ add_executable(xax src/main.c
         src/cli/mem.h
         src/cli/mem_format.c
         include/types.h
+        src/cli/mem_ptr_scan.c
 )
 
 target_link_libraries(xax m)

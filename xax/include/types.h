@@ -58,4 +58,9 @@ typedef struct hashtable {
   uint64_t (*hash)(kv k, uint64_t N);
 } hashtable;
 
+struct entry {
+  uintptr_t addr;
+  uintptr_t val;
+};
+
 #endif

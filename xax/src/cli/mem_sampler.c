@@ -34,7 +34,7 @@ static int sample_addr(int fd, uintptr_t addr, size_t range, uint8_t buf[]) {
 }
 
 static void samples_init(pid_t pid, int fd, hashtable *tbl, float target) {
-  target = sin(target / 90.0 * M_PI_2);
+//  target = sin(target / 90.0 * M_PI_2);
   FOREACH_BLOCK(1, 3000, {
     SCAN(block, {
       if (IN_RANGE(target - PRECISION, word.float32, target + PRECISION)) {
@@ -45,7 +45,7 @@ static void samples_init(pid_t pid, int fd, hashtable *tbl, float target) {
 }
 
 static void samples_refine(int fd, hashtable *tbl, float target) {
-  target = sin(target / 90.0 * M_PI_2);
+//  target = sin(target / 90.0 * M_PI_2);
   FOREACH_KV(tbl, {
     union word32 word = read_mem_word32(fd, key.uint64);
     if (!IN_RANGE(target - PRECISION, word.float32, target + PRECISION)) {
@@ -56,8 +56,8 @@ static void samples_refine(int fd, hashtable *tbl, float target) {
 
 static void samples_sieve(int fd, hashtable *tbl) {
   int count = 0;
-  union word32 test = {.float32 = sin(88.88 / 90 * M_PI_2)};
-  // union word32 test = {.float32 = 888.888};
+  //union word32 test = {.float32 = sin(88.88 / 90 * M_PI_2)};
+  union word32 test = {.float32 = 888.888};
   union word32 control, original;
   FOREACH_KV(tbl, {
     read_mem_bytes(fd, key.uint64, original.bytes, 4);
@@ -101,56 +101,52 @@ static void samples_dump(char *filename, int mem_fd, hashtable *tbl) {
   close(file_fd);
 }
 
-static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl, char *lib_name, size_t lib_size, int depth) {
+static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl, char *lib_name, size_t lib_size, int depth, const char *filename) {
+  int file_fd = open(filename, O_WRONLY | O_CREAT | O_APPEND, 0666);
   const int ptr_radius = 4096;
-  mem_desc ds[2048];
-  mem_block *bs[2048];
-  size_t ds_count = read_mem_desc(pid, ds, SIZEARR(ds));
-  for (int i = 0; i < ds_count; i++) {
-    bs[i] = read_mem_block(mem_fd, ds[i].start, ds[i].size);
-  }
-  int lib_ix = find_mem_desc(lib_name, ds, ds_count);
-  size_t lib_start = ds[lib_ix].start;
-  hashtable *vis = hash_new(4096, hash_int, hash_cmp_int);
-  while (depth > 0) {
-    printf("Scanning depth [%d], #addrs [%ld], static range: [0x%lx-0x%lx]\n", depth, tbl->len, lib_start, lib_start + lib_size);
-    depth--;
+  const size_t ENTRIES_SIZE = 100'000'000;
+  struct entry *es = calloc(ENTRIES_SIZE, sizeof(struct entry));
+  size_t es_count = entries_filter(pid, mem_fd, es, ENTRIES_SIZE);
+  printf("#Entries: [%ld]\n", es_count);
+  entries_sort(es, es_count);
+  size_t lib_start = get_start_addr(pid, lib_name);
+  hashtable *vis = hash_new(ptr_radius * ptr_radius, hash_int, hash_cmp_int);
+  for (int d = 0; d < depth; d++) {
+    printf("Scanning depth [%d], #addrs [%ld], static range: [0x%lx-0x%lx]\n", d + 1, tbl->len, lib_start, lib_start + lib_size);
     FOREACH_KV(tbl, {
       uintptr_t val_addr = key.uint64;
-      printf("Ptrs remaining [%ld], current [0x%lx]\n", tbl_len - k_ix, val_addr);
-      for (int j = 0; j < ds_count; j++) {
-        SCAN(bs[j], {
-          if (IN_RANGE(val_addr - ptr_radius, word.ptr64, val_addr)) {
-            uintptr_t val_offset = val_addr - word.ptr64;
-            hash_set(tbl, KV(.uint64 = WORD_ADDR), KV(.uint64 = word.ptr64));
-            hash_set(vis, KV(.uint64 = WORD_ADDR), KV(.uint64 = val_offset));
-            if (IN_RANGE(lib_start, WORD_ADDR, lib_start + lib_size)) {
-              size_t lib_offset = WORD_ADDR - lib_start;
-              printf("***** [STATIC] ***** [0x%lx %s:0x%lx]\n", WORD_ADDR, lib_name, lib_offset);
-              hash_set(vis, KV(.uint64 = lib_offset), KV(.uint64 = val_addr - word.ptr64));
-              for (uintptr_t ptr = WORD_ADDR; hash_hask(vis, KV(.uint64 = ptr)); ) {
-                uintptr_t field_offset = hash_getv(vis, KV(.uint64 = ptr)).uint64;
-                uintptr_t next = read_mem_word64(mem_fd, ptr).ptr64 + field_offset;
-                printf("[*0x%lx + 0x%lx] = [0x%lx], ", ptr, field_offset, next);
-                ptr = next;
-              }
-              puts("");
+      size_t ei = entries_bsearch(val_addr - ptr_radius, es, es_count);
+      for (; es[ei].val <= val_addr; ei++) {
+        hash_set(tbl, KV(.uint64 = es[ei].addr), KV(.uint64 = es[ei].val));
+        hash_set(vis, KV(.uint64 = es[ei].addr), KV(.uint64 = val_addr - es[ei].val));
+        if (IN_RANGE(lib_start, es[ei].addr, lib_start + lib_size)) {
+          char path[256];
+          int p = snprintf(path, SIZEARR(path), "0x%lx", es[ei].addr - lib_start);
+          int len = 0;
+          for (uintptr_t ptr = es[ei].addr; hash_hask(vis, KV(.uint64 = ptr)) && p < SIZEARR(path);) {
+            uintptr_t field_offset = hash_getv(vis, KV(.uint64 = ptr)).uint64;
+            uintptr_t next = read_mem_word64(mem_fd, ptr).ptr64 + field_offset;
+            p += snprintf(path + p, SIZEARR(path) - p, ", 0x%lx", field_offset);
+            ptr = next;
+            len++;
+          }
+          if (p < SIZEARR(path)) {
+            if (write_all(file_fd, path, p) < p || write(file_fd, "\n", 1) <= 0) {
+              fprintf(stderr, "error writing [%s]\n", strerror(errno));
             }
           }
-        });
-        hash_del(tbl, key);
+        }
       }
+      hash_del(tbl, key);
     });
   }
-  for (int i = 0; i < ds_count; i++) {
-    free_mem(bs[i]);
-  }
   hash_free(vis);
+  free(es);
+  close(file_fd);
 }
 
 static void samples_add(int mem_fd, hashtable *tbl, uintptr_t addr) {
-  union word32 word;
-  read_mem_bytes(mem_fd, addr, word.bytes, 4);
+  union word32 word = read_mem_word32(mem_fd, addr);
   hash_set(tbl, KV(.uint64 = addr), KV(.float32 = word.float32));
 }
 
@@ -196,12 +192,12 @@ static void samples_delta(int mem_fd, hashtable *tbl, int secs, float min, float
     }
   }
   qsort(uniques, tbl_len, sizeof(int), intcmp);
-  for (int i = 1; i <= 3; i++) {
+  for (int i = 1; i <= 9; i++) {
     printf("top%d - [%d]\n", i, uniques[tbl_len - i]);
   }
-  int top1 = uniques[tbl_len - 1];
+  int top9 = uniques[tbl_len - 9];
   for (int k = 0; k < tbl_len; k++) {
-    if (deltas[k]->len < top1) {
+    if (deltas[k]->len < top9) {
       hash_del(tbl, addrs[k]);
     }
   }
@@ -277,7 +273,9 @@ static void sampler(void) {
       char *lib_name = tokens[1];
       size_t lib_size = parse_addr(tokens[2]);
       int depth = parse_value(tokens[3], INFER_TYPE).int32;
-      samples_ptrbfs(pid, fd, tbl, lib_name, lib_size, depth);
+      samples_ptrbfs(pid, fd, tbl, lib_name, lib_size, depth, filename);
+      printf("Samples dumped to [%s]\n", filename);
+      break;
     } else if (strcasestr("add", tokens[0])) {
       uintptr_t addr = parse_addr(tokens[1]);
       samples_add(fd, tbl, addr);

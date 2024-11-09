@@ -5,7 +5,7 @@
 #include "proc.h"
 #include "util.h"
 
-pid_t get_pid(char *proc_name) {
+pid_t get_pid(const char *proc_name) {
   char buf[32], cmd[32];
   snprintf(cmd, SIZEARR(cmd), "pgrep %s", proc_name);
   run_cmd(cmd, buf, SIZEARR(buf));
@@ -48,13 +48,19 @@ size_t read_mem_blocks(pid_t pid, int mem_fd, mem_block *bs[], size_t size) {
   return ds_count;
 }
 
-int find_mem_desc(char *key, mem_desc ds[], size_t size) {
+int find_mem_desc(const char *key, mem_desc ds[], size_t size) {
   for (int i = 0; i < size; i++) {
     if (strcasestr(ds[i].name, key)) {
       return i;
     }
   }
   return -1;
+}
+
+uintptr_t get_start_addr(pid_t pid, const char *key) {
+  mem_desc ds[2048];
+  size_t ds_size = read_mem_desc(pid, ds, SIZEARR(ds));
+  return ds[find_mem_desc(key, ds, ds_size)].start;
 }
 
 int open_mem(pid_t pid) {
