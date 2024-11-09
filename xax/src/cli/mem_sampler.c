@@ -10,6 +10,7 @@
 #include "hashtable.h"
 #include "scan.h"
 #include "mem.h"
+#include "math.h"
 
 #define PRECISION 0.01
 
@@ -33,6 +34,7 @@ static int sample_addr(int fd, uintptr_t addr, size_t range, uint8_t buf[]) {
 }
 
 static void samples_init(pid_t pid, int fd, hashtable *tbl, float target) {
+  target = sin(target / 90.0 * M_PI_2);
   FOREACH_BLOCK(1, 3000, {
     SCAN(block, {
       if (IN_RANGE(target - PRECISION, word.float32, target + PRECISION)) {
@@ -43,9 +45,9 @@ static void samples_init(pid_t pid, int fd, hashtable *tbl, float target) {
 }
 
 static void samples_refine(int fd, hashtable *tbl, float target) {
+  target = sin(target / 90.0 * M_PI_2);
   FOREACH_KV(tbl, {
-    union word32 word;
-    read_mem_bytes(fd, key.uint64, word.bytes, 4);
+    union word32 word = read_mem_word32(fd, key.uint64);
     if (!IN_RANGE(target - PRECISION, word.float32, target + PRECISION)) {
       hash_del(tbl, key);
     }
@@ -54,12 +56,13 @@ static void samples_refine(int fd, hashtable *tbl, float target) {
 
 static void samples_sieve(int fd, hashtable *tbl) {
   int count = 0;
-  union word32 test = {.float32 = 888.888};
+  union word32 test = {.float32 = sin(88.88 / 90 * M_PI_2)};
+  // union word32 test = {.float32 = 888.888};
   union word32 control, original;
   FOREACH_KV(tbl, {
     read_mem_bytes(fd, key.uint64, original.bytes, 4);
     write_mem(fd, key.uint64, test.bytes, 4);
-    usleep(80 * 1000);
+    msleep(80);
     int changed = 0;
     for (int i = 0; i < tbl_len; i++) {
       if (kvs[i].uint64 == key.uint64) {
@@ -77,7 +80,7 @@ static void samples_sieve(int fd, hashtable *tbl) {
     } else {
       hash_del(tbl, key);
     }
-    usleep(20 * 1000);
+    msleep(20);
   });
 }
 
@@ -110,11 +113,11 @@ static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl, char *lib_name
   size_t lib_start = ds[lib_ix].start;
   hashtable *vis = hash_new(4096, hash_int, hash_cmp_int);
   while (depth > 0) {
-    printf("scanning depth %d, addrs %ld, [0x%lx-0x%lx]...\n", depth, tbl->len, lib_start, lib_start + lib_size);
+    printf("Scanning depth [%d], #addrs [%ld], static range: [0x%lx-0x%lx]\n", depth, tbl->len, lib_start, lib_start + lib_size);
     depth--;
     FOREACH_KV(tbl, {
       uintptr_t val_addr = key.uint64;
-      printf("ptrs remaining - %ld, current [0x%lx]\n", tbl_len - k_ix, val_addr);
+      printf("Ptrs remaining [%ld], current [0x%lx]\n", tbl_len - k_ix, val_addr);
       for (int j = 0; j < ds_count; j++) {
         SCAN(bs[j], {
           if (IN_RANGE(val_addr - ptr_radius, word.ptr64, val_addr)) {
@@ -208,6 +211,14 @@ static void samples_delta(int mem_fd, hashtable *tbl, int secs, float min, float
   }
 }
 
+static void samples_closest(hashtable *tbl, uintptr_t addr) {
+  uintptr_t closest = 0xAFFFFFFFFFFFFFFF;
+  FOREACH_KV(tbl, {
+    closest = ABS(key.uint64 - addr) < ABS(closest - addr) ? key.uint64 : closest;
+  });
+  printf("0x%lx - 0x%lx = 0x%lx\n", closest, addr, closest - addr);
+}
+
 static void sampler(void) {
   char *proc_name = args_get("arg0");
   char *filename = args_get("arg1");
@@ -279,6 +290,10 @@ static void sampler(void) {
       float min = parse_value(tokens[2], FLOAT32_TYPE).float32;
       float max = parse_value(tokens[3], FLOAT32_TYPE).float32;
       samples_delta(fd, tbl, secs, min, max);
+      printf("Address count: [%zu]\n", tbl->len);
+    } else if (strcasestr("closest", tokens[0])) {
+      uintptr_t addr = parse_addr(tokens[1]);
+      samples_closest(tbl, addr);
       printf("Address count: [%zu]\n", tbl->len);
     } else {
       printf("unknown command [%s]\n", tokens[0]);
