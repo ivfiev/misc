@@ -101,86 +101,8 @@ static void samples_dump(char *filename, int mem_fd, hashtable *tbl) {
   close(file_fd);
 }
 
-static char CURRENT_PATH[48];
-static hashtable *STRINGS = hash_new(1000000, hash_int, hash_cmp_int);
-
-static void dump_ptr_paths(int file_fd, int mem_fd, hashtable *vis, uintptr_t ptr, int p_ix, int depth) {
-  if (depth < 0 || p_ix >= SIZEARR(CURRENT_PATH)) {
-    return;
-  }
-  hashtable *adj = hash_getv(vis, KV(.uint64 = ptr)).ptr;
-  if (adj == NULL) {
-//    puts(CURRENT_PATH);
-//    COUNT++;
-//    return;
-    if (write_all(file_fd, CURRENT_PATH, p_ix) < p_ix || write(file_fd, "\n", 1) <= 0) {
-      fprintf(stderr, "error writing [%s]\n", strerror(errno));
-    }
-    return;
-  }
-  uintptr_t entry_val = read_mem_word64(mem_fd, ptr).ptr64;
-  FOREACH_KV(adj, {
-    uintptr_t field_offset = key.uint64;
-    uintptr_t next = entry_val + field_offset;
-    int p_ix_new = p_ix + snprintf(CURRENT_PATH + p_ix, SIZEARR(CURRENT_PATH) - p_ix, ", 0x%lx", field_offset);
-    dump_ptr_paths(file_fd, mem_fd, vis, next, p_ix_new, depth - 1);
-  });
-}
-
-static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl, char *lib_name, size_t lib_size, int depth, const char *filename) {
-  int file_fd = open(filename, O_WRONLY | O_CREAT | O_APPEND, 0666);
-  const int ptr_radius = 2048;
-  const size_t ENTRIES_SIZE = 100'000'000;
-  struct entry *es = calloc(ENTRIES_SIZE, sizeof(struct entry));
-  size_t es_count = entries_filter(pid, mem_fd, es, ENTRIES_SIZE);
-  printf("#Entries: [%ld]\n", es_count);
-  entries_sort(es, es_count);
-  size_t lib_start = get_start_addr(pid, lib_name);
-  hashtable *vis = hash_new(ptr_radius * ptr_radius, hash_int, hash_cmp_int);
-  for (int d = 0; d < depth; d++) {
-    printf("Scanning depth [%d], #addrs [%ld], static range: [0x%lx-0x%lx]\n", d + 1, tbl->len, lib_start, lib_start + lib_size);
-    FOREACH_KV(tbl, {
-      uintptr_t val_addr = key.uint64;
-      size_t ei = entries_bsearch(val_addr - ptr_radius, es, es_count);
-      for (; es[ei].val <= val_addr; ei++) {
-        uintptr_t field_offset = val_addr - es[ei].val; // offset from beginning to value in question
-        uintptr_t entry_addr = es[ei].addr; // addr of the ptr
-        uintptr_t entry_val = es[ei].val; // ptr to beginning of the struct
-        hashtable *adj = hash_getv(vis, KV(.uint64 = entry_addr)).ptr; // all structs entry_val potentially points to
-        if (adj == NULL) {
-          adj = hash_new(32, hash_int, hash_cmp_int);
-          hash_set(vis, KV(.uint64 = entry_addr), KV(.ptr = adj));
-        }
-        hash_set(adj, KV(.uint64 = field_offset), KV(.uint64 = 1));
-        hash_set(tbl, KV(.uint64 = entry_addr), KV(.uint64 = entry_val));
-        if (IN_RANGE(lib_start, entry_addr, lib_start + lib_size)) {
-          dump_ptr_paths(file_fd, mem_fd, vis, entry_addr,
-            snprintf(CURRENT_PATH, SIZEARR(CURRENT_PATH), "0x%lx", entry_addr - lib_start), depth);
-//          char path[128];
-//          int p = snprintf(path, SIZEARR(path), "0x%lx", entry_addr - lib_start);
-//          for (uintptr_t ptr = entry_addr; hash_hask(vis, KV(.uint64 = ptr)) && p < SIZEARR(path);) {
-//            field_offset = hash_getv(vis, KV(.uint64 = ptr)).uint64;
-//            uintptr_t next = read_mem_word64(mem_fd, ptr).ptr64 + field_offset;
-//            p += snprintf(path + p, SIZEARR(path) - p, ", 0x%lx", field_offset);
-//            ptr = next;
-//          }
-//          if (p < SIZEARR(path)) {
-//            if (write_all(file_fd, path, p) < p || write(file_fd, "\n", 1) <= 0) {
-//              fprintf(stderr, "error writing [%s]\n", strerror(errno));
-//            }
-//          }
-        }
-      }
-      hash_del(tbl, key);
-    });
-  }
-  FOREACH_KV(vis, {
-    hash_free(val.ptr);
-  });
-  hash_free(vis);
-  free(es);
-  close(file_fd);
-//  printf("WRITTEN %ld\n", COUNT);
+static void samples_ptrbfs(pid_t pid, int mem_fd, hashtable *tbl, char *lib_name, size_t lib_size, int depth, char *filename) {
+  ptr_bfs(pid, mem_fd, tbl, lib_name, lib_size, depth, filename);
 }
 
 static void samples_add(int mem_fd, hashtable *tbl, uintptr_t addr) {
