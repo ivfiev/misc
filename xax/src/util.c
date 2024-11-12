@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <math.h>
 #include <sys/time.h>
+#include <fcntl.h>
 #include "types.h"
 
 void err_fatal(char *s) {
@@ -106,4 +107,16 @@ int intcmp(const void *ptr1, const void *ptr2) {
 
 void msleep(int ms) {
   usleep(ms * 1000);
+}
+
+void disable_stderr(void) {
+  int null_fd = open("/dev/null", O_WRONLY);
+  if (null_fd == -1) {
+    perror("Failed to open /dev/null");
+  }
+  if (dup2(null_fd, STDERR_FILENO) == -1) {
+    perror("Failed to redirect stderr");
+    close(null_fd);
+  }
+  close(null_fd);
 }

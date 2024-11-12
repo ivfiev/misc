@@ -37,4 +37,6 @@ int intcmp(const void *, const void *);
 
 void msleep(int ms);
 
+void disable_stderr(void);
+
 #endif
