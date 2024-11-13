@@ -104,7 +104,7 @@ void ptr_bfs(pid_t pid, int mem_fd, hashtable *tbl, char *lib_name, size_t lib_s
   size_t es_count = entries_filter(pid, mem_fd, es, ENTRIES_SIZE);
   printf("#Entries: [%ld]\n", es_count);
   entries_sort(es, es_count);
-  size_t lib_start = get_start_addr(pid, lib_name);
+  size_t lib_start = get_base_addr(pid, lib_name);
   hashtable *paths = hash_new(ptr_radius * ptr_radius, hash_int, hash_cmp_int);
   hashtable *done = hash_new(ptr_radius * ptr_radius, hash_int, hash_cmp_int);
   for (int d = 0; d < depth; d++) {

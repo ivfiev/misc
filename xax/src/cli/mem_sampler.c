@@ -12,8 +12,6 @@
 #include "mem.h"
 #include "math.h"
 
-#define PRECISION 0.01
-
 static int parsef(char *str, float *f) {
   char *endptr = NULL;
   *f = strtof(str, &endptr);

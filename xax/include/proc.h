@@ -11,7 +11,7 @@ size_t read_mem_blocks(pid_t pid, int mem_fd, mem_block *bs[], size_t size);
 
 int find_mem_desc(const char *key, mem_desc ds[], size_t size);
 
-uintptr_t get_start_addr(pid_t pid, const char *key);
+uintptr_t get_base_addr(pid_t pid, const char *key);
 
 int open_mem(pid_t pid);
 

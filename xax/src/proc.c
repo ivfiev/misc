@@ -57,7 +57,7 @@ int find_mem_desc(const char *key, mem_desc ds[], size_t size) {
   return -1;
 }
 
-uintptr_t get_start_addr(pid_t pid, const char *key) {
+uintptr_t get_base_addr(pid_t pid, const char *key) {
   mem_desc ds[2048];
   size_t ds_size = read_mem_desc(pid, ds, SIZEARR(ds));
   return ds[find_mem_desc(key, ds, ds_size)].start;
