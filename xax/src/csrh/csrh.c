@@ -83,6 +83,7 @@ static void main_loop(void) {
     for (int i = 0; i < count; i++) {
       print_player(&players[i]);
     }
+    fflush(stdout);
     msleep(40);
   }
 }
