@@ -8,14 +8,14 @@ from pynput import keyboard
 
 
 class FadingCircle:
-    def __init__(self, canvas, x1, y1, x2, y2, t, red):
+    def __init__(self, canvas, x1, y1, x2, y2, t, col):
         self.canvas = canvas
         self.x0 = 0
         self.y0 = 0
         self.x1 = x1
         self.y1 = y1
         self.t = t
-        self.red = red
+        self.col = col
         self.size = 10
         self.alpha = 1.0
         self.recalc_effective(x2, y2, t)
@@ -31,9 +31,11 @@ class FadingCircle:
 
     def _get_color(self):
         col = int(255 * self.alpha)
-        if self.red:
+        if self.col == 'T':
             return f'#{col:02x}0000'
-        return f'#0000{col:02x}'
+        if self.col == 'C':
+            return f'#0000{col:02x}'
+        return f'#{0:02x}{0:02x}{0:02x}'
 
     def fade(self):
         while self.alpha > 0:
@@ -86,6 +88,7 @@ class CircleOverlayApp(tk.Tk):
                 if meta.startswith('1'):
                     me = True
                 [x, y, yaw] = map(lambda xy: float(xy), coords.split(','))
+                col = 'T' if 'T' in meta else ('C' if 'C' in meta else '0')
                 if me:
                     t = yaw / 180 * pi - pi / 2.0
                     self.prev = (x, y)
@@ -93,9 +96,9 @@ class CircleOverlayApp(tk.Tk):
                     for circle in self.circles:
                         circle.recalc_effective(x, y, t)
                         circle.place()
-                    self.draw_circle(x, y, x, y, t, 'T' in meta)
+                    self.draw_circle(x, y, x, y, t, col)
                 else:
-                    self.draw_circle(x, y, self.prev[0], self.prev[1], self.angle, 'T' in meta)
+                    self.draw_circle(x, y, self.prev[0], self.prev[1], self.angle, col)
             new_circles = []
             for c in self.circles:
                 if c.alpha > 0:
@@ -134,7 +137,7 @@ class KbdListener():
 if __name__ == "__main__":
     print('starting')
     app = CircleOverlayApp()
-    # listener = KbdListener(app)
+    listener = KbdListener(app)
     app.protocol("WM_DELETE_WINDOW", app.on_closing)
     signal.signal(signal.SIGINT, lambda x, y: app.destroy())
     tk_check = lambda: app.after(100, tk_check)
