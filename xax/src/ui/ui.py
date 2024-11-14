@@ -83,6 +83,8 @@ class CircleOverlayApp(tk.Tk):
         while True:
             line = sys.stdin.readline()
             if line:
+                if not line.endswith(',1\n'):
+                    continue
                 me = False
                 [coords, meta] = line.split(':')
                 if meta.startswith('1'):
