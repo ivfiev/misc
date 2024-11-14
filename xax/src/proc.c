@@ -103,6 +103,13 @@ union word64 read_mem_word64(int mem_fd, uintptr_t addr) {
   return word;
 }
 
+uintptr_t hop(int mem_fd, uintptr_t base, uintptr_t offsets[], size_t size) {
+  for (int i = 0; i < size - 1; i++) {
+    base = read_mem_word64(mem_fd, base + offsets[i]).ptr64;
+  }
+  return base + offsets[size - 1];
+}
+
 size_t write_mem(int fd, uintptr_t addr, char buf[], size_t size) {
   lseek(fd, (off_t)addr, SEEK_SET);
   return write(fd, buf, size);

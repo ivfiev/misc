@@ -13,16 +13,15 @@
 #define PRECISION 0.01
 #define IS_PTR(x) (0x500000000000 < (x) && (x) < 0x800000000000)
 
-size_t get_ctls(int mem_fd, uintptr_t base, uintptr_t ctls[]);
+size_t get_ctls(uintptr_t ctls[]);
 
-uintptr_t hop(int mem_fd, uintptr_t base, uintptr_t offsets[], size_t size);
-
-hashtable *VISITED;
-uintptr_t CURRENT[MAX_DEPTH];
-uintptr_t CTLS[64];
-uintptr_t START;
-float TARGET;
-int MEM_FD;
+static int MEM_FD;
+static uintptr_t LIBCLIENT_BASE;
+static hashtable *VISITED;
+static uintptr_t CURRENT[MAX_DEPTH];
+static uintptr_t CTLS[64];
+static float TARGET;
+static uintptr_t START;
 
 static void init_set(void) {
   if (VISITED) {
@@ -74,8 +73,8 @@ void ctl_scan() {
   disable_stderr();
   OPEN_MEM("cs2$");
   READ_DS(1536);
-  uintptr_t base = get_base_addr(pid, "libclient");
-  get_ctls(fd, base, CTLS);
+  LIBCLIENT_BASE = get_base_addr(pid, "libclient");
+  get_ctls(CTLS);
   MEM_FD = fd;
   START = parse_addr(args_get("arg0"));
   TARGET = parse_value(args_get("arg1"), FLOAT32_TYPE).float32;
