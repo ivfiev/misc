@@ -26,8 +26,7 @@ class FadingCircle:
             self.y0 + self.size,
             fill=self._get_color(), outline=''
         )
-        self.fading_thread = threading.Thread(target=self.fade, daemon=True)
-        self.fading_thread.start()
+        self.fade()
 
     def _get_color(self):
         col = int(255 * self.alpha)
@@ -40,13 +39,14 @@ class FadingCircle:
         return f'#{0:02x}{0:02x}{0:02x}'
 
     def fade(self):
-        while self.alpha > 0:
+        if self.alpha > 0:
             self.alpha -= 0.20
-            if self.alpha <= 0:
+            if self.alpha < 0:
                 self.alpha = 0
             self.canvas.itemconfig(self.circle, fill=self._get_color())
-            time.sleep(0.1)
-        self.canvas.delete(self.circle)
+            self.canvas.after(100, self.fade)
+        else:
+            self.canvas.delete(self.circle)
 
     def recalc_effective(self, x2, y2, t):
         (x, y) = (self.x1 - x2, self.y1 - y2)
@@ -103,11 +103,7 @@ class CircleOverlayApp(tk.Tk):
                     self.draw_circle(x, y, x, y, t, col)
                 else:
                     self.draw_circle(x, y, self.prev[0], self.prev[1], self.angle, col)
-            new_circles = []
-            for c in self.circles:
-                if c.alpha > 0:
-                    new_circles.append(c)
-            self.circles = new_circles
+            self.circles = [c for c in self.circles if c.alpha > 0]
             if not line:
                 time.sleep(0.01)
 
