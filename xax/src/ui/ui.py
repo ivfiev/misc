@@ -35,6 +35,8 @@ class FadingCircle:
             return f'#{col:02x}0000'
         if self.col == 'C':
             return f'#0000{col:02x}'
+        if self.col == 'ME':
+            return f'#00{col:02x}00'
         return f'#{0:02x}{0:02x}{0:02x}'
 
     def fade(self):
@@ -50,7 +52,7 @@ class FadingCircle:
         (x, y) = (self.x1 - x2, self.y1 - y2)
         t = -t
         (x, y) = (x * cos(t) - y * sin(t), x * sin(t) + y * cos(t))
-        (x, y) = ((x + 3480.0) / 10.0 - self.size / 2, (3480.0 - y) / 10.0 + self.size / 2)
+        (x, y) = ((x + 4000.0) / 20.0 - self.size / 2, (4000.0 - y) / 20.0 + self.size / 2)
         self.x0 = x
         self.y0 = y
 
@@ -65,19 +67,19 @@ class FadingCircle:
 class CircleOverlayApp(tk.Tk):
     def __init__(self):
         super().__init__()
+        self.prev = (0.0, 0.0)
+        self.angle = 0.0
         self.overrideredirect(True)
         self.attributes('-topmost', True)
-        self.geometry('696x696+0+0')
+        self.geometry('400x400+40+40')
         self.config(bg='black')
-        self.canvas = tk.Canvas(self, width=696, height=696, bg='black', highlightthickness=0)
+        self.canvas = tk.Canvas(self, width=400, height=400, bg='black', highlightthickness=0)
         self.canvas.pack()
         self.circles = []
         self.stop_thread = False
         self.stdin_thread = threading.Thread(target=self.read_stdin, daemon=True)
         self.stdin_thread.start()
         self.hidden = False
-        self.prev = (0.0, 0.0)
-        self.angle = 0.0
 
     def read_stdin(self):
         while True:
@@ -90,7 +92,7 @@ class CircleOverlayApp(tk.Tk):
                 if meta.startswith('1'):
                     me = True
                 [x, y, yaw] = map(lambda xy: float(xy), coords.split(','))
-                col = 'T' if 'T' in meta else ('C' if 'C' in meta else '0')
+                col = 'ME' if meta.startswith('1') else 'T' if 'T' in meta else 'C'
                 if me:
                     t = yaw / 180 * pi - pi / 2.0
                     self.prev = (x, y)
