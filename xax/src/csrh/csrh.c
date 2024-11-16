@@ -107,4 +107,6 @@ __attribute__((constructor))
 static void init(void) {
   args_add("csrh", run);
 }
-// use gtk/imgui or make tk bearable
+// decouple pids
+// sigscan for global pointers
+// try gtk/imgui or make tk bearable

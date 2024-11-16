@@ -3,8 +3,8 @@ import tkinter as tk
 import threading
 import sys
 import time
-from math import atan2, cos, sin, pi
-from pynput import keyboard
+from math import cos, sin, pi
+from pynput import mouse
 
 
 class FadingCircle:
@@ -64,7 +64,7 @@ class FadingCircle:
                            self.y0 + self.size)
 
 
-class CircleOverlayApp(tk.Tk):
+class Overlay(tk.Tk):
     def __init__(self):
         super().__init__()
         self.prev = (0.0, 0.0)
@@ -113,8 +113,10 @@ class CircleOverlayApp(tk.Tk):
     def on_closing(self):
         self.destroy()
 
-    def toggle(self):
-        if self.hidden:
+    def toggle(self, show=None):
+        if show is None:
+            show = not self.hidden
+        if show:
             self.deiconify()
             self.hidden = False
         else:
@@ -122,25 +124,37 @@ class CircleOverlayApp(tk.Tk):
             self.hidden = True
 
 
-class KbdListener():
-    def __init__(self, app):
-        self.held = set()
-        self.app = app
-        self.listener = keyboard.Listener(on_release=self.on_release)
+class MouseListener():
+    def __init__(self, overlay):
+        self.overlay = overlay
+        self.listener = mouse.Listener(on_click=self.on_click, on_scroll=self.on_scroll)
         self.listener.start()
+        self.timer = False
 
-    def on_release(self, key):
-        if key == keyboard.Key.alt_l:
-            self.app.toggle()
+    def on_click(self, x, y, button, pressed):
+        if 40 <= x <= 440 and 40 <= y <= 440:
+            self.temp_hide()
+
+    def on_scroll(self, _, __, ___, ____):
+        self.temp_hide()
+
+    def temp_hide(self):
+        def on_timeout():
+            self.overlay.toggle(True)
+            self.timer = False
+
+        if not self.timer:
+            self.overlay.toggle(False)
+            threading.Timer(3.0, on_timeout).start()
+            self.timer = True
 
 
 if __name__ == "__main__":
-    print('starting')
-    app = CircleOverlayApp()
-    listener = KbdListener(app)
-    app.protocol("WM_DELETE_WINDOW", app.on_closing)
-    signal.signal(signal.SIGINT, lambda x, y: app.destroy())
-    tk_check = lambda: app.after(100, tk_check)
-    app.after(100, tk_check)
-    app.bind_all("<Control-c>", lambda e: app.destroy())
-    app.mainloop()
+    overlay = Overlay()
+    listener = MouseListener(overlay)
+    overlay.protocol("WM_DELETE_WINDOW", overlay.on_closing)
+    signal.signal(signal.SIGINT, lambda x, y: overlay.destroy())
+    tk_check = lambda: overlay.after(100, tk_check)
+    overlay.after(100, tk_check)
+    overlay.bind_all("<Control-c>", lambda e: overlay.destroy())
+    overlay.mainloop()
