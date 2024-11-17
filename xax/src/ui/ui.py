@@ -113,13 +113,11 @@ class Overlay(tk.Tk):
     def on_closing(self):
         self.destroy()
 
-    def toggle(self, show=None):
-        if show is None:
-            show = not self.hidden
-        if show:
+    def toggle(self, show):
+        if show and self.hidden:
             self.deiconify()
             self.hidden = False
-        else:
+        elif not show and not self.hidden:
             self.withdraw()
             self.hidden = True
 
@@ -127,13 +125,15 @@ class Overlay(tk.Tk):
 class MouseListener():
     def __init__(self, overlay):
         self.overlay = overlay
-        self.listener = mouse.Listener(on_click=self.on_click, on_scroll=self.on_scroll)
+        self.listener = mouse.Listener(on_move=self.on_move, on_scroll=self.on_scroll)
         self.listener.start()
         self.timer = False
 
-    def on_click(self, x, y, button, pressed):
+    def on_move(self, x, y):
         if 40 <= x <= 440 and 40 <= y <= 440:
-            self.temp_hide()
+            self.overlay.toggle(False)
+        elif not self.timer:
+            self.overlay.toggle(True)
 
     def on_scroll(self, _, __, ___, ____):
         self.temp_hide()
@@ -144,9 +144,9 @@ class MouseListener():
             self.timer = False
 
         if not self.timer:
+            self.timer = True
             self.overlay.toggle(False)
             threading.Timer(3.0, on_timeout).start()
-            self.timer = True
 
 
 if __name__ == "__main__":
