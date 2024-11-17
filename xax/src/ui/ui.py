@@ -16,14 +16,14 @@ class FadingCircle:
         self.y1 = y1
         self.t = t
         self.col = col
-        self.size = 10
+        self.size = 14
         self.alpha = 1.0
         self.recalc_effective(x2, y2, t)
         self.circle = self.canvas.create_oval(
             self.x0 - self.size / 2,
             self.y0 - self.size / 2,
-            self.x0 + self.size,
-            self.y0 + self.size,
+            self.x0 + self.size / 2,
+            self.y0 + self.size / 2,
             fill=self._get_color(), outline=''
         )
         self.fade()
@@ -52,16 +52,16 @@ class FadingCircle:
         (x, y) = (self.x1 - x2, self.y1 - y2)
         t = -t
         (x, y) = (x * cos(t) - y * sin(t), x * sin(t) + y * cos(t))
-        (x, y) = ((x + 4000.0) / 20.0 - self.size / 2, (4000.0 - y) / 20.0 + self.size / 2)
+        (x, y) = ((x + 4000.0) / 16.0, (4000.0 - y) / 16.0)
         self.x0 = x
         self.y0 = y
 
     def place(self):
         self.canvas.coords(self.circle,
-                           self.x0 - self.size / 2,
-                           self.y0 - self.size / 2,
-                           self.x0 + self.size,
-                           self.y0 + self.size)
+                           round(self.x0 - self.size / 2),
+                           round(self.y0 - self.size / 2),
+                           round(self.x0 + self.size / 2),
+                           round(self.y0 + self.size / 2))
 
 
 class Overlay(tk.Tk):
@@ -71,9 +71,9 @@ class Overlay(tk.Tk):
         self.angle = 0.0
         self.overrideredirect(True)
         self.attributes('-topmost', True)
-        self.geometry('400x400+40+40')
+        self.geometry('500x500+40+40')
         self.config(bg='black')
-        self.canvas = tk.Canvas(self, width=400, height=400, bg='black', highlightthickness=0)
+        self.canvas = tk.Canvas(self, width=500, height=500, bg='black', highlightthickness=0)
         self.canvas.pack()
         self.circles = []
         self.stop_thread = False
@@ -130,7 +130,7 @@ class MouseListener():
         self.timer = False
 
     def on_move(self, x, y):
-        if 40 <= x <= 440 and 40 <= y <= 440:
+        if 40 <= x <= 540 and 40 <= y <= 540:
             self.overlay.toggle(False)
         elif not self.timer:
             self.overlay.toggle(True)

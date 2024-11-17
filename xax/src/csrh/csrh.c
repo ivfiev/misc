@@ -98,7 +98,7 @@ static void run(void) {
   READ_DS(1536);
   MEM_FD = fd;
   LIBCLIENT_BASE = get_base_addr(pid, "libclient");
-  // disable_stderr();
+  disable_stderr();
   main_loop();
 }
 
