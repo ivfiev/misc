@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <unistd.h>
 #include "args.h"
 #include "proc.h"
 #include "util.h"
@@ -99,7 +98,7 @@ static void run(void) {
   READ_DS(1536);
   MEM_FD = fd;
   LIBCLIENT_BASE = get_base_addr(pid, "libclient");
-  disable_stderr();
+  // disable_stderr();
   main_loop();
 }
 
@@ -109,4 +108,4 @@ static void init(void) {
 }
 // decouple pids
 // sigscan for global pointers
-// try gtk/imgui or make tk bearable
+// show bomb/more info
