@@ -70,7 +70,7 @@ size_t read_players(struct entity *players) {
   size_t ctl_count = get_ctls(ctls);
   for (int i = 0; i < ctl_count; i++) {
     read_entity(ctls[i], &e);
-    if (e.is_alive && e.team == 'T' || e.team == 'C') {
+    if (e.is_alive && (e.team == 'T' || e.team == 'C')) {
       memcpy(&players[count++], &e, sizeof(e));
     }
   }
