@@ -7,6 +7,12 @@ from math import cos, sin, pi
 from pynput import mouse
 
 
+def rebase2d(x0, y0, x1, y1, t):
+    (x, y) = (x0 - x1, y0 - y1)
+    (x, y) = (x * cos(t) - y * sin(t), x * sin(t) + y * cos(t))
+    return x, y
+
+
 class FadingCircle:
     def __init__(self, canvas, x1, y1, x2, y2, t, col):
         self.canvas = canvas
@@ -49,9 +55,7 @@ class FadingCircle:
             self.canvas.delete(self.circle)
 
     def recalc_effective(self, x2, y2, t):
-        (x, y) = (self.x1 - x2, self.y1 - y2)
-        t = -t
-        (x, y) = (x * cos(t) - y * sin(t), x * sin(t) + y * cos(t))
+        (x, y) = rebase2d(self.x1, self.y1, x2, y2, t)
         (x, y) = ((x + 4000.0) / 16.0, (4000.0 - y) / 16.0)
         self.x0 = x
         self.y0 = y
@@ -67,8 +71,9 @@ class FadingCircle:
 class Overlay(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.prev = (0.0, 0.0)
-        self.angle = 0.0
+        self.prev = (0.0, 0.0, 0.0)
+        self.yaw = 0.0
+        self.pitch = 0.0
         self.overrideredirect(True)
         self.attributes('-topmost', True)
         self.geometry('500x500+40+40')
@@ -92,15 +97,16 @@ class Overlay(tk.Tk):
                     x, y, z, yaw, pitch = map(float, [x, y, z, yaw, pitch])
                     colour = 'ME' if me else 'C' if team == 'C' else 'T'
                     if me:
-                        t = yaw / 180 * pi - pi / 2.0
-                        self.prev = (x, y)
-                        self.angle = t
+                        t = pi / 2.0 - yaw / 180 * pi
+                        self.prev = (x, y, z)
+                        self.yaw = t
+                        self.pitch = pitch / 90 * pi
                         for circle in self.circles:
                             circle.recalc_effective(x, y, t)
                             circle.place()
                         self.draw_circle(x, y, x, y, t, colour)
                     else:
-                        self.draw_circle(x, y, self.prev[0], self.prev[1], self.angle, colour)
+                        self.draw_circle(x, y, self.prev[0], self.prev[1], self.yaw, colour)
                 self.clear_cirlces()
             if not line:
                 time.sleep(0.01)
@@ -153,9 +159,5 @@ class MouseListener():
 if __name__ == "__main__":
     overlay = Overlay()
     listener = MouseListener(overlay)
-    overlay.protocol("WM_DELETE_WINDOW", overlay.on_closing)
-    signal.signal(signal.SIGINT, lambda x, y: overlay.destroy())
-    tk_check = lambda: overlay.after(100, tk_check)
-    overlay.after(100, tk_check)
-    overlay.bind_all("<Control-c>", lambda e: overlay.destroy())
+    signal.signal(signal.SIGINT, lambda x, y: sys.exit(0))
     overlay.mainloop()
