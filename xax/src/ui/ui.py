@@ -85,31 +85,30 @@ class Overlay(tk.Tk):
         while True:
             line = sys.stdin.readline()
             if line:
-                entities = line.strip().split(' ')
-                for entity in entities:
-                    [me, team, x, y, z, yaw, pitch] = entity.split(',')
-                    me = me == '1'
-                    x, y, z, yaw, pitch = map(float, [x, y, z, yaw, pitch])
-                    colour = 'ME' if me else 'C' if team == 'C' else 'T'
-                    if me:
-                        t = yaw / 180 * pi - pi / 2.0
-                        self.prev = (x, y)
-                        self.angle = t
-                        for circle in self.circles:
-                            circle.recalc_effective(x, y, t)
-                            circle.place()
-                        self.draw_circle(x, y, x, y, t, colour)
-                    else:
-                        self.draw_circle(x, y, self.prev[0], self.prev[1], self.angle, colour)
-                self.clear_cirlces()
+                if not line.endswith(',1\n'):
+                    continue
+                me = False
+                [coords, meta] = line.split(':')
+                if meta.startswith('1'):
+                    me = True
+                [x, y, yaw] = map(lambda xy: float(xy), coords.split(','))
+                col = 'ME' if meta.startswith('1') else 'T' if 'T' in meta else 'C'
+                if me:
+                    t = yaw / 180 * pi - pi / 2.0
+                    self.prev = (x, y)
+                    self.angle = t
+                    for circle in self.circles:
+                        circle.recalc_effective(x, y, t)
+                        circle.place()
+                    self.draw_circle(x, y, x, y, t, col)
+                else:
+                    self.draw_circle(x, y, self.prev[0], self.prev[1], self.angle, col)
+            self.circles = [c for c in self.circles if c.alpha > 0]
             if not line:
                 time.sleep(0.01)
 
     def draw_circle(self, x1, y1, x2, y2, t, c):
         self.circles.append(FadingCircle(self.canvas, x1, y1, x2, y2, t, c))
-
-    def clear_cirlces(self):
-        self.circles = [c for c in self.circles if c.alpha > 0]
 
     def on_closing(self):
         self.destroy()
