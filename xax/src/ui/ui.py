@@ -76,7 +76,6 @@ class Overlay(tk.Tk):
         self.canvas = tk.Canvas(self, width=500, height=500, bg='black', highlightthickness=0)
         self.canvas.pack()
         self.circles = []
-        self.stop_thread = False
         self.stdin_thread = threading.Thread(target=self.read_stdin, daemon=True)
         self.stdin_thread.start()
         self.hidden = False
