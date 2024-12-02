@@ -1,5 +1,4 @@
 #include "advent.h"
-#include "hashtable.h"
 
 int main(int argc, char **argv) {
   char *lines[1024];

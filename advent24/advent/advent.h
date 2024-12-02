@@ -6,6 +6,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "hashtable.h"
+#include <errno.h>
 
 size_t read_lines(const char *file, char **lines, size_t size);
 
