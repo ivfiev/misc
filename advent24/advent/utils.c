@@ -2,7 +2,7 @@
 
 size_t read_lines(const char *file, char **lines, size_t size) { 
   size_t count = 0;
-  char buf[1024];
+  char buf[1024 * 16];
   FILE *fp = fopen(file, "r");
   if (fp == NULL) {
     puts(strerror(errno));
