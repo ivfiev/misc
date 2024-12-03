@@ -7,10 +7,7 @@ int main(int argc, char **argv) {
   int *ms = calloc(count, sizeof(int));
   uint64_t sum = 0;
   for (int i = 0; i < count; i++) {
-    int n, m;
-    sscanf(lines[i], "%d %d", &n, &m);
-    ns[i] = n;
-    ms[i] = m;
+    sscanf(lines[i], "%d %d", &ns[i], &ms[i]);
   }
   qsort(ns, count, sizeof(int), int_cmp);
   qsort(ms, count, sizeof(int), int_cmp);

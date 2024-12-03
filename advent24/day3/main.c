@@ -3,10 +3,10 @@
 size_t parse_mul(char *input, int *n, int *m) {
   char buf[32];
   char closing;
-  int size, scanned;
+  int bytes, scanned;
   strncpy(buf, input, sizeof(buf));
-  scanned = sscanf(buf, "mul(%d,%d%c%n", n, m, &closing, &size);
-  return closing == ')' && scanned == 3 ? size : 0;
+  scanned = sscanf(buf, "mul(%d,%d%c%n", n, m, &closing, &bytes);
+  return closing == ')' && scanned == 3 ? bytes : 0;
 }
 
 int main(int argc, char **argv) {
@@ -34,5 +34,6 @@ int main(int argc, char **argv) {
   }
   printf("Part 1: [%ld]\n", sum1);
   printf("Part 2: [%ld]\n", sum2);
+  free_lines(lines, count);
   return 0;
 }
