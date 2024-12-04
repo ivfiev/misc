@@ -12,6 +12,8 @@
 #define SIGN(x) ((x) < 0 ? -1 : (x) > 0 ? 1 : 0)
 #define MIN(x, y) ((x) < (y) ? (x) : (y))
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
+#define SIZEARR(arr) (sizeof(arr) / sizeof(arr[0]))
+#define IN_RANGE(a, x, b) ((a) <= (x) && (x) <= (b))
 
 size_t read_lines(const char *file, char **lines, size_t size);
 

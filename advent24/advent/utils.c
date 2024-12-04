@@ -8,7 +8,7 @@ size_t read_lines(const char *file, char **lines, size_t size) {
     puts(strerror(errno));
     exit(1);
   }
-  while (fgets(buf, sizeof(buf), fp)) {
+  while (count < size && fgets(buf, sizeof(buf), fp)) {
     lines[count++] = strdup(buf);
   }
   fclose(fp);
