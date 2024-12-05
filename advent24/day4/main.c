@@ -8,7 +8,7 @@ int main(int argc, char **argv) {
   uint64_t Xmases = 0;
   int ds[8][2] = {{1,0},{0,1},{1,1},{-1,0},{0,-1},{-1,-1},{1,-1},{-1,1}};
   for (int i = 0; i < height; i++) {
-    for (int j = 0; j < strlen(input[i]); j++) {
+    for (int j = 0; j < length; j++) {
       for (int d = 0; d < SIZEARR(ds); d++) {
         int k, di = i, dj = j;
         for (k = 0; k < strlen("XMAS"); k++) {

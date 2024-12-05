@@ -23,4 +23,6 @@ int int_cmp(const void *ptr_i, const void *ptr_j);
 
 size_t strsplit(char *str, const char *sep, char **toks, size_t size);
 
+size_t parse_ints(char *str, const char *sep, int *list, size_t size);
+
 #endif
