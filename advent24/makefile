@@ -3,7 +3,7 @@ CFLAGS = -O3 -I./advent
 
 %: libadvent.so ./%/*.c
 	mkdir -p ./$*/build
-	gcc $(CFLAGS) -o ./$*/build/$* ./$*/*.c $(ADVENT_LIB)
+	gcc $(CFLAGS) -o ./$*/build/$* ./$*/*.c $(ADVENT_LIB) -lm
 	./$*/build/$* ./$*/input
 
 libadvent.so: ./advent/*.c
