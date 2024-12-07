@@ -1,15 +1,15 @@
 #include "advent.h"
 
-#define CONCAT(x, y) (x * pow(10, (int)(log10(y) + 1)) + y)
+#define CONCAT(x, y) ((x) * pow(10, (int)(log10(y) + 1)) + (y))
 
-int trve(uint64_t equation[], size_t length, uint64_t target, int flags, int ix, uint64_t acc) {
-  if (ix == length) {
+int trve(uint64_t acc, uint64_t equation[], size_t length, uint64_t target, int flags) {
+  if (length == 0) {
     return acc == target;
   }
   return 
-    flags & 0x1 && trve(equation, length, target, flags, ix + 1, acc + equation[ix]) ||
-    flags & 0x2 && trve(equation, length, target, flags, ix + 1, acc * equation[ix]) ||
-    flags & 0x4 && trve(equation, length, target, flags, ix + 1, CONCAT(acc, equation[ix]));
+    flags & 0x1 && trve(acc + *equation, equation + 1, length - 1, target, flags) ||
+    flags & 0x2 && trve(acc * *equation, equation + 1, length - 1, target, flags) ||
+    flags & 0x4 && trve(CONCAT(acc, *equation), equation + 1, length - 1, target, flags);
 }
 
 int main(int argc, char **argv) {
@@ -21,10 +21,10 @@ int main(int argc, char **argv) {
     PARSE_LINE(lines[i], " ", SIZEARR(equation), { 
       equation[token_ix] = atoll(token);
     });
-    if (trve(equation + 2, count - 2, equation[0], 0x3, 0, equation[1])) {
+    if (trve(equation[1], equation + 2, count - 2, equation[0], 0x3)) {
       part1 += equation[0]; 
     }
-    if (trve(equation + 2, count - 2, equation[0], 0x7, 0, equation[1])) {
+    if (trve(equation[1], equation + 2, count - 2, equation[0], 0x7)) {
       part2 += equation[0];
     }
   }
