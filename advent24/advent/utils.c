@@ -37,12 +37,3 @@ size_t strsplit(char *str, const char *sep, char **toks, size_t size) {
   }
   return i;
 }
-
-size_t parse_ints(char *str, const char *sep, int *list, size_t size) {
-  char *toks[size];
-  size_t count = strsplit(str, sep, toks, size);
-  for (int i = 0; i < count; i++) {
-    list[i] = atoi(toks[i]);
-  }
-  return count;
-}

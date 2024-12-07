@@ -42,12 +42,12 @@ int main(int argc, char **argv) {
   uint64_t sum1 = 0, sum2 = 0;
   for (int i = rules + 1; i < lines; i++) {
     int pages[MAX_PAGES];
-    size_t length = parse_ints(input[i], ",", pages, SIZEARR(pages));
-    if (is_valid(pages, length)) {
-      sum1 += pages[length / 2];
+    PARSE_LINE(input[i], ",", MAX_PAGES, { pages[i] = atoi(token); });
+    if (is_valid(pages, count)) {
+      sum1 += pages[count / 2];
     } else {
-      qsort(pages, length, sizeof(int), cmp_pages);
-      sum2 += pages[length / 2];
+      qsort(pages, count, sizeof(int), cmp_pages);
+      sum2 += pages[count / 2];
     }
   }
   printf("Part 1: [%ld]\n", sum1);

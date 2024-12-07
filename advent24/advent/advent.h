@@ -15,6 +15,18 @@
 #define SIZEARR(arr) (sizeof(arr) / sizeof(arr[0]))
 #define IN_RANGE(a, x, b) ((a) <= (x) && (x) <= (b))
 
+#define PARSE_LINE(line, sep, size, parse) \
+  size_t count; \
+  do { \
+    char *tokens[size]; \
+    size_t token_count = strsplit(line, sep, tokens, size); \
+    count = token_count; \
+    for (int i = 0; i < token_count; i++) { \
+      char *token = tokens[i]; \
+      parse \
+    } \
+  } while (0) \
+
 size_t read_lines(const char *file, char **lines, size_t size);
 
 void free_lines(char **lines, size_t size);
@@ -22,7 +34,5 @@ void free_lines(char **lines, size_t size);
 int int_cmp(const void *ptr_i, const void *ptr_j);
 
 size_t strsplit(char *str, const char *sep, char **toks, size_t size);
-
-size_t parse_ints(char *str, const char *sep, int *list, size_t size);
 
 #endif
