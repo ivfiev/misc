@@ -5,7 +5,8 @@
 
 #define FOREACH_V(deq, code) \
   do { \
-    for (int deq_ix = 0; deq_ix < deq->len; deq_ix++) { \
+    size_t length = deq_len(deq); \
+    for (size_t deq_ix = 0; deq_ix < length; deq_ix++) { \
       kv val = deq_at(deq, deq_ix); \
       code \
     } \

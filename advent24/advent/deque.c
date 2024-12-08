@@ -8,7 +8,6 @@
 size_t deq_len(deque *);
 
 static deque *resize(deque *deq) {
-  puts("resize");
   size_t len = deq_len(deq);
   size_t cap = deq->cap;
   if (len < cap / 4) {
