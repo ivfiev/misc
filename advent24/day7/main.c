@@ -3,7 +3,7 @@
 #define CONCAT(x, y) ((x) * pow(10, (int)(log10(y) + 1)) + (y))
 
 int trve(uint64_t acc, uint64_t equation[], size_t length, uint64_t target, int flags) {
-  if (length == 0) {
+  if (length == 0 || acc > target) {
     return acc == target;
   }
   return 
@@ -30,5 +30,6 @@ int main(int argc, char **argv) {
   }
   printf("Part 1: [%ld]\n", part1);
   printf("Part 2: [%ld]\n", part2);
+  free_lines(lines, equations);
   return 0;
 }

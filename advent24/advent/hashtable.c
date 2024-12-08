@@ -1,4 +1,4 @@
-#include "hashtable.h"
+#include "advent.h"
 
 hashtable *hash_new(size_t cap, uint64_t (*hash)(kv ptr, uint64_t N), int (*cmp)(kv k1, kv k2)) {
   struct node **vs = calloc(cap, sizeof(struct node *));
@@ -9,6 +9,10 @@ hashtable *hash_new(size_t cap, uint64_t (*hash)(kv ptr, uint64_t N), int (*cmp)
   ht->len = 0;
   ht->cmp = cmp;
   return ht;
+}
+
+size_t hash_len(hashtable *ht) {
+  return ht->len;
 }
 
 void hash_set(hashtable *ht, kv k, kv v) {

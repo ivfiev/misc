@@ -8,7 +8,7 @@
 #define FOREACH_KV(hash_tbl, code) \
   do {                                 \
   kv *kvs = hash_keys(hash_tbl);   \
-  size_t tbl_len = hash_tbl->len;         \
+  size_t tbl_len = hash_len(hash_tbl);         \
   for (int k_ix = 0; k_ix < tbl_len; k_ix++) { \
     kv key = kvs[k_ix];       \
     kv val = hash_getv(hash_tbl, key);  \
@@ -17,31 +17,9 @@
   free(kvs);      \
   } while (0)
 
-typedef union keyval_t {
-  void *ptr;
-  char *str;
-  uint64_t uint64;
-  int int32;
-  float float32;
-} kv;
-
-struct node {
-  kv key;
-  kv val;
-  struct node *next;
-};
-
-typedef struct hashtable {
-  struct node **nodes;
-  size_t cap;
-  size_t len;
-
-  int (*cmp)(kv k1, kv k2);
-
-  uint64_t (*hash)(kv k, uint64_t N);
-} hashtable;
-
 hashtable *hash_new(size_t cap, uint64_t (*hash)(kv k, size_t N), int (*cmp)(kv k1, kv k2));
+
+size_t hash_len(hashtable *ht);
 
 void hash_set(hashtable *ht, kv k, kv v);
 

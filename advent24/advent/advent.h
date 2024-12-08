@@ -1,12 +1,14 @@
 #ifndef ADVENT_H
 #define ADVENT_H
 
+#include "types.h"
 #include <stdio.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include "hashtable.h"
+#include "deque.h"
 #include <errno.h>
 #include <math.h>
 
