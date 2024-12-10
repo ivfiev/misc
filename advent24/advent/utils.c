@@ -1,14 +1,22 @@
 #include "advent.h"
 
+static void trim_end(char *str) {
+  int i = strlen(str) - 1;
+  while (i > 0 && str[i] == '\n') {
+    str[i--] = 0;
+  }
+}
+
 size_t read_lines(const char *file, char **lines, size_t size) { 
   size_t count = 0;
-  char buf[1024 * 16];
+  char buf[1024 * 32];
   FILE *fp = fopen(file, "r");
   if (fp == NULL) {
     puts(strerror(errno));
     exit(1);
   }
   while (count < size && fgets(buf, sizeof(buf), fp)) {
+    trim_end(buf);
     lines[count++] = strdup(buf);
   }
   fclose(fp);

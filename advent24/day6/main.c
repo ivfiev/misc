@@ -59,7 +59,7 @@ int run(char **map, size_t height, size_t width, int row, int col, int dir) {
 int main(int argc, char **argv) {
   char *input[256];
   size_t height = read_lines(argv[1], input, SIZEARR(input));
-  size_t width = strlen(*input) - 1;
+  size_t width = strlen(*input);
   int row, col, dir;
   uint64_t part1 = 0, part2 = 0;
   find_start(input, height, width, &row, &col, &dir);

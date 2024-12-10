@@ -3,7 +3,7 @@
 int main(int argc, char **argv) {
   char *map[128];
   size_t height = read_lines(argv[1], map, SIZEARR(map));
-  size_t width = strlen(*map) - 1;
+  size_t width = strlen(*map);
   char antinodes[height][width][2];
   deque *antennas[128];
   int part1 = 0, part2 = 0;
