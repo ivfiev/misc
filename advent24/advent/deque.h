@@ -16,6 +16,8 @@ deque *deq_new(void);
 
 size_t deq_len(deque *);
 
+deque *deq_copy(deque *);
+
 kv deq_at(deque *, size_t);
 
 kv deq_head(deque *deq);

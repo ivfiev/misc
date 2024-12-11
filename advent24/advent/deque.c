@@ -42,6 +42,18 @@ size_t deq_len(deque *deq) {
   return deq->len;
 }
 
+deque *deq_copy(deque *deq) {
+  deque *copy = malloc(sizeof(deque));
+  *copy = (deque){
+    .items = calloc(deq->cap, sizeof(kv)),
+    .cap = deq->cap,
+    .head = deq->head,
+    .len = deq->len
+  };
+  memcpy(copy->items, deq->items, deq->cap * sizeof(kv));
+  return copy;
+}
+
 kv deq_at(deque *deq, size_t ix) {
   return deq->items[INDEX(ix)];
 }

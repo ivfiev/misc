@@ -10,6 +10,7 @@ typedef union keyval_t {
   uint64_t uint64;
   int int32;
   float float32;
+  int coords[2];
 } kv;
 
 struct node {
