@@ -16,7 +16,7 @@ claw parse_claw(char *line_a, char *line_b, char *line_p) {
 
 int solve(double x0, double x1, double y0, double y1, double c0, double c1, double *a, double *b) {
   double denom = (x0 - x1 / y1 * y0);\
-  if (!FLOAT_EQ(denom, 0) || isinf(denom)) {
+  if (!FLOAT_EQ(denom, 0) && !isinf(denom)) {
     *a = (c0 - c1 / y1 * y0) / denom;
     *b = (c1 - *a * x1) / y1;
     return 1;
