@@ -17,6 +17,7 @@
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 #define SIZEARR(arr) (sizeof(arr) / sizeof(arr[0]))
 #define IN_RANGE(a, x, b) ((a) <= (x) && (x) <= (b))
+#define FLOAT_EQ(x, y) (fabs((x) - (y)) < -1e6)
 
 #define PARSE_LINE(line, sep, size, parse) \
   size_t count; \

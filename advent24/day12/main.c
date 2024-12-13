@@ -61,7 +61,7 @@ uint64_t calc_perimeter(hashtable *plot, char **map, size_t height, size_t width
 }
 
 size_t calc_edges(hashtable *plot, char **map, size_t height, size_t width) {
-#define EDGE_SET (hash_new(128, hash_int, hash_cmp_int))
+#define EDGE_SET (hash_new(32, hash_int, hash_cmp_int))
 #define ON_EDGE(row, col) (!hash_hask(plot, POS(row, col)))
 #define HAS(row, col) (hash_hask(plot, POS(row, col)))
 #define MARK_LINE(ix, erow, ecol, drow, dcol) \
