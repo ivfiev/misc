@@ -8,14 +8,14 @@ typedef struct {
 
 claw parse_claw(char *line_a, char *line_b, char *line_p) {
   claw c;
-  sscanf(line_a, "Button A: X%d, Y%d", &c.x_a, &c.y_a);
-  sscanf(line_b, "Button B: X%d, Y%d", &c.x_b, &c.y_b);
-  sscanf(line_p, "Prize: X=%d, Y=%d", &c.x_p, &c.y_p);
+  sscanf(line_a, "Button A: X%ld, Y%ld", &c.x_a, &c.y_a);
+  sscanf(line_b, "Button B: X%ld, Y%ld", &c.x_b, &c.y_b);
+  sscanf(line_p, "Prize: X=%ld, Y=%ld", &c.x_p, &c.y_p);
   return c;
 }
 
 int solve(double x0, double x1, double y0, double y1, double c0, double c1, double *a, double *b) {
-  double denom = (x0 - x1 / y1 * y0);\
+  double denom = (x0 - x1 / y1 * y0);
   if (!FLOAT_EQ(denom, 0) && !isinf(denom)) {
     *a = (c0 - c1 / y1 * y0) / denom;
     *b = (c1 - *a * x1) / y1;
