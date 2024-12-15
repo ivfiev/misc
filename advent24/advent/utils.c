@@ -1,4 +1,5 @@
 #include "advent.h"
+#include <pthread.h>
 
 static void trim_end(char *str) {
   int i = strlen(str) - 1;
@@ -44,4 +45,19 @@ size_t strsplit(char *str, const char *sep, char **toks, size_t size) {
     }
   }
   return i;
+}
+
+void parallel(void *args, size_t arg_size, size_t args_count, pfunc f) {
+  pthread_t ts[args_count];
+  int err;
+  for (int i = 0; i < args_count; i++) {
+    if ((err = pthread_create(ts + i, NULL, (void *(*)(void *))f, args + arg_size * i)) != 0) {
+      fprintf(stderr, "pthread_create [%s]\n", strerror(err));
+    }
+  }
+  for (int i = 0; i < args_count; i++) {
+    if ((err = pthread_join(ts[i], NULL)) != 0) {
+      fprintf(stderr, "pthread_join [%s]\n", strerror(err));
+    }
+  }
 }

@@ -39,4 +39,7 @@ int int_cmp(const void *ptr_i, const void *ptr_j);
 
 size_t strsplit(char *str, const char *sep, char **toks, size_t size);
 
+typedef void (*pfunc)(void *);
+void parallel(void *args, size_t arg_size, size_t args_count, pfunc f);
+
 #endif
