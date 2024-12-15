@@ -58,6 +58,18 @@ kv deq_at(deque *deq, size_t ix) {
   return deq->items[INDEX(ix)];
 }
 
+void deq_set(deque *deq, size_t ix, kv val) {
+  deq->items[INDEX(ix)] = val;
+}
+
+void deq_swap(deque *deq, size_t ix, size_t jx) {
+  ix = INDEX(ix);
+  jx = INDEX(jx);
+  kv tmp = deq->items[ix];
+  deq->items[ix] = deq->items[jx];
+  deq->items[jx] = tmp;
+}
+
 kv deq_head(deque *deq) {
   return deq->items[deq->head];
 }

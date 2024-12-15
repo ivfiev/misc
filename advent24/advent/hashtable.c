@@ -1,7 +1,7 @@
 #include "advent.h"
 
 hashtable *hash_new(size_t cap, uint64_t (*hash)(kv ptr, uint64_t N), int (*cmp)(kv k1, kv k2)) {
-  struct node **vs = calloc(cap, sizeof(struct node *));
+  list_node **vs = calloc(cap, sizeof(list_node *));
   hashtable *ht = malloc(sizeof(hashtable));
   ht->nodes = vs;
   ht->cap = cap;
@@ -17,8 +17,8 @@ size_t hash_len(hashtable *ht) {
 
 void hash_set(hashtable *ht, kv k, kv v) {
   uint64_t h = ht->hash(k, ht->cap);
-  struct node *node = ht->nodes[h];
-  struct node *prev = NULL;
+  list_node *node = ht->nodes[h];
+  list_node *prev = NULL;
   while (node) {
     if (!ht->cmp(k, node->key)) {
       node->val = v;
@@ -27,7 +27,7 @@ void hash_set(hashtable *ht, kv k, kv v) {
     prev = node;
     node = node->next;
   }
-  struct node *new = malloc(sizeof(struct node));
+  list_node *new = malloc(sizeof(struct list_node));
   new->next = NULL;
   new->key = k;
   new->val = v;
@@ -41,7 +41,7 @@ void hash_set(hashtable *ht, kv k, kv v) {
 
 int hash_hask(hashtable *ht, kv k) {
   uint64_t h = ht->hash(k, ht->cap);
-  struct node *node = ht->nodes[h];
+  list_node *node = ht->nodes[h];
   while (node) {
     if (!ht->cmp(k, node->key)) {
       return 1;
@@ -53,7 +53,7 @@ int hash_hask(hashtable *ht, kv k) {
 
 kv hash_getv(hashtable *ht, kv k) {
   uint64_t h = ht->hash(k, ht->cap);
-  struct node *node = ht->nodes[h];
+  list_node *node = ht->nodes[h];
   while (node) {
     if (!ht->cmp(k, node->key)) {
       return node->val;
@@ -65,8 +65,8 @@ kv hash_getv(hashtable *ht, kv k) {
 
 void hash_del(hashtable *ht, kv k) {
   uint64_t h = ht->hash(k, ht->cap);
-  struct node *node = ht->nodes[h];
-  struct node *prev = NULL;
+  list_node *node = ht->nodes[h];
+  list_node *prev = NULL;
   while (node) {
     if (!ht->cmp(k, node->key)) {
       if (!prev) {
@@ -86,7 +86,7 @@ void hash_del(hashtable *ht, kv k) {
 kv *hash_keys(hashtable *ht) {
   kv *keys = calloc(sizeof(kv), ht->len);
   for (int i = 0, k = 0; i < ht->cap; i++) {
-    struct node *node = ht->nodes[i];
+    list_node *node = ht->nodes[i];
     while (node) {
       keys[k++] = node->key;
       node = node->next;

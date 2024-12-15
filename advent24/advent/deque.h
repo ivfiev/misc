@@ -20,6 +20,10 @@ deque *deq_copy(deque *);
 
 kv deq_at(deque *, size_t);
 
+void deq_set(deque *, size_t, kv);
+
+void deq_swap(deque *, size_t, size_t);
+
 kv deq_head(deque *deq);
 
 kv deq_tail(deque *deq);

@@ -13,14 +13,14 @@ typedef union keyval_t {
   int coords[2];
 } kv;
 
-struct node {
+typedef struct list_node {
   kv key;
   kv val;
-  struct node *next;
-};
+  struct list_node *next;
+} list_node;
 
 typedef struct hashtable {
-  struct node **nodes;
+  list_node **nodes;
   size_t cap;
   size_t len;
 
@@ -35,5 +35,14 @@ typedef struct deque {
   size_t head;
   size_t len;
 } deque;
+
+typedef struct heap_node {
+  long priority;
+  kv item;
+} heap_node;
+
+typedef struct heap {
+  deque *deq;
+} heap;
 
 #endif

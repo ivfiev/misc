@@ -9,6 +9,7 @@
 #include <string.h>
 #include "hashtable.h"
 #include "deque.h"
+#include "heap.h"
 #include <errno.h>
 #include <math.h>
 
