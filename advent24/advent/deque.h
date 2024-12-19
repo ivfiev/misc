@@ -10,7 +10,7 @@
       kv val = deq_at(deq, deq_ix); \
       code \
     } \
-  } while(0)
+  } while (0)
 
 deque *deq_new(void);
 
