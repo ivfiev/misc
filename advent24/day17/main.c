@@ -57,6 +57,26 @@ int run(registers *regs, char *code, int i, char **output) {
   return i + 2;
 }
 
+uint64_t search(char *code, int i, uint64_t A) {
+  char output[16];
+  if (i == sizeof(output)) {
+    return A;
+  }
+  A *= 8;
+  for (int a = 0; a < 8; a++) {
+    registers regs = {A + a, 0, 0};
+    char *out = output;
+    for (int ip = 0; ip < sizeof(output); ip = run(&regs, code, ip, &out)); 
+    if (output[0] == code[sizeof(output) - i - 1]) {
+      uint64_t attempt = search(code, i + 1, A + a);
+      if (attempt != 0) {
+        return attempt;
+      }
+    }
+  }
+  return 0;
+}
+
 int main(int argc, char **argv) {
   char *lines[5];
   read_lines(argv[1], lines, 5);
@@ -65,13 +85,14 @@ int main(int argc, char **argv) {
   char output[16];
   memset(output, -1, sizeof(output));
   parse_input(lines, &regs, code);
-  uint64_t start = 0;
   char *out = output;
-  for (int ip = 0; ip < sizeof(code); ip = run(&regs, code, ip, &out));
+  for (int ip = 0; ip < sizeof(output); ip = run(&regs, code, ip, &out)); 
+  printf("Part 1: [");
   for (int i = 0; i < sizeof(output) && output[i] >= 0; i++) {
     printf("%d,", output[i]);
   }
-  puts("");
+  puts("\b]");
+  printf("Part 2: [%ld]\n", search(code, 0, 0));
   free_lines(lines, 5);
   return 0;
 }
