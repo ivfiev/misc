@@ -12,6 +12,7 @@ typedef union keyval_t {
   float float32;
   int vec32[2];
   short vec16[4];
+  uint8_t vec8[8];
 } kv;
 
 typedef struct list_node {
