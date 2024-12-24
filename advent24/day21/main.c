@@ -75,7 +75,24 @@ char *path(hashtable *paths, kv node) {
   return str;
 }
 
+void adjust(char *str) {
+  size_t len = strlen(str);
+  for (int i = 0; i < len - 3; i++) {
+    if (strncmp(str + i, "A>^>", 4) == 0) {
+      str[i + 1] = '^';
+      str[i + 2] = '>';
+      // str[i + 3] = '^';
+    }
+    if (str[i] == '>' && str[i + 1] == '^' && str[i + 2] == '>') {
+      str[i + 1] = '>';
+      str[i + 2] = '^';
+    }
+  }
+}
+
 int main(int argc, char **argv) {
+  char *input[5];
+  read_lines(argv[1], input, 5);
   char *numpad[] = 
     {"#####", 
      "#789#", 
@@ -88,21 +105,26 @@ int main(int argc, char **argv) {
      "##^A#",
      "#<v>#",
      "#####"};
-  char target[1024] = "029A";
-  int num = 29;
   uint64_t part1 = 0;
-  for (int i = 0; i < 3; i++) {
-    hashtable *paths = hash_new(128, hash_int, hash_cmp_int);
-    kv end = bfs(paths, target, i == 0 ? numpad : arrpad, i == 0 ? 4 : 1, 3);
-    char *str = path(paths, end);
-    printf("%ld\n", strlen(str));
-    part1 += i == 2 ? num * strlen(str) : 0;
-    puts(str);
-    strcpy(target, str);
-    free(paths);
-    free(str);
+  char target[1024] = {0};
+  for (int k = 0; k < 5; k++) {
+    int num = atoi(input[k]);
+    strcpy(target, input[k]);
+    for (int i = 0; i < 3; i++) {
+      hashtable *paths = hash_new(128, hash_int, hash_cmp_int);
+      kv end = bfs(paths, target, i == 0 ? numpad : arrpad, i == 0 ? 4 : 1, 3);
+      char *str = path(paths, end);
+      adjust(str);
+      printf("%ld\n", strlen(str));
+      part1 += i == 2 ? num * strlen(str) : 0;
+      puts(str);
+      strcpy(target, str);
+      free(paths);
+      free(str);
+    }  
   }
   printf("Part 1: [%ld]\n", part1);
+  free_lines(input, 5);
   // printf("%d %d %d\n", row, col, ix);
   // FOREACH_KV(paths, {
   //   UNPACK(key, to_r, to_c, to_ix);
