@@ -1,6 +1,6 @@
 ADVENT_LIB = -Wl,-rpath,./advent/build -L./advent/build -ladvent
 CFLAGS = -O3 -I./advent
-HFLAGS = -O3 -outputdir /dev/shm/ghc -o /dev/shm/ghc/main
+HFLAGS = -O2 -outputdir /dev/shm/ghc -o /dev/shm/ghc/main
 
 day25: ./day25/main.hs
 	mkdir -p /dev/shm/ghc
