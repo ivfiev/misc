@@ -1,6 +1,5 @@
 import System.Directory.Internal.Prelude (getArgs)
 import Data.List (transpose, tails)
-import Control.Monad (replicateM)
 import Text.Printf (printf)
 
 main = do
