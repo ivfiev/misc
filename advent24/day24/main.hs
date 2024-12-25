@@ -10,7 +10,7 @@ main = do
   input <- map words . lines <$> readFile fileName
   let (vars, []:rules) = break null input
   let cache = foldr (\[x,y] -> Map.insert (init x) (read y)) Map.empty vars
-  let zs = sort [var | [_,_,_,_, var@(c:_)] <- rules, c == 'z']
+  let zs = sort [var | [_,_,_,_, var@('z':_)] <- rules]
   let cache' = foldr ((snd .) . flip (eval rules)) cache zs
   let part1 = foldr ((. (2 *)) . (+)) 0 [cache' ! z | z <- zs]
   printf "Part 1: [%d]\n" part1
