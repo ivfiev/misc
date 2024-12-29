@@ -15,6 +15,9 @@ import Crypto.Cipher.Types (Cipher(cipherInit), BlockCipher (ctrCombine), makeIV
 import Crypto.Cipher.AES (AES256)
 import Crypto.Error (onCryptoFailure)
 import Data.Maybe (fromMaybe)
+import Data.Time.Clock.POSIX (getPOSIXTime)
+import Text.Printf (printf)
+import Control.Exception (bracket)
 
 type DB = Map.Map String BS.ByteString
 
@@ -37,16 +40,20 @@ mkResp kws msg = ApiData
   , error = Nothing }
 
 logger :: Middleware
-logger app request respond = do
-  putStrLn "wip req time"
-  app request respond
+logger app request respond = 
+  bracket getPOSIXTime 
+    (\us0 -> do
+      us1 <- getPOSIXTime
+      let elapsedUs = round $ 1000000 * (us1 - us0) :: Int
+      printf "[%s]\nElapsed us: [%d]\n" (show request) elapsedUs) 
+    (\_ -> app request respond) 
 
 handleQuery :: IORef DB -> ActionT IO ()
 handleQuery dbRef = do
   req <- jsonData
   db <- liftIO $ readIORef dbRef
   case req of
-    ApiData { keywords = Just kws } -> do
+    ApiData { keywords = Just kws@(_:_) } -> do
       let key = hashKeywords kws
       liftIO $ putStrLn $ hashKeywords kws
       case Map.lookup key db of

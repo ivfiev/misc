@@ -13,7 +13,7 @@ executable areyou
     --other-modules:    Entry
     -- other-extensions: RecordWildCards
     default-extensions: OverloadedStrings, RecordWildCards, DeriveAnyClass
-    build-depends:    base ^>=4.17.2.1, scotty, aeson, text, crypton, containers, wai, http-types, bytestring
+    build-depends:    base ^>=4.17.2.1, scotty, aeson, text, crypton, containers, wai, http-types, bytestring, time
     hs-source-dirs:   app
     default-language: GHC2021
     ghc-options:    -O2 -threaded -rtsopts -with-rtsopts=-N
