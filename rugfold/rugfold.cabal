@@ -1,0 +1,17 @@
+cabal-version:      3.0
+name:               rugfold
+version:            0.1.0.0
+build-type:         Simple
+
+common warnings
+    ghc-options: -Wall
+
+executable rugfold
+    import:             warnings
+    main-is:            Main.hs
+    other-modules:      Blockchain, Server, Utils
+    default-extensions: OverloadedStrings, RecordWildCards, DeriveAnyClass
+    build-depends:      base ^>=4.17.2.1, crypton, bytestring
+    hs-source-dirs:     src
+    default-language:   GHC2021
+    ghc-options:        -O2 -threaded -rtsopts -with-rtsopts=-N
