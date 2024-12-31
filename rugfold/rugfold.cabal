@@ -15,3 +15,13 @@ executable rugfold
     hs-source-dirs:     src
     default-language:   GHC2021
     ghc-options:        -O2 -threaded
+
+executable rugfold-test
+    import:             warnings
+    main-is:            Main.hs
+    -- other-modules:      
+    default-extensions: OverloadedStrings, RecordWildCards, DeriveAnyClass
+    build-depends:      base ^>=4.17.2.1
+    hs-source-dirs:     test
+    default-language:   GHC2021
+    ghc-options:        -O2 -threaded
