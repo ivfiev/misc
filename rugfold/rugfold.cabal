@@ -11,7 +11,7 @@ executable rugfold
     main-is:            Main.hs
     other-modules:      Blockchain, Server, Utils
     default-extensions: OverloadedStrings, RecordWildCards, DeriveAnyClass
-    build-depends:      base ^>=4.17.2.1, crypton, bytestring
+    build-depends:      base ^>=4.17.2.1, crypton, bytestring, aeson, memory
     hs-source-dirs:     src
     default-language:   GHC2021
     ghc-options:        -O2 -threaded -rtsopts -with-rtsopts=-N
