@@ -47,4 +47,4 @@ addBlock chain@(Blockchain blocks target) b = chain { blocks = newBlock:blocks }
   prevHash 
     | null blocks = hash ""
     | otherwise = thisHash $ head blocks
-  nonce = mineNonce target b prevHash
+  !nonce = mineNonce target b prevHash
