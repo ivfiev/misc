@@ -3,7 +3,7 @@ import Blockchain (mkChain, addBlock, Blockchain)
 import Data.List (foldl')
 
 bc :: Blockchain Int
-bc = foldl' addBlock (mkChain 0) [1, 2, 3]
+bc = foldl' addBlock (mkChain 2) [1..10]
 
 main :: IO ()
 main = print bc

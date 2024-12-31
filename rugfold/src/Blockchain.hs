@@ -5,7 +5,8 @@ import Data.ByteString (ByteString)
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy (toStrict)
 import Data.Aeson (ToJSON, encode)
-import Data.List (intercalate)
+import Data.List (intercalate, find)
+import Data.Maybe (fromJust)
 
 data Block a = Block
   { body :: a
@@ -32,15 +33,18 @@ mkChain = Blockchain []
 
 blockHash :: ToJSON a => a -> ByteString -> Int -> ByteString
 blockHash body prevHash nonce = hash $ BS.concat bss where
-  bss = [toStrict $ encode body, prevHash, toStrict $ encode nonce]
+  bss = [prevHash, toStrict $ encode nonce, toStrict $ encode body]
 
-addBlock :: ToJSON a => Blockchain a -> a -> Blockchain a
-addBlock (Blockchain [] target) b = Blockchain [genesisBlock] target where
-  genesisBlock = Block b prevHash (blockHash b prevHash target) 0
-  prevHash = hash ""
-addBlock chain@(Blockchain blocks@(prevBlock:_) _) b = chain { blocks = newBlock:blocks } where
+mineNonce :: ToJSON a => Int -> a -> ByteString -> Int
+mineNonce target body prevHash = fromJust $ find goodNonce [1..] where
+  prefix = BS.replicate target 0x0
+  goodNonce = BS.isPrefixOf prefix . blockHash body prevHash
+
+addBlock :: (ToJSON a) => Blockchain a -> a -> Blockchain a
+addBlock chain@(Blockchain blocks target) b = chain { blocks = newBlock:blocks } where
   newBlock = Block b prevHash newHash nonce
   newHash = blockHash b prevHash nonce
-  prevHash = thisHash prevBlock
-  nonce = 0
-  
+  prevHash 
+    | null blocks = hash ""
+    | otherwise = thisHash $ head blocks
+  nonce = mineNonce target b prevHash
