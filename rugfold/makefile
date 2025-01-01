@@ -12,4 +12,7 @@ run-local-threaded:
 
 run-local-test:
 	$(RUN_BUILD_SHM)
-	$(RUN_TEST_SHM) +RTS -N24
+	$(RUN_BIN_SHM) &
+	sleep 0.5
+	$(RUN_TEST_SHM)
+	$(shell pkill -f rugfold)

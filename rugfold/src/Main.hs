@@ -4,7 +4,7 @@ import Data.List (foldl')
 import Server
 
 bc :: Blockchain Int
-bc = foldl' addBlock (mkChain 2) [1..10]
+bc = foldl' addBlock (mkChain 2) [0]
 
 main :: IO ()
 main = start bc 8989

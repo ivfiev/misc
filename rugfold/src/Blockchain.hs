@@ -11,7 +11,7 @@ import Data.Maybe (fromJust)
 data Block a = Block
   { body :: a
   , prevHash :: ByteString
-  , thisHash :: ByteString
+  , thisHash :: ByteString -- TODO switch to Text
   , nonce :: Int }
 
 data Blockchain a = Blockchain 
