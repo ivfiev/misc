@@ -33,7 +33,6 @@ handle :: forall a. Handler a
 handle bcVar peerSock peerAddr = do
   bytes <- recv peerSock 4096 -- TODO msg framing/len prefix
   let len = BS.length bytes
-  print bytes
   when (len > 0) $ do
     let msg = decodeStrict bytes :: Maybe (Message a)
     case msg of
