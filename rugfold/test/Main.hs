@@ -1,8 +1,10 @@
 import Network.Socket
-import Network.Socket.ByteString
 import Control.Monad
-import Data.ByteString.Char8 qualified as BS
 import Control.Concurrent (threadDelay)
+import Client
+
+sleep :: Double -> IO ()
+sleep secs = threadDelay $ round $ secs * 1000000
 
 main :: IO ()
 main = do
@@ -12,8 +14,8 @@ main = do
   sock <- socket (addrFamily serverAddr) Stream defaultProtocol
   connect sock (addrAddress serverAddr)
   forM_ [1..10] $ \n -> do
-    send sock $ BS.pack $ "{\"tag\": \"Add\", \"block\": " <> show n <> "}"
-    threadDelay 1000000
-  threadDelay 2000000
-  send sock "{\"tag\": \"Output\"}"
+    sendMsg sock $ Add n
+    sleep 0.5
+  sendMsg sock Output
+  sleep 0.5
   close sock
