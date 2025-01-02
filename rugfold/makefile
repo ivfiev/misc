@@ -15,4 +15,4 @@ run-local-test:
 	$(RUN_BIN_SHM) &
 	sleep 0.5
 	$(RUN_TEST_SHM)
-	$(shell pkill -f rugfold)
+	pkill rugfold

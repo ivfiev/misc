@@ -15,7 +15,6 @@ main = do
   connect sock (addrAddress serverAddr)
   forM_ [1..10] $ \n -> do
     sendMsg sock $ Add n
-    sleep 0.5
   sendMsg sock Output
   sleep 0.5
   close sock
