@@ -7,4 +7,4 @@ bc :: Blockchain Int
 bc = foldl' addBlock (mkChain 3) [0]
 
 main :: IO ()
-main = start bc 8989
+main = server bc 8989

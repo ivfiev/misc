@@ -11,5 +11,5 @@ import Data.Text qualified as Text
 hash :: ByteString -> Text
 hash = Text.pack . show . hashWith SHA256 
 
-word8 :: Char -> Word8
+word8 :: (Integral a) => Char -> a
 word8 = fromIntegral . fromEnum

@@ -13,8 +13,8 @@ main = do
   serverAddr:_ <- getAddrInfo (Just defaultHints) (Just hostname) (Just port)
   sock <- socket (addrFamily serverAddr) Stream defaultProtocol
   connect sock (addrAddress serverAddr)
-  forM_ [1..100] $ \n -> do
-    sendMsg sock $ Add n
-  sendMsg sock Output
+  forM_ [1..10] $ \n -> do
+    sendMsg sock (Add n :: Message Int)
+  sendMsg sock (Output :: Message Int)
   sleep 1
   close sock

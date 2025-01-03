@@ -6,19 +6,20 @@ build-type:         Simple
 common warnings
     ghc-options: -Wall
 
-library
-  hs-source-dirs:      lib
-  exposed-modules:     Blockchain, Client, Utils
-  default-extensions:  OverloadedStrings, RecordWildCards, DeriveAnyClass
-  build-depends:       base ^>=4.17.2.1, crypton, bytestring, aeson, memory, network, text
-  default-language:    GHC2021
+library rugfold-lib
+    hs-source-dirs:      lib
+    exposed-modules:     Blockchain, Client, Utils
+    default-extensions:  OverloadedStrings, RecordWildCards, DeriveAnyClass
+    build-depends:       base ^>=4.17.2.1, crypton, bytestring, aeson, memory, network, text
+    default-language:    GHC2021
+    ghc-options:         -O2 -threaded
 
 executable rugfold
     import:             warnings
     main-is:            Main.hs
     other-modules:      Server
     default-extensions: OverloadedStrings, RecordWildCards, DeriveAnyClass
-    build-depends:      base ^>=4.17.2.1, rugfold, crypton, bytestring, aeson, memory, network
+    build-depends:      base ^>=4.17.2.1, rugfold-lib, crypton, bytestring, aeson, memory, network
     hs-source-dirs:     src
     default-language:   GHC2021
     ghc-options:        -O2 -threaded
@@ -26,9 +27,8 @@ executable rugfold
 executable rugfold-test
     import:             warnings
     main-is:            Main.hs
-    -- other-modules:      TODO lib
     default-extensions: OverloadedStrings, RecordWildCards, DeriveAnyClass
-    build-depends:      base ^>=4.17.2.1, rugfold, bytestring, aeson, network
+    build-depends:      base ^>=4.17.2.1, rugfold-lib, bytestring, aeson, network
     hs-source-dirs:     test
     default-language:   GHC2021
     ghc-options:        -O2 -threaded

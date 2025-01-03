@@ -1,25 +1,15 @@
-module Server(start) where
+module Server(server) where
 
 import Network.Socket
-import Control.Monad (forever, when, unless)
+import Control.Monad (forever)
 import Control.Concurrent (forkFinally)
-import Network.Socket.ByteString (recv)
-import Data.ByteString qualified as BS
-import Data.Aeson (FromJSON, decodeStrict, ToJSON)
+import Data.Aeson (FromJSON, ToJSON)
 import Control.Concurrent.MVar
-import GHC.Generics (Generic)
 import Blockchain
-import Data.ByteString (ByteString)
-import Utils
+import Client
 
-type Handler a = (Show a, FromJSON a, ToJSON a) => MVar (Blockchain a) -> Socket -> SockAddr -> IO ()
-type Server a = (Show a, FromJSON a, ToJSON a) => Blockchain a -> Int -> IO ()
-
-data Message a = Output | Add { block :: a }
-  deriving (Show, Generic, FromJSON, ToJSON)
-
-start :: Server a
-start bc port = do
+server :: (Show a, FromJSON a, ToJSON a) => Blockchain a -> Int -> IO ()
+server bc port = do
   bcVar <- newMVar bc
   ai <- getAddrInfo (Just $ defaultHints { addrFlags = [AI_PASSIVE] }) Nothing (Just $ show port)
   let addr = head ai
@@ -31,23 +21,15 @@ start bc port = do
     (peerSock, peerAddr) <- accept sock
     forkFinally (handleConn bcVar peerSock peerAddr) (const $ close peerSock)
 
-handleConn :: forall a. Handler a
+handleConn :: (Show a, FromJSON a, ToJSON a) => MVar (Blockchain a) -> Socket -> SockAddr -> IO ()
 handleConn bcVar peerSock peerAddr = do
-  bytes <- recv peerSock 4096 
-  let len = BS.length bytes
-  when (len > 0) $ do
-    unless ("\n" `BS.isSuffixOf` bytes) $ error "TODO msg framing/len prefix"
-    let bytess = BS.split (word8 '\n') bytes
-    mapM_ (handleBytes bcVar) bytess
-    handleConn bcVar peerSock peerAddr
+  msgs <- recvMsg peerSock
+  mapM_ (handleMsg bcVar) msgs
+  handleConn bcVar peerSock peerAddr
 
-handleBytes :: forall a. (Show a, ToJSON a, FromJSON a) => MVar (Blockchain a) -> ByteString -> IO ()
-handleBytes bcVar bytes = do
-  let msg = decodeStrict bytes :: Maybe (Message a)
-  case msg of
-    Just Output -> output bcVar
-    Just (Add block) -> append bcVar block
-    _ -> return ()
+handleMsg :: (Show a, ToJSON a, FromJSON a) => MVar (Blockchain a) -> Message a -> IO ()
+handleMsg bcVar Output = output bcVar
+handleMsg bcVar (Add block) = append bcVar block
 
 append :: (Show a, ToJSON a) => MVar (Blockchain a) -> a -> IO ()
 append bcVar block = do

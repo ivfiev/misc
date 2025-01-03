@@ -39,13 +39,13 @@ blockHash body prevHash nonce = hash $ BS.concat bss where
 mineNonce :: ToJSON a => Int -> a -> Text -> Int
 mineNonce target body prevHash = head $ filter goodNonce [1..] where
   prefix = Text.replicate target "0"
-  goodNonce = Text.isPrefixOf prefix . blockHash body prevHash
+  goodNonce = (prefix `Text.isPrefixOf`) . blockHash body prevHash
 
 addBlock :: (ToJSON a) => Blockchain a -> a -> Blockchain a
 addBlock chain@(Blockchain blocks target) b = chain { blocks = newBlock:blocks } where
   newBlock = Block b prevHash newHash nonce
   newHash = blockHash b prevHash nonce
   prevHash
-    | null blocks = hash ""
+    | null blocks = Text.replicate 32 "0"
     | otherwise = thisHash $ head blocks
   !nonce = mineNonce target b prevHash
