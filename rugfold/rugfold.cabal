@@ -10,7 +10,7 @@ library
   hs-source-dirs:      lib
   exposed-modules:     Blockchain, Client, Utils
   default-extensions:  OverloadedStrings, RecordWildCards, DeriveAnyClass
-  build-depends:       base ^>=4.17.2.1, crypton, bytestring, aeson, memory, network
+  build-depends:       base ^>=4.17.2.1, crypton, bytestring, aeson, memory, network, text
   default-language:    GHC2021
 
 executable rugfold
