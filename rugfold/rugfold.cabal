@@ -19,7 +19,7 @@ executable rugfold
     main-is:            Main.hs
     other-modules:      Server
     default-extensions: OverloadedStrings, RecordWildCards, DeriveAnyClass
-    build-depends:      base ^>=4.17.2.1, rugfold-lib, crypton, bytestring, aeson, memory, network
+    build-depends:      base ^>=4.17.2.1, rugfold-lib, crypton, bytestring, aeson, memory, network, containers
     hs-source-dirs:     src
     default-language:   GHC2021
     ghc-options:        -O2 -threaded
