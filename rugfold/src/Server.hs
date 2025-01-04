@@ -6,7 +6,7 @@ import Control.Concurrent (forkFinally)
 import Data.Aeson (FromJSON, ToJSON)
 import Control.Concurrent.MVar
 import Blockchain
-import Client
+import Message
 
 server :: (Show a, FromJSON a, ToJSON a) => Blockchain a -> Int -> IO ()
 server bc port = do
@@ -33,7 +33,7 @@ handleConn bcVar peerSock peerAddr = do
       return ()
 
 handleMsg :: (Show a, ToJSON a, FromJSON a) => MVar (Blockchain a) -> Message a -> IO ()
-handleMsg bcVar Output = output bcVar
+handleMsg bcVar Print = output bcVar
 handleMsg bcVar (Add block) = append bcVar block
 
 append :: (Show a, ToJSON a) => MVar (Blockchain a) -> a -> IO ()

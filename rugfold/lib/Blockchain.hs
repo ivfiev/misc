@@ -3,21 +3,24 @@ module Blockchain(Block, Blockchain, mkChain, addBlock) where
 import Utils
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy (toStrict)
-import Data.Aeson (ToJSON, encode)
+import Data.Aeson (ToJSON, encode, FromJSON)
 import Data.List (intercalate)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
+import GHC.Generics (Generic)
 
 data Block a = Block
   { body :: a
   , prevHash :: Text
   , thisHash :: Text
   , nonce :: Int }
+  deriving (Generic, ToJSON, FromJSON)
 
 data Blockchain a = Blockchain
   { blocks :: [Block a]
   , target :: Int }
+  deriving (Generic, ToJSON, FromJSON)
 
 instance Show a => Show (Block a) where
   show :: Show a => Block a -> String

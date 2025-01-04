@@ -1,4 +1,4 @@
-module Client where
+module Message where
 
 import Data.Aeson
 import GHC.Generics
@@ -8,8 +8,10 @@ import Data.ByteString.Lazy qualified as BSL
 import Data.Maybe
 import Utils
 import Control.Exception
+import Data.Text (Text)
+import Blockchain (Block)
 
-data Message a = Output | Add { block :: a }
+data Message a = Print | Add { block :: a } | SyncHash Text | SyncBlocks [Block a]
   deriving (Show, Generic, FromJSON, ToJSON)
 
 sendMsg :: (ToJSON a) => Socket -> Message a -> IO ()

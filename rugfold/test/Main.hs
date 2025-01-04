@@ -1,7 +1,7 @@
 import Network.Socket
 import Control.Monad
 import Control.Concurrent (threadDelay)
-import Client
+import Message
 
 sleep :: Double -> IO ()
 sleep secs = threadDelay $ round $ secs * 1000000
@@ -15,6 +15,6 @@ main = do
   connect sock (addrAddress serverAddr)
   forM_ [1..10] $ \n -> do
     sendMsg sock (Add n :: Message Int)
-  sendMsg sock (Output :: Message Int)
+  sendMsg sock (Print :: Message Int)
   sleep 1
   close sock
