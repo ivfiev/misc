@@ -15,8 +15,8 @@ data Message a =
   Print 
   | AppendBlock a
   | ConnPeers [String]
-  | SyncHash Text 
-  | SyncBlocks [Block a]
+  -- | SyncHash Text 
+  -- | SyncBlocks [Block a]
   deriving (Show, Generic, FromJSON, ToJSON)
 
 sendMsg :: (ToJSON a) => Socket -> Message a -> IO ()

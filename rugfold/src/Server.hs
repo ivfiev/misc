@@ -7,15 +7,12 @@ import Data.Aeson (FromJSON, ToJSON)
 import Control.Concurrent.MVar
 import Blockchain
 import Message
-import Data.Map (Map)
-import Data.Map qualified as Map
 import Utils
-import Data.Maybe
 
 server :: (Show a, FromJSON a, ToJSON a) => Blockchain a -> String -> IO ()
 server bc port = do
   bcVar <- newMVar bc
-  peerVar <- newMVar Map.empty
+  peerVar <- newMVar []
   ai <- getAddrInfo (Just $ defaultHints { addrFlags = [AI_PASSIVE] }) Nothing (Just port)
   let addr = head ai
   sock <- socket (addrFamily addr) Stream defaultProtocol
@@ -26,7 +23,7 @@ server bc port = do
     (peerSock, peerAddr) <- accept sock
     forkFinally (handleConn bcVar peerVar peerSock peerAddr) (const $ close peerSock)
 
-handleConn :: (Show a, FromJSON a, ToJSON a) => MVar (Blockchain a) -> MVar (Map String Socket) -> Socket -> SockAddr -> IO ()
+handleConn :: (Show a, FromJSON a, ToJSON a) => MVar (Blockchain a) -> MVar [Socket] -> Socket -> SockAddr -> IO ()
 handleConn bcVar peerVar peerSock peerAddr = do
   mbMsgs <- recvMsg peerSock
   case mbMsgs of
@@ -37,25 +34,20 @@ handleConn bcVar peerVar peerSock peerAddr = do
       close peerSock
       return ()
 
-handleMsg :: (Show a, ToJSON a, FromJSON a) => MVar (Blockchain a) -> MVar (Map String Socket) -> Message a -> IO ()
+handleMsg :: (Show a, ToJSON a, FromJSON a) => MVar (Blockchain a) -> MVar [Socket] -> Message a -> IO ()
 
-handleMsg bcVar peerVar Print = output bcVar
-handleMsg bcVar peerVar (AppendBlock b) = append bcVar b
+handleMsg bcVar peerVar Print = withMVar bcVar print
+
+handleMsg bcVar peerVar (AppendBlock b) = do
+  bc <- takeMVar bcVar
+  let !bc' = addBlock bc b
+  putMVar bcVar bc'
+  withMVar peerVar $ \peers ->
+    forM_ peers $ flip sendMsg (AppendBlock b)
 
 handleMsg bcVar peerVar (ConnPeers addrs) = do
-  socks <- catMaybes <$> mapM mbConnect addrs
-  forM_ socks $ \peerSock -> do
-    sendMsg peerSock (AppendBlock 999 :: Message Int)
-
-handleMsg bcVar peerVar (SyncHash hash) = undefined
-handleMsg bcVar peerVar (SyncBlocks blocks) = undefined
-
-append :: (Show a, ToJSON a) => MVar (Blockchain a) -> a -> IO ()
-append bcVar block = do
-  bc <- takeMVar bcVar
-  let !bc' = addBlock bc block
-  putMVar bcVar bc'
-
-output :: (Show a, ToJSON a) => MVar (Blockchain a) -> IO ()
-output bcVar = do
-  withMVar bcVar print
+  forM_ addrs $ \addr -> do
+    mbSock <- mbConnect addr
+    case mbSock of
+      Just sock -> modifyMVar_ peerVar (return . (sock:))
+      Nothing -> return ()

@@ -4,7 +4,7 @@ import Utils
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy (toStrict)
 import Data.Aeson (ToJSON, encode, FromJSON)
-import Data.List (intercalate)
+import Data.List
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding qualified as Text
@@ -52,3 +52,21 @@ addBlock chain@(Blockchain blocks target) b = chain { blocks = newBlock:blocks }
     | null blocks = Text.replicate 32 "0"
     | otherwise = thisHash $ head blocks
   !nonce = mineNonce target b prevHash
+
+hashIx :: Blockchain a -> Text -> [Int]
+hashIx (Blockchain blocks _) hash = findIndices byHash blocks where
+  byHash = (== hash) . thisHash
+  -- TODO store index in the block
+
+isValid :: (ToJSON a) => Blockchain a -> Bool
+isValid (Blockchain blocks target) = foldr ((&&) . validBlock) True $ tails blocks where
+  validBlock [] = True
+  validBlock [b] = thisHash b == recalcHash b && genesisHash where
+    genesisHash = prevHash b == Text.replicate 32 "0"
+  validBlock (b:b':_) = validHash && validPrevHash where
+    h = recalcHash b
+    h' = recalcHash b'
+    validHash = thisHash b == h && prefix `Text.isPrefixOf` h
+    validPrevHash = prevHash b == h'
+    prefix = Text.replicate target "0"
+  recalcHash block = blockHash (body block) (prevHash block) (nonce block)
