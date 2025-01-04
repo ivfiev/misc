@@ -4,15 +4,13 @@ RUN_TEST_SHM=/dev/shm/rugfold-cabal-build/build/x86_64-linux/ghc-9.4.8/rugfold-0
 
 run-local:
 	$(RUN_BUILD_SHM)
-	$(RUN_BIN_SHM)
+	$(RUN_BIN_SHM) 8989
 
 run-local-threaded:
 	$(RUN_BUILD_SHM)
-	$(RUN_BIN_SHM) +RTS -N24 -s
+	$(RUN_BIN_SHM) 8989 +RTS -N24 -s
 
 run-local-test:
 	$(RUN_BUILD_SHM)
-	$(RUN_BIN_SHM) &
-	sleep 0.5
-	$(RUN_TEST_SHM)
+	$(RUN_TEST_SHM) $(RUN_BIN_SHM)
 	pkill rugfold

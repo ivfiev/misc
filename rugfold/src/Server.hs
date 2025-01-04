@@ -8,10 +8,10 @@ import Control.Concurrent.MVar
 import Blockchain
 import Message
 
-server :: (Show a, FromJSON a, ToJSON a) => Blockchain a -> Int -> IO ()
+server :: (Show a, FromJSON a, ToJSON a) => Blockchain a -> String -> IO ()
 server bc port = do
   bcVar <- newMVar bc
-  ai <- getAddrInfo (Just $ defaultHints { addrFlags = [AI_PASSIVE] }) Nothing (Just $ show port)
+  ai <- getAddrInfo (Just $ defaultHints { addrFlags = [AI_PASSIVE] }) Nothing (Just port)
   let addr = head ai
   sock <- socket (addrFamily addr) Stream defaultProtocol
   setSocketOption sock ReuseAddr 1
@@ -35,6 +35,8 @@ handleConn bcVar peerSock peerAddr = do
 handleMsg :: (Show a, ToJSON a, FromJSON a) => MVar (Blockchain a) -> Message a -> IO ()
 handleMsg bcVar Print = output bcVar
 handleMsg bcVar (Add block) = append bcVar block
+handleMsg bcVar (SyncHash hash) = undefined
+handleMsg bcVar (SyncBlocks blocks) = undefined
 
 append :: (Show a, ToJSON a) => MVar (Blockchain a) -> a -> IO ()
 append bcVar block = do

@@ -28,7 +28,7 @@ executable rugfold-test
     import:             warnings
     main-is:            Main.hs
     default-extensions: OverloadedStrings, RecordWildCards, DeriveAnyClass
-    build-depends:      base ^>=4.17.2.1, rugfold-lib, bytestring, aeson, network
+    build-depends:      base ^>=4.17.2.1, rugfold-lib, bytestring, aeson, network, process
     hs-source-dirs:     test
     default-language:   GHC2021
     ghc-options:        -O2 -threaded
