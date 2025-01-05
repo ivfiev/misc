@@ -25,11 +25,13 @@ main :: IO ()
 main = do
   [path] <- getArgs
   let spawn = mkServer path
-  sockets@[s1, s2, s3] <- mapM spawn ["8989", "8990", "8998"]
-  send s1 $ ConnPeers ["127.0.0.1:8990"]
-  send s2 $ ConnPeers ["127.0.0.1:8998"]
+  sockets@[s1, s2, s3] <- mapM spawn ["8989", "8998", "8899"]
+  send s1 $ ConnPeers ["127.0.0.1:8998"]
+  send s2 $ ConnPeers ["127.0.0.1:8899"]
   forM_ [1..3] $ \n -> do
     send s1 $ AppendBlock n
+  forM_ [4..6] $ \n -> do
+    send s2 $ AppendBlock n
   sleep 0.5
   send s1 Print
   sleep 0.5
