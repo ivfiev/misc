@@ -9,14 +9,14 @@ import Data.Maybe
 import Utils
 import Control.Exception
 import Data.Text (Text)
-import Blockchain (Block)
+import Blockchain (Block, Blockchain)
 
 data Message a = 
-  Print 
+  DebugChain 
   | AppendBlock a
-  | ConnPeers [String]
-  -- | SyncHash Text 
-  -- | SyncBlocks [Block a]
+  | SyncPeers [String]
+  | SyncHash Text 
+  | SyncChain (Blockchain a)
   deriving (Show, Generic, FromJSON, ToJSON)
 
 sendMsg :: (ToJSON a) => Socket -> Message a -> IO ()

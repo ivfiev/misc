@@ -1,4 +1,4 @@
-module Blockchain(Block, Blockchain, mkChain, addBlock) where
+module Blockchain(Block, Blockchain, mkChain, addBlock, chainHash, chainLength) where
 
 import Utils
 import Data.ByteString qualified as BS
@@ -70,3 +70,10 @@ isValid (Blockchain blocks target) = foldr ((&&) . validBlock) True $ tails bloc
     validPrevHash = prevHash b == h'
     prefix = Text.replicate target "0"
   recalcHash block = blockHash (body block) (prevHash block) (nonce block)
+
+chainHash :: Blockchain a -> Text
+chainHash (Blockchain [] _) = error "No blocks!"
+chainHash (Blockchain (top:_) _) = thisHash top
+
+chainLength :: Blockchain a -> Integer
+chainLength = genericLength . blocks
