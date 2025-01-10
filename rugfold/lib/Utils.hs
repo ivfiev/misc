@@ -10,6 +10,7 @@ import Data.Text qualified as Text
 import Network.Socket 
 import Control.Exception (catch)
 import GHC.Exception.Type (SomeException)
+import Control.Concurrent
 
 hash :: ByteString -> Text
 hash = Text.pack . show . hashWith SHA256 
@@ -31,3 +32,6 @@ mbConnect addr = catch connection onExn where
   onExn exn = do
     print exn
     return Nothing
+
+sleep :: Double -> IO ()
+sleep secs = threadDelay $ round $ secs * 1000000

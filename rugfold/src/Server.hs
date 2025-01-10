@@ -2,9 +2,8 @@ module Server(server) where
 
 import Network.Socket
 import Control.Monad
-import Control.Concurrent (forkFinally)
+import Control.Concurrent
 import Data.Aeson (FromJSON, ToJSON)
-import Control.Concurrent.MVar
 import Blockchain
 import Message
 import Utils
@@ -24,20 +23,30 @@ server bc port = do
   setSocketOption sock ReuseAddr 1
   bind sock (addrAddress addr)
   listen sock 128
+  void $ forkIO $ background bcVar peerVar
   forever $ do
     (peerSock, peerAddr) <- accept sock
-    forkFinally (handleConn bcVar peerVar peerSock peerAddr) (const $ close peerSock)
+    forkFinally (handleConn bcVar peerVar peerSock) (const $ close peerSock)
 
-handleConn :: (Show a, FromJSON a, ToJSON a) => BC a -> Peers -> Socket -> SockAddr -> IO ()
-handleConn bcVar peerVar peerSock peerAddr = do
+handleConn :: (Show a, FromJSON a, ToJSON a) => BC a -> Peers -> Socket -> IO ()
+handleConn bcVar peerVar peerSock = do
   mbMsgs <- recvMsg peerSock
   case mbMsgs of
     Just msgs -> do
       mapM_ (handleMsg bcVar peerVar peerSock) msgs
-      handleConn bcVar peerVar peerSock peerAddr
+      handleConn bcVar peerVar peerSock
     Nothing -> do
       close peerSock
       return ()
+
+background :: forall a. (Show a, FromJSON a, ToJSON a) => BC a -> Peers -> IO ()
+background bcVar peerVar = do
+  sleep 0.100
+  peers <- withMVar peerVar (return . connected)
+  bcHash <- withMVar bcVar (return . chainHash)
+  let syncMsg = SyncHash bcHash :: Message a
+  mapM_ (`sendMsg` syncMsg) peers
+  background bcVar peerVar
 
 handleMsg :: (Show a, ToJSON a, FromJSON a) => BC a -> Peers -> Socket -> Message a -> IO ()
 
@@ -47,14 +56,14 @@ handleMsg bcVar peerVar sender (AppendBlock b) = do
   bc <- takeMVar bcVar
   let !bc' = addBlock bc b
   putMVar bcVar bc'
-  withMVar peerVar $ \peers -> do
-    let sockets = [sock | (_, Just sock) <- Map.toList peers]
-    forM_ sockets $ flip sendMsg (AppendBlock b)
 
 handleMsg bcVar peerVar sender (SyncPeers addrs) = do
   forM_ addrs $ \addr -> do
     mbSock <- mbConnect addr
     modifyMVar_ peerVar (return . Map.insert addr mbSock)
+    case mbSock of
+      Just sock -> void $ forkFinally (handleConn bcVar peerVar sock) (const $ close sock)
+      _ -> return ()
 
 handleMsg bcVar peerVar sender (SyncHash hisHash) = do
   withMVar bcVar $ \bc -> do
@@ -64,5 +73,10 @@ handleMsg bcVar peerVar sender (SyncHash hisHash) = do
 
 handleMsg bcVar peerVar sender (SyncChain chain) = do
   bc <- takeMVar bcVar
-  let newChain = if chainLength bc < chainLength chain then chain else bc
+  let newChain
+        | chainLength bc < chainLength chain = chain
+        | otherwise = bc
   putMVar bcVar newChain
+
+connected :: Map String (Maybe Socket) -> [Socket]
+connected peers = [sock | (_, Just sock) <- Map.toList peers]

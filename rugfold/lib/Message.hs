@@ -11,10 +11,12 @@ import Control.Exception
 import Data.Text (Text)
 import Blockchain (Block, Blockchain)
 
+type PeerAddr = String
+
 data Message a = 
   DebugChain 
   | AppendBlock a
-  | SyncPeers [String]
+  | SyncPeers [PeerAddr]
   | SyncHash Text 
   | SyncChain (Blockchain a)
   deriving (Show, Generic, FromJSON, ToJSON)

@@ -1,14 +1,10 @@
 import Network.Socket
 import Control.Monad
-import Control.Concurrent (threadDelay)
 import Message
 import System.Environment (getArgs)
 import System.Process
 import Text.Printf (printf)
-import Utils (mbConnect)
-
-sleep :: Double -> IO ()
-sleep secs = threadDelay $ round $ secs * 1000000
+import Utils
 
 mkServer :: String -> String -> IO Socket
 mkServer path port = do
@@ -26,16 +22,19 @@ main = do
   [path] <- getArgs
   let spawn = mkServer path
   sockets@[s1, s2, s3] <- mapM spawn ["8989", "8998", "8899"]
-  send s1 $ SyncPeers ["127.0.0.1:8998"]
-  send s2 $ SyncPeers ["127.0.0.1:8899"]
-  forM_ [1..3] $ \n -> do
+  send s1 $ SyncPeers ["127.0.0.1:8998", "127.0.0.1:8899"]
+  send s2 $ SyncPeers ["127.0.0.1:8899", "127.0.0.1:8989"]
+  send s3 $ SyncPeers ["127.0.0.1:8989", "127.0.0.1:8998"]
+  forM_ [1..10] $ \n -> do
     send s1 $ AppendBlock n
-  forM_ [4..6] $ \n -> do
+  forM_ [11..20] $ \n -> do
     send s2 $ AppendBlock n
-  sleep 0.5
+  forM_ [21..32] $ \n -> do
+    send s3 $ AppendBlock n
+  sleep 1
   send s1 DebugChain
-  sleep 0.5
+  sleep 0.1
   send s2 DebugChain
-  sleep 0.5
+  sleep 0.1
   send s3 DebugChain
   mapM_ close sockets
