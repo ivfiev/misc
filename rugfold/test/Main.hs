@@ -27,11 +27,13 @@ main = do
   send s3 $ SyncPeers ["127.0.0.1:8989", "127.0.0.1:8998"]
   forM_ [1..10] $ \n -> do
     send s1 $ AppendBlock n
+  sleep 0.2
   forM_ [11..20] $ \n -> do
     send s2 $ AppendBlock n
+  sleep 0.2
   forM_ [21..32] $ \n -> do
     send s3 $ AppendBlock n
-  sleep 1
+  sleep 0.5
   send s1 DebugChain
   sleep 0.1
   send s2 DebugChain
