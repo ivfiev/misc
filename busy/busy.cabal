@@ -1,0 +1,15 @@
+cabal-version:      3.0
+name:               busy
+version:            0.1.0.0
+
+common warnings
+    ghc-options: -Wall
+
+executable busy
+    import:           warnings
+    main-is:          Main.hs
+    other-modules: Http, Datamuse
+    default-extensions: OverloadedStrings, RecordWildCards, DeriveAnyClass
+    build-depends:    base ^>=4.17.2.1, http-client, http-client-tls, http-types, bytestring, aeson
+    hs-source-dirs:   src
+    default-language: GHC2021
