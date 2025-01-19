@@ -9,6 +9,8 @@ import Message
 import Utils
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Maybe (fromMaybe)
+import Data.List
 
 type BC a = MVar (Blockchain a)
 type Peers = MVar (Map String (Maybe Socket))
@@ -69,14 +71,20 @@ handleMsg bcVar peerVar sender (SyncHash hisHash) = do
   withMVar bcVar $ \bc -> do
     let myHash = chainHash bc
     when (hisHash /= myHash) $ do
-      sendMsg sender $ SyncChain bc
+      let prefix = chainPrefix bc hisHash
+      sendMsg sender $ SyncBlocks prefix
 
 handleMsg bcVar peerVar sender (SyncChain chain) = do
   bc <- takeMVar bcVar
   let newChain
-        | chainLength bc < chainLength chain = chain
+        | isValidChain chain && chainLength bc < chainLength chain = chain
         | otherwise = bc
   putMVar bcVar newChain
+
+handleMsg bcVar peerVar sender (SyncBlocks blocks) = do
+  bc <- takeMVar bcVar
+  let bc' = foldl' (\bc b -> bc >>= flip maybeAddBlock b) (Just bc) blocks
+  putMVar bcVar (fromMaybe bc bc') 
 
 connected :: Map String (Maybe Socket) -> [Socket]
 connected peers = [sock | (_, Just sock) <- Map.toList peers]

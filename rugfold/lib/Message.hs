@@ -19,6 +19,7 @@ data Message a =
   | SyncPeers [PeerAddr]
   | SyncHash Text 
   | SyncChain (Blockchain a)
+  | SyncBlocks [Block a]
   deriving (Show, Generic, FromJSON, ToJSON)
 
 sendMsg :: (ToJSON a) => Socket -> Message a -> IO ()

@@ -21,12 +21,12 @@ main :: IO ()
 main = do
   [path] <- getArgs
   let spawn = mkServer path
-  sockets@[s1, s2, s3] <- mapM spawn ["8989", "8998", "8899"]
-  send s1 $ SyncPeers ["127.0.0.1:8998", "127.0.0.1:8899"]
-  send s2 $ SyncPeers ["127.0.0.1:8899", "127.0.0.1:8989"]
-  send s3 $ SyncPeers ["127.0.0.1:8989", "127.0.0.1:8998"]
+  sockets@[s1, s2, s3] <- mapM spawn ["8001", "8002", "8003"]
+  send s1 $ SyncPeers ["127.0.0.1:8002", "127.0.0.1:8003"]
+  send s2 $ SyncPeers ["127.0.0.1:8001", "127.0.0.1:8003"]
+  send s3 $ SyncPeers ["127.0.0.1:8001", "127.0.0.1:8002"]
   let randomSocks = cycle sockets
-  forM_ (zip randomSocks [10..29]) $ \(s, n) -> do
+  forM_ (zip randomSocks [1..5]) $ \(s, n) -> do
     send s $ AppendBlock n
     sleep 0.1
   send s1 DebugChain

@@ -1,4 +1,4 @@
-module Blockchain(Block, Blockchain, mkChain, addBlock, chainHash, chainLength) where
+module Blockchain(Block, Blockchain, mkChain, addBlock, chainHash, chainLength, isValidChain, maybeAddBlock, chainPrefix) where
 
 import Utils
 import Data.ByteString qualified as BS
@@ -58,8 +58,8 @@ hashIx (Blockchain blocks _) hash = findIndices byHash blocks where
   byHash = (== hash) . thisHash
   -- TODO store index in the block
 
-isValid :: (ToJSON a) => Blockchain a -> Bool
-isValid (Blockchain blocks target) = foldr ((&&) . validBlock) True $ tails blocks where
+isValidChain :: (ToJSON a) => Blockchain a -> Bool
+isValidChain (Blockchain blocks target) = foldr ((&&) . validBlock) True $ tails blocks where
   validBlock [] = True
   validBlock [b] = thisHash b == recalcHash b && genesisHash where
     genesisHash = prevHash b == Text.replicate 32 "0"
@@ -71,9 +71,23 @@ isValid (Blockchain blocks target) = foldr ((&&) . validBlock) True $ tails bloc
     prefix = Text.replicate target "0"
   recalcHash block = blockHash (body block) (prevHash block) (nonce block)
 
+maybeAddBlock :: (ToJSON a) => Blockchain a -> Block a -> Maybe (Blockchain a)
+maybeAddBlock (Blockchain [] target) block = Just $ Blockchain [block] target
+maybeAddBlock (Blockchain blocks@(b:_) target) b'
+  | hashesLegit = Just $ Blockchain (b':blocks) target 
+  | otherwise = Nothing where
+      hashesLegit = prevHash b' == thisHash b && h == thisHash b'
+      h = blockHash (body b') (prevHash b') (nonce b')
+
 chainHash :: Blockchain a -> Text
 chainHash (Blockchain [] _) = error "No blocks!"
 chainHash (Blockchain (top:_) _) = thisHash top
 
 chainLength :: Blockchain a -> Integer
 chainLength = genericLength . blocks
+
+chainPrefix :: Blockchain a -> Text -> [Block a]
+chainPrefix bc h 
+  | null groups = []
+  | otherwise = top where
+    groups@(~(top:_)) = (`take` blocks bc) <$> hashIx bc h
