@@ -8,8 +8,8 @@ common warnings
 executable busy
     import:           warnings
     main-is:          Main.hs
-    other-modules: Http, Datamuse, Calc
+    other-modules: Http, Datamuse, Calc, Codenames
     default-extensions: OverloadedStrings, RecordWildCards, DeriveAnyClass
-    build-depends:    base ^>=4.17.2.1, http-client, http-client-tls, http-types, bytestring, aeson
+    build-depends:    base ^>=4.17.2.1, http-client, http-client-tls, http-types, bytestring, aeson, containers
     hs-source-dirs:   src
     default-language: GHC2021
