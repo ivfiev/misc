@@ -25,4 +25,4 @@ runCheat = do
     hFlush stdout
     ws <- words <$> getLine
     wss <- mapM (\w -> (w:) <$> related httpClient w) ws
-    mapM_ (\(ws, ws') -> putStrLn $ show ws <> " -> " <> show ws') $ scoreClues wss
+    mapM_ (\(ws', ws'') -> putStrLn $ show ws' <> " -> " <> show ws'') $ scoreClues wss
