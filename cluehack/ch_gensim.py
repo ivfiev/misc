@@ -1,7 +1,7 @@
 import itertools
 import gensim.downloader as api
 
-model = api.load('word2vec-google-news-300')
+model = api.load('glove-wiki-gigaword-300')
 
 def assocs(word):
   return [w for (w, _) in model.most_similar(word, topn=20) if '_' not in w][:10]
@@ -25,12 +25,12 @@ def get_groups(words, max):
     gs.extend(itertools.combinations(words, n))
   return gs
 
-def cheat(words):
+def cheat(*words):
   groups = get_groups(words, 4)
   evald = map(lambda g: (eval_group(g), g), groups)
   best = sorted(evald, key=lambda t: -t[0])
   print(words)
-  for g in best[:20]:
+  for g in best[:10]:
     print(g)
     for w in g[1]:
       print(assocs(w))
