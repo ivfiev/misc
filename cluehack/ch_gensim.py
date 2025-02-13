@@ -3,8 +3,8 @@ import gensim.downloader as api
 
 model = api.load('glove-wiki-gigaword-300')
 
-def assocs(word):
-  return [w for (w, _) in model.most_similar(word, topn=20) if '_' not in w][:10]
+def assocs(word, topn=10):
+  return [w for (w, _) in model.most_similar(word, topn=25) if '_' not in w][:topn]
 
 def clues(words, n):
   ass = [assocs(w) for w in words]
@@ -29,9 +29,8 @@ def cheat(*words):
   groups = get_groups(words, 4)
   evald = map(lambda g: (eval_group(g), g), groups)
   best = sorted(evald, key=lambda t: -t[0])
-  print(words)
-  for g in best[:10]:
+  for g in best[:5]:
     print(g)
     for w in g[1]:
-      print(assocs(w))
+      print(assocs(w, 5))
     print()
