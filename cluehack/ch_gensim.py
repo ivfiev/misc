@@ -38,6 +38,12 @@ def cheat(*words):
     for w in g[1]:
       print(assocs(w, 5))
     print()
+  
+def guess(clue, words):
+  pairs = [(round(model.similarity(w, clue), 3), w) for w in words]
+  best = sorted(pairs, key=lambda t: -t[0])
+  for w in best[:8]:
+    print(w)
 
 def wordnet_common():
   pass
