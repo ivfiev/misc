@@ -1,16 +1,20 @@
 import itertools
 import gensim.downloader as api
+from gensim.models import KeyedVectors
 
-model = api.load('glove-wiki-gigaword-300')
+# model = api.load('glove-wiki-gigaword-300')
+model = KeyedVectors.load_word2vec_format('glovewiki300.bin', binary=True)
 
 def assocs(word, topn=10):
-  return [w for (w, _) in model.most_similar(word, topn=25) if '_' not in w][:topn]
+  return [w for (w, _) in model.most_similar(word, topn=topn) if '_' not in w]
 
-def clues(words, n):
-  ass = [assocs(w) for w in words]
+def clues(words, a=10, n=5):
+  ass = [assocs(w, a) for w in words]
   tups = itertools.product(*ass)
-  cs = [(eval_group(t), t) for t in tups]
-  return sorted(cs, key=lambda t: -t[0])[:n]
+  gs = [(eval_group(t), t) for t in tups]
+  cs = sorted(gs, key=lambda t: -t[0])[:n]
+  for c in cs:
+    print(c)
 
 def eval_group(words):
   sum = 0.0
@@ -34,3 +38,6 @@ def cheat(*words):
     for w in g[1]:
       print(assocs(w, 5))
     print()
+
+def wordnet_common():
+  pass
