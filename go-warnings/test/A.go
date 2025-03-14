@@ -9,7 +9,7 @@ import (
 
 func main() {
 	fmt.Println("entering A")
-	cmd := exec.Command("./bin/B")
+	cmd := exec.Command("./test/bin/B")
 	cmd.Stdout = os.Stdout
 	err := cmd.Run()
 	if err != nil {
