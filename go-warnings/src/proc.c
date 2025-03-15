@@ -8,7 +8,10 @@ static hashtable *PROCS = NULL;
 
 proc_t *proc_new(pid_t pid, char *filename) {
   proc_t *proc = malloc(sizeof(proc_t));
-  *proc = (proc_t){ .pid = pid, .filename = strdup(filename) };
+  *proc = (proc_t){ 
+    .pid = pid, 
+    .filename = strdup(filename), 
+  };
   return proc;
 }
 

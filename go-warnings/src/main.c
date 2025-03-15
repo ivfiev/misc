@@ -6,32 +6,72 @@
 #include <sys/user.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
 #include "util.h"
 #include "proc.h"
 
 void handle_syscall(pid_t pid) {
   struct user_regs_struct regs;
   ptrace(PTRACE_GETREGS, pid, 0, &regs);
-  if (regs.orig_rax == 59) { 
+  proc_t *proc = proc_get(pid);
+  if (regs.orig_rax == 59) {
     // execve(2)
-    if (proc_get(pid)) {
-      return;
+    if (regs.rax == -ENOSYS) {
+      // entering execve
+      void *str = (void *)regs.rdi;
+      char filename[1024];
+      ptrace_read(pid, str, (uint8_t *)filename, sizeof(filename));
+      proc_t *proc = proc_new(pid, filename);
+      proc_add(proc);
+    } else {
+      // exiting execve
+      if (strstr(proc->filename, "compile")) {
+        //proc_print(proc);
+        uint8_t bytes[8];
+        void *addr = (void *)0xcd3f19;
+        ptrace_read(pid, addr, bytes, 8);
+        // for (int i = 0; i < 8; i++) {
+        //   printf("0x%lx ", bytes[i]);
+        // }
+        // puts("");
+        bytes[0] = 0x90;
+        bytes[1] = 0x90;
+        bytes[2] = 0x90;
+        bytes[3] = 0x90;
+        bytes[4] = 0x90;
+        ptrace_write(pid, addr, bytes, 8);
+        // ptrace_read(pid, addr, bytes, 8);
+        // for (int i = 0; i < 8; i++) {
+        //   printf("0x%lx ", bytes[i]);
+        // }
+        // puts("");
+        // for (;;) {}
+      }
     }
-    void *str = (void *)regs.rdi;
-    char filename[1024];
-    ptrace_read(pid, str, (uint8_t *)filename, sizeof(filename));
-    proc_t *proc = proc_new(pid, filename);
-    proc_add(proc);
-    proc_print(proc);
   }
+  // if (regs.orig_rax == 59 && proc == NULL && regs.rax != -ENOSYS) { 
+  //   // execve(2)
+  //   void *str = (void *)regs.rdi;
+  //   char filename[1024];
+  //   ptrace_read(pid, str, (uint8_t *)filename, sizeof(filename));
+  //   proc_t *proc = proc_new(pid, filename);
+  //   proc_add(proc);
+  //   proc_print(proc);
+  //   proc->bp_count++;
+  //   for (;;) {}
+  // }
+  // if (proc != NULL && proc->bp_count > 0) {
+  //   proc_print(proc);
+  //   for (;;) {}
+  // }
 }
 
-void trace_process(pid_t process) {
+void trace_tree(pid_t root) {
   int status;
-  while (1) {
+  for (;;) {
     pid_t child = waitpid(-1, &status, 0);
     if (WIFEXITED(status)) {
-      if (child == process) {
+      if (child == root) {
         break;
       } else {
         continue;
@@ -55,8 +95,7 @@ int main(int argc, char **argv) {
     waitpid(child, NULL, 0);
     ptrace(PTRACE_SETOPTIONS, child, 0, PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACECLONE);
     ptrace(PTRACE_SYSCALL, child, 0, 0);  
-    trace_process(child);
+    trace_tree(child);
   }
-
-return 0;
+  return 0;
 }
