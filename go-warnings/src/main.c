@@ -6,18 +6,23 @@
 #include <sys/user.h>
 #include <unistd.h>
 #include <errno.h>
+#include "util.h"
+#include "proc.h"
 
 void handle_syscall(pid_t pid) {
   struct user_regs_struct regs;
   ptrace(PTRACE_GETREGS, pid, 0, &regs);
-  if (regs.orig_rax == 1) {
-    printf("write(2) pid: [%d]\n", pid);
-  }
-  if (regs.orig_rax == 56) {
-    printf("clone(2) pid: [%d]\n", pid);
-  }
-  if (regs.orig_rax == 59) {
-    printf("execve(2) pid: [%d]\n", pid);
+  if (regs.orig_rax == 59) { 
+    // execve(2)
+    if (proc_get(pid)) {
+      return;
+    }
+    void *str = (void *)regs.rdi;
+    char filename[1024];
+    ptrace_read(pid, str, (uint8_t *)filename, sizeof(filename));
+    proc_t *proc = proc_new(pid, filename);
+    proc_add(proc);
+    proc_print(proc);
   }
 }
 
