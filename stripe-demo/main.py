@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-STRIPE_WEBHOOK_SECRET = 'whsec_ac7b5cfbac1c93dc3f1073684314e357b8e71b92a5d30f742a0af66a37e81064'
+STRIPE_WEBHOOK_SECRET = ''
 
 app = FastAPI()
 
