@@ -6,7 +6,6 @@ from dotenv import load_dotenv
 load_dotenv()
 
 STRIPE_WEBHOOK_SECRET = ''
-
 app = FastAPI()
 
 @app.post("/webhook")
@@ -19,9 +18,9 @@ async def stripe_webhook(request: Request):
         )
     except (stripe.error.SignatureVerificationError, ValueError):
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
-    
-    if event["type"] == "payment_intent.succeeded":
-        print("Payment succeeded!", event["data"]["object"])
+    print(event["type"])
+    # if event["type"] == "payment_intent.succeeded":
+    #     print("Payment succeeded!", event["data"]["object"])
     
     return {"status": "success"}
 
