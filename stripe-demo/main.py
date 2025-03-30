@@ -1,3 +1,4 @@
+import json
 import stripe
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
@@ -18,10 +19,9 @@ async def stripe_webhook(request: Request):
         )
     except (stripe.error.SignatureVerificationError, ValueError):
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
-    print(event["type"])
+    print(json.dumps(event, indent=2))
     # if event["type"] == "payment_intent.succeeded":
     #     print("Payment succeeded!", event["data"]["object"])
-    
     return {"status": "success"}
 
 if __name__ == "__main__":
