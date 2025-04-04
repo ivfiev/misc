@@ -23,6 +23,8 @@ void *work(void *arg) {
   int count = 0;
   for (count = 0; !FINISH; count++) {
     memset(primes, 0, sizeof(primes));
+    memset(recips, 0, sizeof(recips));
+    memset(square, 0, sizeof(square));
     primes[0] = 2;
     recips[0] = 0.5;
     square[0] = 4;
