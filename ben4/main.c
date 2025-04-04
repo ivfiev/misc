@@ -4,8 +4,7 @@
 #include <string.h>
 #include <stdatomic.h>
 #include <stdlib.h>
-
-#define number int
+#include <math.h>
 
 volatile int FINISH;
 atomic_int EVENTS;
@@ -17,25 +16,33 @@ void *sleep10(void *arg) {
 }
 
 void *work(void *arg) {
-  number primes[4096];
+  float primes[1229];
+  float recips[1229];
+  float square[1229];
   int k;
   int count = 0;
   for (count = 0; !FINISH; count++) {
     memset(primes, 0, sizeof(primes));
-    k = 0;
-    primes[k++] = 2;
-    for (number n = 3; n < 10000; n += 2) {
+    primes[0] = 2;
+    recips[0] = 0.5;
+    square[0] = 4;
+    k = 1;
+    for (float n = 3; n < 10000; n += 2) {
       for (int i = 0; i < k; i++) {
-        if (n % primes[i] == 0) {
+        if (rintf(n * recips[i]) * primes[i] == n) {
           break;
         }
-        if (primes[i] * primes[i] > n) {
-          primes[k++] = n;
+        if (square[i] > n) {
+          primes[k] = n;
+          recips[k] = 1 / n;
+          square[k] = n * n;
+          k++;
           break;
         }
       }
     }
   }
+  printf("%d\n", k);
   printf("%d\n", count);
   atomic_fetch_add(&EVENTS, count);
   return NULL;
