@@ -42,7 +42,7 @@ func work_int(results chan int32) {
 }
 
 func work_float(results chan int32) {
-	var primes [1329]float32
+	var primes [1229]int32
 	var count, k int32
 	for count = 0; !FINISH; count++ {
 		for i := range len(primes) {
@@ -50,9 +50,9 @@ func work_float(results chan int32) {
 		}
 		primes[0] = 2
 		k = 1
-		for n := float32(3); n < 10000; n += 2 {
+		for n := int32(3); n < 10000; n += 2 {
 			for i := range k {
-        if int32(n / primes[i]) * int32(primes[i]) == int32(n) {
+        if int32(float32(n) / float32(primes[i])) * primes[i] == n {
           break
         }
         if primes[i] * primes[i] > n {
@@ -87,7 +87,7 @@ func main() {
   }
   var sum int32 = 0
   results := make(chan int32)
-	go sleep(1)
+	go sleep(10)
   for range threads {
     go work(results)
   }
