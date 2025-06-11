@@ -15,16 +15,16 @@ func sleep(secs int) {
   FINISH = true
 }
 
-func work_int(results chan int) {
-	var primes [1229]int
-	var count, k int
+func work_int(results chan int32) {
+	var primes [1229]int32
+	var count, k int32
 	for count = 0; !FINISH; count++ {
 		for i := range len(primes) {
 			primes[i] = 0
 		}
 		primes[0] = 2
 		k = 1
-		for n := 3; n < 10000; n += 2 {
+		for n := int32(3); n < 10000; n += 2 {
 			for i := range k {
 				if n % primes[i] == 0 {
 					break
@@ -41,22 +41,55 @@ func work_int(results chan int) {
   results <- count
 }
 
+func work_float(results chan int32) {
+	var primes [1329]float32
+	var count, k int32
+	for count = 0; !FINISH; count++ {
+		for i := range len(primes) {
+			primes[i] = 0
+		}
+		primes[0] = 2
+		k = 1
+		for n := float32(3); n < 10000; n += 2 {
+			for i := range k {
+        if int32(n / primes[i]) * int32(primes[i]) == int32(n) {
+          break
+        }
+        if primes[i] * primes[i] > n {
+          primes[k] = n
+          k++;
+          break;
+        }
+			}
+		}
+	}
+	fmt.Printf("%d ", k)
+  results <- count
+}
+
 func main() {
-  if len(os.Args) < 2 {
-    log.Fatalf("usage 'ben4_go #threads'")
+  if len(os.Args) < 3 {
+    log.Fatalf("usage 'ben4_go i/f #threads'")
   }
-  threads, err := strconv.Atoi(os.Args[1])
+  if os.Args[1] != "i" && os.Args[1] != "f" {
+    log.Fatalf("incorrect numeric type %s\n", os.Args[1])
+  }
+  threads, err := strconv.Atoi(os.Args[2])
   if err != nil {
     log.Fatalf("#threads [%s] must be a number\n", os.Args[0])
   }
   if threads < 0 || threads > 100 {
     log.Fatalf("bad #threads [%d]\n", threads)
   }
-  sum := 0
-  results := make(chan int)
-	go sleep(10)
+  work := work_int
+  if os.Args[1] == "f" {
+    work = work_float
+  }
+  var sum int32 = 0
+  results := make(chan int32)
+	go sleep(1)
   for range threads {
-    go work_int(results)
+    go work(results)
   }
   for range threads {
     res := <-results
