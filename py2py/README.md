@@ -1,1 +1,0 @@
-python server.py | tee >(python logs.py) | python parser.py | tee >(python terminal.py) >(python diagram.py) > /dev/null
