@@ -15,7 +15,7 @@ func sleep(secs int) {
 	FINISH = true
 }
 
-func work_int() int32 {
+func workInt() int32 {
 	var primes [1229]int32
 	var count, k int32
 	for count = 0; !FINISH; count++ {
@@ -41,22 +41,28 @@ func work_int() int32 {
 	return count
 }
 
-func work_float() int32 {
-	var primes [1229]int32
+func workFloat() int32 {
+	var primes [1229]float32
+	var recips [1229]float32
+	var square [1229]float32
 	var count, k int32
 	for count = 0; !FINISH; count++ {
 		for i := range len(primes) {
 			primes[i] = 0
 		}
 		primes[0] = 2
+		recips[0] = 0.5
+		square[0] = 4
 		k = 1
-		for n := int32(3); n < 10000; n += 2 {
+		for n := float32(3.0); n < 10000.0; n += 2.0 {
 			for i := range k {
-				if int32(float32(n)/float32(primes[i]))*primes[i] == n {
+				if float32(int32(n*recips[i]+0.5))*primes[i] == n {
 					break
 				}
-				if primes[i]*primes[i] > n {
+				if square[i] > n {
 					primes[k] = n
+					recips[k] = 1.0 / n
+					square[k] = n * n
 					k++
 					break
 				}
@@ -81,9 +87,9 @@ func main() {
 	if threads < 0 || threads > 100 {
 		log.Fatalf("bad #threads [%d]\n", threads)
 	}
-	work := work_int
+	work := workInt
 	if os.Args[1] == "f" {
-		work = work_float
+		work = workFloat
 	}
 	var sum int32 = 0
 	results := make(chan int32)
