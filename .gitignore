@@ -11,3 +11,4 @@ p2p/notes
 __pycache__
 xax/src/impl/sample
 ignore
+dist-newstyle

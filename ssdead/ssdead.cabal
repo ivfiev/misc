@@ -1,0 +1,34 @@
+cabal-version:      3.0
+name:               ssdead
+version:            0.1.0.0
+license:            AGPL-3.0-or-later
+license-file:       LICENSE
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+
+common warnings
+    ghc-options: -Wall
+
+executable ssdead
+    -- Import common warning flags.
+    import:             warnings
+
+    -- .hs or .lhs file containing the Main module.
+    main-is:            Main.hs
+
+    -- Modules included in this executable, other than Main.
+    other-modules:      SMART, Util, Calc
+
+    default-extensions: OverloadedStrings
+
+    -- LANGUAGE extensions used by modules in this package.
+    -- other-extensions:
+
+    -- Other library packages from which modules are imported.
+    build-depends:    base ^>=4.21.0.0, text, directory, filepath, process, time
+
+    -- Directories containing source files.
+    hs-source-dirs:   app
+
+    -- Base language which the package is written in.
+    default-language: GHC2024

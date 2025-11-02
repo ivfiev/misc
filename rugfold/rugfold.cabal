@@ -10,7 +10,7 @@ library rugfold-lib
     hs-source-dirs:      lib
     exposed-modules:     Blockchain, Message, Utils
     default-extensions:  OverloadedStrings, RecordWildCards, DeriveAnyClass
-    build-depends:       base ^>=4.17.2.1, crypton, bytestring, aeson, memory, network, text
+    build-depends:       base, crypton, bytestring, aeson, memory, network, text
     default-language:    GHC2021
     ghc-options:         -O2 -threaded
 
@@ -19,7 +19,7 @@ executable rugfold
     main-is:            Main.hs
     other-modules:      Server
     default-extensions: OverloadedStrings, RecordWildCards, DeriveAnyClass
-    build-depends:      base ^>=4.17.2.1, rugfold-lib, crypton, bytestring, aeson, memory, network, containers
+    build-depends:      base, rugfold-lib, crypton, bytestring, aeson, memory, network, containers
     hs-source-dirs:     src
     default-language:   GHC2021
     ghc-options:        -O2 -threaded
@@ -28,7 +28,7 @@ executable rugfold-test
     import:             warnings
     main-is:            Main.hs
     default-extensions: OverloadedStrings, RecordWildCards, DeriveAnyClass
-    build-depends:      base ^>=4.17.2.1, rugfold-lib, bytestring, aeson, network, process
+    build-depends:      base, rugfold-lib, bytestring, aeson, network, process
     hs-source-dirs:     test
     default-language:   GHC2021
     ghc-options:        -O2 -threaded
