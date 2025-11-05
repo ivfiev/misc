@@ -1,4 +1,4 @@
-module Calc (getStats) where
+module Calc (stats) where
 
 import SMART (Point (..), timestamp)
 import Text.Printf
@@ -24,14 +24,14 @@ instance Show Stat where
       | otherwise  = ("Days", hours / 24)
 
 
-getStats :: [Point] -> [Stat]
-getStats []  = []
-getStats [_] = []
-getStats (now:earlier) = sortBy (flip compare `on` timeHours) stats where
+stats :: [Point] -> [Stat]
+stats []  = []
+stats [_] = []
+stats (now:earlier) = sortBy (flip compare `on` timeHours) stats where
+  stats = [mkStat point | point <- points]
   hours = [0.25, 1, 8, 24, 3 * 24, 7 * 24, 30 * 24, 90 * 24, 365 * 24]
   points = nub [minimumBy (compare `on` abs . subtract h . diff now) earlier | h <- hours]
   diff pt1 pt2 = abs $ fromIntegral (timestamp pt1 - timestamp pt2) / 3600.0
-  stats = [mkStat point | point <- points]
   mkStat pt = Stat time gbs pwr us errs where
     time = diff now pt
     gbs = fromIntegral (SMART.dataUnitsWritten now - SMART.dataUnitsWritten pt) / 2048.0
