@@ -1,18 +1,20 @@
-module Main (main) where
 import Data.List
+import qualified Data.IntMap.Strict as Map
 
 players = 419
 marbles = 7216400
 
-solushen = maximum $ map sum $ transpose $ map (take players . map fst) $ takeWhile (not . null) $ iterate (drop players) $ play marbles
+main = print $ maximum $ Map.elems $ play Map.empty (Ring [] [0]) 1 1
 
-main = print solushen
-
-play marbles = run (Ring [] [0]) [1..marbles] where
-  initial = Ring [] [0]
-  run ring [] = []
-  run ring (m:ms) = (score, ring'):run ring' ms where
-    (score, ring') = addMarble ring m
+play scores ring player marble
+  | player > players = play scores ring 1 marble
+  | marble > marbles = scores
+  | otherwise = play scores' ring' (player + 1) (marble + 1)
+    where
+      scores'
+        | score > 0 = Map.insertWith (+) player score scores
+        | otherwise = scores
+      (score, ring') = addMarble ring marble
 
 addMarble ring marble = (score + score', ring'') where
   twenty3 = marble `rem` 23 == 0
