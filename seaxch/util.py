@@ -1,4 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import socket
+from typing import List
 import bs4
 import re
 import requests
@@ -89,9 +91,41 @@ def touch(path: str, type: str = "file"):
         os.makedirs(path, exist_ok=True)
 
 
-def highlight(text: str) -> str:
+def highlight(text: str, color="green") -> str:
+    if color == "yellow":
+        return f"\033[1;33m{text}\033[0m"
     return f"\033[1;32m{text}\033[0m"
 
 
 def now() -> float:
     return time.time()
+
+
+def exec(cmd: str):
+    try:
+        subprocess.run(cmd, shell=True, check=True)
+    except subprocess.CalledProcessError as e:
+        log(e)
+        log(f"failed to run command [{cmd}]")
+
+
+def sendrecv(sock: str, data: str) -> str:
+    try:
+        client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        client.connect(sock)
+        client.sendall(data.encode())
+        client.shutdown(socket.SHUT_WR)
+        resp = recvall(client)
+        return resp
+    finally:
+        client.close()
+
+
+def recvall(sock: socket.socket) -> str:
+    data = bytearray()
+    while True:
+        part = sock.recv(4096)
+        if not part:
+            break
+        data.extend(part)
+    return bytes(data).decode()

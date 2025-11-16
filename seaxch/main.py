@@ -12,18 +12,23 @@ DIR = "/tmp/seaxch"
 
 def get_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", type=str, help="mode - load/search", required=True)
+    parser.add_argument(
+        "--mode", type=str, help="mode - load/grep/embed/query", required=True
+    )
     parser.add_argument("--boards", nargs="+", help="list of boards")
     parser.add_argument("--regexes", nargs="+", help="list of regexes")
+    parser.add_argument("--query", type=str, help="semantic query")
     parser.add_argument("--min-posts", type=int, help="min posts")
     parser.add_argument("--max-age", type=float, help="post max age hours")
     args = parser.parse_args()
-    if args.mode not in ["load", "search"]:
+    if args.mode not in ["load", "grep", "embed", "query"]:
         parser.error("invalid --mode value")
     if args.boards is None:
         parser.error("--boards missing")
     if args.mode == "search" and args.regexes is None:
         parser.error("--regexes missing")
+    if args.mode == "query" and args.query is None:
+        parser.error("--query missing")
     if args.min_posts and args.min_posts <= 1:
         parser.error("invalid --min-posts value")
     if args.max_age and args.max_age <= 0:
@@ -64,7 +69,7 @@ def load_board(board: str):
     print()
 
 
-def search(
+def grep(
     boards: List[str],
     patterns: List[str],
     min_posts: Optional[int],
@@ -95,10 +100,10 @@ def search(
         except (FileNotFoundError, PermissionError, OSError) as e:
             util.log(e)
             util.log(f"search failed to access {DIR}/{board}")
-    print_results(all_results, regexes)
+    print_grep_results(all_results, regexes)
 
 
-def print_results(
+def print_grep_results(
     all_results: List[Tuple[dict, List[dict]]], regexes: List[re.Pattern]
 ):
     delim = lambda c: print(c * 72)
@@ -133,13 +138,76 @@ def try_render(img_url: Optional[str]):
     util.render(path, r"300x300\<")
 
 
+def embed(boards: List[str]):
+    boards = [b for b in boards if len(b) < 5 and all("a" <= c <= "z" for c in b)]
+    try:
+        util.exec("sudo amdgpu.sh --compute")
+        resp = util.sendrecv(
+            f"{DIR}/seaxch.sock", json.dumps({"mode": "embed", "boards": boards})
+        )
+        if resp:
+            print(resp)
+    except Exception as e:
+        util.log(e)
+    finally:
+        util.exec("sudo amdgpu.sh --low")
+
+
+def print_query_results(boards: List[str], resp: str):
+    delim = lambda c: print(c * 72)
+    data = json.loads(resp)
+    threads = {b: api.unfile4(DIR, b) for b in boards}
+    for r in data:
+        score = r["score"]
+        highlights = r["highlights"]
+        (thread, post) = next(
+            (t, p)
+            for ts in threads.values()
+            for t in ts
+            for p in t.posts
+            if p.id == r["pid"]
+        )
+        delim("─")
+        if post.image_url:
+            try_render(post.image_url)
+        if post.text:
+            highlighted = reduce(
+                lambda text, h: text.replace(h, util.highlight(h)),
+                highlights,
+                post.text,
+            )
+            print(highlighted)
+        print(util.highlight(f"\n[{round(score, 3)}] {post.url}", color="yellow"))
+    delim("─")
+
+
+def query(boards: List[str], query: str):
+    boards = [b for b in boards if len(b) < 5 and all("a" <= c <= "z" for c in b)]
+    try:
+        util.exec("sudo amdgpu.sh --compute")
+        resp = util.sendrecv(
+            f"{DIR}/seaxch.sock",
+            json.dumps({"mode": "query", "boards": boards, "query": query}),
+        )
+        if resp:
+            print_query_results(boards, resp)
+    except Exception as e:
+        util.log(e)
+    finally:
+        util.exec("sudo amdgpu.sh --low")
+
+
 def main():
     util.touch(f"{DIR}", type="dir")
     args = get_args()
     if args.mode == "load":
         load(args.boards)
-    if args.mode == "search":
-        search(args.boards, args.regexes, args.min_posts, args.max_age)
+    if args.mode == "grep":
+        grep(args.boards, args.regexes, args.min_posts, args.max_age)
+    if args.mode == "embed":
+        embed(args.boards)
+    if args.mode == "query":
+        query(args.boards, args.query)
 
 
 if __name__ == "__main__":
