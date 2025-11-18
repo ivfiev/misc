@@ -31,12 +31,12 @@ def highlights(query: Tensor, post: str) -> List[str]:
     return list(words[i] for i in indices)
 
 
-def query(boards: List[str], query: str) -> List[dict]:
+def query(boards: List[str], query: str, k: int) -> List[dict] | dict:
+    print(k)
     path = lambda b: f"{DIR}/{board}.npz"
     for board in boards:
         if not os.path.exists(path(board)):
-            util.log(f"embedding {path(board)} does not exist")
-            return []
+            raise FileNotFoundError(f"embedding {path(board)} does not exist")
     query_emb = cast(
         Tensor,
         model.encode_query(query, convert_to_tensor=True, normalize_embeddings=True),
@@ -49,7 +49,7 @@ def query(boards: List[str], query: str) -> List[dict]:
         tids = data["tids"]
         pids = data["pids"]
         similarity_scores = model.similarity(query_emb, embeddings)[0]
-        scores, indices = topk(similarity_scores, k=5)
+        scores, indices = topk(similarity_scores, k=k)
         result.extend(
             {
                 "score": float(s),
@@ -107,6 +107,9 @@ def parse_args(cmd: str):
         query = args.get("query")
         if mode == "query" and (not query or not isinstance(query, str)):
             raise ValueError("'query' is required")
+        topk = args.get("topk")
+        if topk is not None and not (0 <= topk <= 100):
+            raise ValueError("'topk' is invalid")
         return args
     except json.JSONDecodeError:
         raise ValueError("invalid json cmd")
@@ -114,12 +117,15 @@ def parse_args(cmd: str):
 
 if __name__ == "__main__":
     SOCKET_PATH = f"{DIR}/seaxch.sock"
+    util.touch(DIR, type="dir")
     if os.path.exists(SOCKET_PATH):
         os.remove(SOCKET_PATH)
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     server.bind(SOCKET_PATH)
     server.listen(1)
     os.chmod(SOCKET_PATH, 0o666)
+    os.chown(DIR, 1000, 1000)
+    os.chown(SOCKET_PATH, 1000, 1000)
     try:
         util.log("starting socket server")
         while True:
@@ -131,11 +137,12 @@ if __name__ == "__main__":
                     embed(args["boards"])
                     conn.sendall("ok".encode())
                 if args["mode"] == "query":
-                    result = query(args["boards"], args["query"])
+                    result = query(args["boards"], args["query"], args["topk"])
                     conn.sendall(json.dumps(result, indent=2).encode())
             except Exception as e:
                 util.log(e)
-                conn.sendall(str(e).encode())
+                err = {"error": str(e)}
+                conn.sendall(json.dumps(err).encode())
             finally:
                 conn.close()
     finally:

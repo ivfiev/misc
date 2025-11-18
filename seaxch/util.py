@@ -1,6 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import socket
-from typing import List
 import bs4
 import re
 import requests
@@ -35,11 +34,8 @@ def log(s):
 def progress(ratio: float, header: str):
     hs = round(ratio * 20)
     pc = int(100 * round(ratio, 2))
-    print(" " * 100, end="")
-    print(
-        f"\r{header}: [{'#' * hs}{" " * (20 - hs)}] ",
-        end=f"{pc}%",
-    )
+    print("\r" + " " * (len(header) + 30), end="")
+    print(f"\r{header}: [{'#' * hs}{" " * (20 - hs)}] {pc}%", end="")
 
 
 def download(url, path):
@@ -94,6 +90,8 @@ def touch(path: str, type: str = "file"):
 def highlight(text: str, color="green") -> str:
     if color == "yellow":
         return f"\033[1;33m{text}\033[0m"
+    if color == "purple":
+        return f"\033[1;35m{text}\033[0m"
     return f"\033[1;32m{text}\033[0m"
 
 
@@ -129,3 +127,7 @@ def recvall(sock: socket.socket) -> str:
             break
         data.extend(part)
     return bytes(data).decode()
+
+
+def delim(c: str, len=72):
+    print(highlight(c * len, color="purple"))

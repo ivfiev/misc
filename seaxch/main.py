@@ -1,5 +1,5 @@
 import json
-from typing import Tuple, List, Optional
+from typing import Any, Tuple, List, Optional
 import util
 import re
 import api
@@ -20,11 +20,16 @@ def get_args():
     parser.add_argument("--query", type=str, help="semantic query")
     parser.add_argument("--min-posts", type=int, help="min posts")
     parser.add_argument("--max-age", type=float, help="post max age hours")
+    parser.add_argument("--topk", type=int, help="top k semantic results")
     args = parser.parse_args()
     if args.mode not in ["load", "grep", "embed", "query"]:
         parser.error("invalid --mode value")
-    if args.boards is None:
-        parser.error("--boards missing")
+    if (
+        args.boards is None
+        or len(args.boards) != len({*args.boards})
+        or any(len(b) > 5 or not all("a" <= c <= "z" for c in b) for b in args.boards)
+    ):
+        parser.error("--boards missing or invalid")
     if args.mode == "search" and args.regexes is None:
         parser.error("--regexes missing")
     if args.mode == "query" and args.query is None:
@@ -33,40 +38,38 @@ def get_args():
         parser.error("invalid --min-posts value")
     if args.max_age and args.max_age <= 0:
         parser.error("invalid --max-age value")
+    if args.topk and not (1 <= args.topk <= 100):
+        parser.error("invalid --topk value")
     return args
 
 
 def load(boards: List[str]):
     for board in boards:
-        load_board(board)
-
-
-def load_board(board: str):
-    catalog = api.catalog4(board)
-    if not catalog:
-        return
-    threads = []
-    wip = util.parallel(lambda t: api.thread4(board, t.id), catalog)
-    for thread in wip:
-        if not thread:
-            continue
-        threads.append(thread)
-        util.progress(len(threads) / len(catalog), f"Downloading /{board}/ threads")
-    path = f"{DIR}/{board}"
-    util.touch(path)
-    try:
-        with open(path, "r+") as file:
-            data = file.read()
-            file.seek(0)
-            old = json.loads(data if data else "[]")
-            new = [asdict(t) for t in threads]
-            merged = list({t["id"]: t for t in [*old, *new]}.values())
-            json.dump(merged, file, indent=2)
-            file.truncate()
-    except (FileNotFoundError, PermissionError, OSError) as e:
-        util.log(e)
-        util.log(f"search failed to access {DIR}/{board}")
-    print()
+        catalog = api.catalog4(board)
+        if not catalog:
+            return
+        threads = []
+        wip = util.parallel(lambda t: api.thread4(board, t.id), catalog)
+        for thread in wip:
+            if not thread:
+                continue
+            threads.append(thread)
+            util.progress(len(threads) / len(catalog), f"Downloading /{board}/ threads")
+        path = f"{DIR}/{board}"
+        util.touch(path)
+        try:
+            with open(path, "r+") as file:
+                data = file.read()
+                file.seek(0)
+                old = json.loads(data if data else "[]")
+                new = [asdict(t) for t in threads]
+                merged = list({t["id"]: t for t in [*old, *new]}.values())
+                json.dump(merged, file, indent=2)
+                file.truncate()
+        except (FileNotFoundError, PermissionError, OSError) as e:
+            util.log(e)
+            util.log(f"search failed to access {DIR}/{board}")
+        print()
 
 
 def grep(
@@ -99,23 +102,22 @@ def grep(
                         all_results.append((thread, thread_results))
         except (FileNotFoundError, PermissionError, OSError) as e:
             util.log(e)
-            util.log(f"search failed to access {DIR}/{board}")
+            util.log(f"grep failed to access {DIR}/{board}")
     print_grep_results(all_results, regexes)
 
 
 def print_grep_results(
     all_results: List[Tuple[dict, List[dict]]], regexes: List[re.Pattern]
 ):
-    delim = lambda c: print(c * 72)
     all_results.sort(key=lambda t: len(t[1]))
     for thread, results in all_results:
         op = thread["posts"][0]
         print()
-        delim("█")
+        util.delim("█")
         print(thread["url"])
         try_render(op.get("image_url"))
         print(op.get("subj") or op.get("text", "")[:69] + "...")
-        delim("─")
+        util.delim("─")
         for post in results:
             try_render(post.get("image_url"))
             highlighted = reduce(
@@ -126,7 +128,7 @@ def print_grep_results(
                 post.get("text"),
             )
             print(highlighted)
-            delim("─")
+            util.delim("─")
         print()
 
 
@@ -139,7 +141,6 @@ def try_render(img_url: Optional[str]):
 
 
 def embed(boards: List[str]):
-    boards = [b for b in boards if len(b) < 5 and all("a" <= c <= "z" for c in b)]
     try:
         util.exec("sudo amdgpu.sh --compute")
         resp = util.sendrecv(
@@ -153,11 +154,9 @@ def embed(boards: List[str]):
         util.exec("sudo amdgpu.sh --low")
 
 
-def print_query_results(boards: List[str], resp: str):
-    delim = lambda c: print(c * 72)
-    data = json.loads(resp)
+def print_query_results(boards: List[str], results: list[dict[str, Any]]):
     threads = {b: api.unfile4(DIR, b) for b in boards}
-    for r in data:
+    for r in results:
         score = r["score"]
         highlights = r["highlights"]
         (thread, post) = next(
@@ -167,7 +166,8 @@ def print_query_results(boards: List[str], resp: str):
             for p in t.posts
             if p.id == r["pid"]
         )
-        delim("─")
+        util.delim("─")
+        print(util.highlight(f"[{round(score, 3)}] {post.url}\n", color="yellow"))
         if post.image_url:
             try_render(post.image_url)
         if post.text:
@@ -177,20 +177,23 @@ def print_query_results(boards: List[str], resp: str):
                 post.text,
             )
             print(highlighted)
-        print(util.highlight(f"\n[{round(score, 3)}] {post.url}", color="yellow"))
-    delim("─")
+    util.delim("─")
 
 
-def query(boards: List[str], query: str):
-    boards = [b for b in boards if len(b) < 5 and all("a" <= c <= "z" for c in b)]
+def query(boards: List[str], query: str, topk: int | None):
     try:
         util.exec("sudo amdgpu.sh --compute")
         resp = util.sendrecv(
             f"{DIR}/seaxch.sock",
-            json.dumps({"mode": "query", "boards": boards, "query": query}),
+            json.dumps(
+                {"mode": "query", "boards": boards, "query": query, "topk": topk or 5}
+            ),
         )
-        if resp:
-            print_query_results(boards, resp)
+        parsed = json.loads(resp)
+        if isinstance(parsed, list):
+            print_query_results(boards, parsed)
+        else:
+            print(resp)
     except Exception as e:
         util.log(e)
     finally:
@@ -207,8 +210,9 @@ def main():
     if args.mode == "embed":
         embed(args.boards)
     if args.mode == "query":
-        query(args.boards, args.query)
+        query(args.boards, args.query, args.topk)
 
 
 if __name__ == "__main__":
     main()
+    # generic ST container, stats(?), images
