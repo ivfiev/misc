@@ -183,7 +183,7 @@ def sync_files(board: str):
                 {"id": p.id, "text": p.text}
                 for t in threads
                 for p in t.posts
-                if len(p.text) > 3
+                if len(p.text) > 20
             ]
         )
         with open(query_file, "w") as qf:
@@ -192,7 +192,7 @@ def sync_files(board: str):
 
 def query(boards: List[str], query: str, topk: int | None):
     try:
-        # util.exec("sudo amdgpu.sh --compute")
+        util.exec("sudo amdgpu.sh --compute")
         results = []
         for board in boards:
             sync_files(board)
@@ -214,8 +214,8 @@ def query(boards: List[str], query: str, topk: int | None):
             print("no results")
     except Exception as e:
         util.log(e)
-    # finally:
-    #    util.exec("sudo amdgpu.sh --low")
+    finally:
+        util.exec("sudo amdgpu.sh --low")
 
 
 def main():
@@ -231,4 +231,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # stats(?), images, tsdr, drop python main.py from docker
+    # stats(?), images
