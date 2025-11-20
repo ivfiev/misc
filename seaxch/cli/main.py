@@ -1,4 +1,5 @@
 import json
+import os
 from typing import Any, Tuple, List, Optional
 import util
 import re
@@ -8,12 +9,13 @@ from functools import reduce
 import argparse
 
 DIR = "/tmp/seaxch"
+TSDR_DIR = "/tmp/tsdr"
 
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--mode", type=str, help="mode - load/grep/embed/query", required=True
+        "--mode", type=str, help="mode - load/grep/query", required=True
     )
     parser.add_argument("--boards", nargs="+", help="list of boards")
     parser.add_argument("--regexes", nargs="+", help="list of regexes")
@@ -22,7 +24,7 @@ def get_args():
     parser.add_argument("--max-age", type=float, help="post max age hours")
     parser.add_argument("--topk", type=int, help="top k semantic results")
     args = parser.parse_args()
-    if args.mode not in ["load", "grep", "embed", "query"]:
+    if args.mode not in ["load", "grep", "query"]:
         parser.error("invalid --mode value")
     if (
         args.boards is None
@@ -140,22 +142,9 @@ def try_render(img_url: Optional[str]):
     util.render(path, r"300x300\<")
 
 
-def embed(boards: List[str]):
-    try:
-        util.exec("sudo amdgpu.sh --compute")
-        resp = util.sendrecv(
-            f"{DIR}/seaxch.sock", json.dumps({"mode": "embed", "boards": boards})
-        )
-        if resp:
-            print(resp)
-    except Exception as e:
-        util.log(e)
-    finally:
-        util.exec("sudo amdgpu.sh --low")
-
-
 def print_query_results(boards: List[str], results: list[dict[str, Any]]):
     threads = {b: api.unfile4(DIR, b) for b in boards}
+    results = sorted(results, key=lambda r: r["score"])
     for r in results:
         score = r["score"]
         highlights = r["highlights"]
@@ -164,7 +153,7 @@ def print_query_results(boards: List[str], results: list[dict[str, Any]]):
             for ts in threads.values()
             for t in ts
             for p in t.posts
-            if p.id == r["pid"]
+            if p.id == r["id"]
         )
         util.delim("─")
         print(util.highlight(f"[{round(score, 3)}] {post.url}\n", color="yellow"))
@@ -180,24 +169,53 @@ def print_query_results(boards: List[str], results: list[dict[str, Any]]):
     util.delim("─")
 
 
+def sync_files(board: str):
+    origin_file = f"{DIR}/{board}"
+    query_file = f"{TSDR_DIR}/{board}"
+    if not os.path.exists(origin_file):
+        raise FileNotFoundError(f"origin file [{origin_file}] does not exist")
+    if not os.path.exists(query_file) or os.path.getmtime(
+        origin_file
+    ) > os.path.getmtime(query_file):
+        threads = api.unfile4(DIR, board)
+        data = json.dumps(
+            [
+                {"id": p.id, "text": p.text}
+                for t in threads
+                for p in t.posts
+                if len(p.text) > 3
+            ]
+        )
+        with open(query_file, "w") as qf:
+            qf.write(data)
+
+
 def query(boards: List[str], query: str, topk: int | None):
     try:
-        util.exec("sudo amdgpu.sh --compute")
-        resp = util.sendrecv(
-            f"{DIR}/seaxch.sock",
-            json.dumps(
-                {"mode": "query", "boards": boards, "query": query, "topk": topk or 5}
-            ),
-        )
-        parsed = json.loads(resp)
-        if isinstance(parsed, list):
-            print_query_results(boards, parsed)
+        # util.exec("sudo amdgpu.sh --compute")
+        results = []
+        for board in boards:
+            sync_files(board)
+            resp = util.sendrecv(
+                f"{TSDR_DIR}/tsdr.sock",
+                json.dumps(
+                    {"cmd": "query", "path": board, "query": query, "topk": topk or 5}
+                ),
+            )
+            parsed = json.loads(resp)
+            if isinstance(parsed, list):
+                results.extend(parsed)
+            else:
+                print(resp)
+        if results:
+            results.sort(key=lambda r: r["score"], reverse=True)
+            print_query_results(boards, results)
         else:
-            print(resp)
+            print("no results")
     except Exception as e:
         util.log(e)
-    finally:
-        util.exec("sudo amdgpu.sh --low")
+    # finally:
+    #    util.exec("sudo amdgpu.sh --low")
 
 
 def main():
@@ -207,12 +225,10 @@ def main():
         load(args.boards)
     if args.mode == "grep":
         grep(args.boards, args.regexes, args.min_posts, args.max_age)
-    if args.mode == "embed":
-        embed(args.boards)
     if args.mode == "query":
         query(args.boards, args.query, args.topk)
 
 
 if __name__ == "__main__":
     main()
-    # generic ST container, stats(?), images
+    # stats(?), images, tsdr, drop python main.py from docker
