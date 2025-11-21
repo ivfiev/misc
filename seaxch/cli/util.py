@@ -1,4 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import datetime
 import socket
 import bs4
 import re
@@ -8,7 +9,6 @@ import subprocess
 import pathlib
 import os
 import sys
-import time
 
 warnings.filterwarnings("ignore", category=bs4.MarkupResemblesLocatorWarning)
 
@@ -27,8 +27,11 @@ def unescape(text: str) -> str:
     return re.sub(r">>(\d+)(\s*)", "", text)
 
 
-def log(s):
-    print(s, file=sys.stderr)
+def log(msg: str):
+    print(
+        f"[{datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]}] {msg}",
+        file=sys.stderr,
+    )
 
 
 def progress(ratio: float, header: str):
@@ -49,7 +52,7 @@ def download(url, path):
                     if chunk:
                         file.write(chunk)
     except requests.HTTPError as e:
-        log(e)
+        log(str(e))
         log(f"failed to download {url}")
 
 
@@ -76,7 +79,7 @@ def render(path: str, resize: str = ""):
                 f"kitty +kitten icat --align left {path}", shell=True, check=True
             )
     except subprocess.CalledProcessError as e:
-        log(e)
+        log(str(e))
         log(f"failed to render {path}")
 
 
@@ -95,15 +98,11 @@ def highlight(text: str, color="green") -> str:
     return f"\033[1;32m{text}\033[0m"
 
 
-def now() -> float:
-    return time.time()
-
-
 def exec(cmd: str):
     try:
         subprocess.run(cmd, shell=True, check=True)
     except subprocess.CalledProcessError as e:
-        log(e)
+        log(str(e))
         log(f"failed to run command [{cmd}]")
 
 

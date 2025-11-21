@@ -75,7 +75,7 @@ def highlights(query: Tensor, post: str) -> list[str]:
 def parse_args(cmd: str):
     try:
         args = json.loads(cmd)
-        if args.get("cmd") not in ["query"]:
+        if args.get("cmd") not in ["query", "status"]:
             raise ValueError("invalid 'cmd'")
         if args["cmd"] == "query" and not all(
             [
@@ -149,6 +149,21 @@ def query(path: str, query: str, k: int) -> list[dict]:
     )
 
 
+@log_time
+def status() -> dict:
+    return {
+        "gpu": (
+            {
+                "name": torch.cuda.get_device_name(),
+                "vram": f"{round(torch.cuda.memory_allocated() / 1000000)}M",
+                "vram_max": f"{round(torch.cuda.max_memory_allocated() / 1000000)}M",
+            }
+            if torch.cuda.is_available()
+            else None
+        ),
+    }
+
+
 if __name__ == "__main__":
     touch(DIR, type="dir")
     if os.path.exists(SOCKET_PATH):
@@ -170,6 +185,9 @@ if __name__ == "__main__":
                 args = parse_args(cmd)
                 if args["cmd"] == "query":
                     result = query(args["path"], args["query"], args["topk"])
+                    conn.sendall(json.dumps(result).encode())
+                if args["cmd"] == "status":
+                    result = status()
                     conn.sendall(json.dumps(result).encode())
             except socket.timeout:
                 continue

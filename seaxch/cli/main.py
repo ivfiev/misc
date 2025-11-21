@@ -1,5 +1,7 @@
+import datetime
 import json
 import os
+import time
 from typing import Any, Tuple, List, Optional
 import util
 import re
@@ -15,7 +17,7 @@ TSDR_DIR = "/tmp/tsdr"
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--mode", type=str, help="mode - load/grep/query", required=True
+        "--mode", type=str, help="mode - load/grep/query/status", required=True
     )
     parser.add_argument("--boards", nargs="+", help="list of boards")
     parser.add_argument("--regexes", nargs="+", help="list of regexes")
@@ -24,9 +26,9 @@ def get_args():
     parser.add_argument("--max-age", type=float, help="post max age hours")
     parser.add_argument("--topk", type=int, help="top k semantic results")
     args = parser.parse_args()
-    if args.mode not in ["load", "grep", "query"]:
+    if args.mode not in ["load", "grep", "query", "status"]:
         parser.error("invalid --mode value")
-    if (
+    if args.mode in ["load", "grep", "query"] and (
         args.boards is None
         or len(args.boards) != len({*args.boards})
         or any(len(b) > 5 or not all("a" <= c <= "z" for c in b) for b in args.boards)
@@ -69,7 +71,7 @@ def load(boards: List[str]):
                 json.dump(merged, file, indent=2)
                 file.truncate()
         except (FileNotFoundError, PermissionError, OSError) as e:
-            util.log(e)
+            util.log(str(e))
             util.log(f"search failed to access {DIR}/{board}")
         print()
 
@@ -91,7 +93,7 @@ def grep(
                         continue
                     thread_results = []
                     for post in thread["posts"]:
-                        if max_age and post["timestamp"] < util.now() - 3600 * max_age:
+                        if max_age and post["timestamp"] < time.time() - 3600 * max_age:
                             continue
                         text = post.get("text")
                         subj = post.get("subj")
@@ -103,7 +105,7 @@ def grep(
                     if thread_results:
                         all_results.append((thread, thread_results))
         except (FileNotFoundError, PermissionError, OSError) as e:
-            util.log(e)
+            util.log(str(e))
             util.log(f"grep failed to access {DIR}/{board}")
     print_grep_results(all_results, regexes)
 
@@ -213,9 +215,39 @@ def query(boards: List[str], query: str, topk: int | None):
         else:
             print("no results")
     except Exception as e:
-        util.log(e)
+        util.log(str(e))
     finally:
         util.exec("sudo amdgpu.sh --low")
+
+
+def status():
+    boards = [
+        (entry.name, entry.stat().st_mtime)
+        for entry in os.scandir(DIR)
+        if entry.is_file() and len(entry.name) < 5  # use a proper file ext
+    ]
+    print(f"Loaded boards: {len(boards)}")
+    for board, mtime in boards:
+        print(f"- {board} @ {datetime.datetime.fromtimestamp(mtime).strftime("%H:%M")}")
+    images = [
+        entry.name
+        for entry in os.scandir(DIR)
+        if entry.is_file() and entry.name.endswith(".jpg")
+    ]
+    print(f"Loaded images: {len(images)}")
+    try:
+        resp = util.sendrecv(
+            f"{TSDR_DIR}/tsdr.sock",
+            json.dumps({"cmd": "status"}),
+        )
+        status = json.loads(resp)
+        gpu = status.get("gpu")
+        if gpu:
+            print(f"{gpu["name"]}")
+            print(f"VRAM: {gpu["vram"]}")
+            print(f"MAX VRAM: {gpu["vram_max"]}")
+    except FileNotFoundError:
+        print("No GPU connected")
 
 
 def main():
@@ -227,8 +259,10 @@ def main():
         grep(args.boards, args.regexes, args.min_posts, args.max_age)
     if args.mode == "query":
         query(args.boards, args.query, args.topk)
+    if args.mode == "status":
+        status()
 
 
 if __name__ == "__main__":
     main()
-    # stats(?), images
+    #  images
