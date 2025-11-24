@@ -17,7 +17,7 @@ def parallel(f, xs, threads=5):
     with ThreadPoolExecutor(max_workers=threads) as executor:
         futures = {executor.submit(f, x): x for x in xs}
         for future in as_completed(futures):
-            yield future.result()
+            yield futures[future], future.result()
 
 
 def unescape(text: str) -> str:
@@ -27,7 +27,7 @@ def unescape(text: str) -> str:
     return re.sub(r">>(\d+)(\s*)", "", text)
 
 
-def log(msg: str):
+def log(msg: str | Exception):
     print(
         f"[{datetime.datetime.now().strftime("%H:%M:%S.%f")[:-3]}] {msg}",
         file=sys.stderr,
@@ -41,9 +41,9 @@ def progress(ratio: float, header: str):
     print(f"\r{header}: [{'#' * hs}{" " * (20 - hs)}] {pc}%", end="")
 
 
-def download(url, path):
+def download(url: str, path: str) -> bool:
     if os.path.isfile(path):
-        return
+        return True
     try:
         with requests.get(url, stream=True) as resp:
             resp.raise_for_status()
@@ -51,9 +51,11 @@ def download(url, path):
                 for chunk in resp.iter_content(chunk_size=8192):
                     if chunk:
                         file.write(chunk)
+        return True
     except requests.HTTPError as e:
-        log(str(e))
+        log(e)
         log(f"failed to download {url}")
+        return False
 
 
 def render(path: str, resize: str = ""):
@@ -79,7 +81,7 @@ def render(path: str, resize: str = ""):
                 f"kitty +kitten icat --align left {path}", shell=True, check=True
             )
     except subprocess.CalledProcessError as e:
-        log(str(e))
+        log(e)
         log(f"failed to render {path}")
 
 
@@ -102,7 +104,7 @@ def exec(cmd: str):
     try:
         subprocess.run(cmd, shell=True, check=True)
     except subprocess.CalledProcessError as e:
-        log(str(e))
+        log(e)
         log(f"failed to run command [{cmd}]")
 
 
