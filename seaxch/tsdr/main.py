@@ -103,22 +103,55 @@ def parse_args(cmd: str):
 def embed_text(path: str, emb_path: str):
     log(f"embedding {path} into {emb_path}")
     with open(path, "r") as file:
-        log("TODO incremental embeddings")
         corpus: list[dict] = json.loads(file.read())
         texts = list(entry["text"] for entry in corpus)
         ids = list(entry["id"] for entry in corpus)
-        embeddings = cast(
-            Tensor,
-            text_model.encode_document(
-                texts, convert_to_tensor=True, normalize_embeddings=True
-            ),
-        )
-        np.savez(
-            emb_path,
-            embeddings=embeddings.cpu(),
-            ids=np.array(ids),
-            texts=np.array(texts),
-        )
+        if os.path.exists(emb_path):
+            data = np.load(emb_path)
+            embeddings = torch.from_numpy(data["embeddings"]).cuda()
+            emb_ids = data["ids"]
+            emb_texts = data["texts"]
+            set_ids = set(emb_ids)
+            new_entries = []
+            for i in range(len(ids)):
+                if ids[i] not in set_ids:
+                    new_entries.append({"id": ids[i], "text": texts[i]})
+            log(f"appending [{len(new_entries)}] new text embeddings")
+            new_texts = [e["text"] for e in new_entries]
+            new_embeddings = cast(
+                Tensor,
+                text_model.encode(
+                    new_texts,
+                    convert_to_tensor=True,
+                    normalize_embeddings=True,
+                ),
+            )
+            log(f"old embeddings [{embeddings.size()}]")
+            log(f"new embeddings [{new_embeddings.size()}]")
+            embeddings = torch.cat([embeddings, new_embeddings], dim=0)
+            log(f"final embeddings [{embeddings.size()}]")
+            emb_ids = np.concatenate(
+                [emb_ids, np.array([e["id"] for e in new_entries])]
+            )
+            emb_texts = np.concatenate([emb_texts, np.array(new_texts)])
+            assert len(emb_ids) == embeddings.shape[0]
+            assert len(emb_texts) == embeddings.shape[0]
+            np.savez(
+                emb_path, embeddings=embeddings.cpu(), ids=emb_ids, texts=emb_texts
+            )
+        else:
+            embeddings = cast(
+                Tensor,
+                text_model.encode_document(
+                    texts, convert_to_tensor=True, normalize_embeddings=True
+                ),
+            )
+            np.savez(
+                emb_path,
+                embeddings=embeddings.cpu(),
+                ids=np.array(ids),
+                texts=np.array(texts),
+            )
 
 
 @log_time

@@ -200,7 +200,7 @@ def sync_t2t(board: str):
 
 def sync_t2i(board: str):
     origin_file = f"{DIR}/{board}"
-    query_file = f"{TSDR_DIR}/{board}.t2i"
+    query_file = f"{TSDR_DIR}/{board}.x2i"
     if not os.path.exists(origin_file):
         raise FileNotFoundError(f"origin file [{origin_file}] does not exist")
     if not os.path.exists(query_file) or os.path.getmtime(
@@ -288,7 +288,6 @@ def sync_i2i(board: str, query_image: str):
 
 def t2t(boards: List[str], query: str, topk: int | None):
     try:
-        # util.exec("sudo amdgpu.sh --compute")
         results = []
         for board in boards:
             sync_t2t(board)
@@ -315,13 +314,10 @@ def t2t(boards: List[str], query: str, topk: int | None):
             print("no results")
     except Exception as e:
         util.log(e)
-    # finally:
-    #     util.exec("sudo amdgpu.sh --low")
 
 
 def t2i(boards: List[str], query: str, topk: int | None):
     try:
-        # util.exec("sudo amdgpu.sh --compute")
         results = []
         for board in boards:
             sync_t2i(board)
@@ -348,13 +344,10 @@ def t2i(boards: List[str], query: str, topk: int | None):
             print("no results")
     except Exception as e:
         util.log(e)
-    # finally:
-    #     util.exec("sudo amdgpu.sh --low")
 
 
 def i2i(boards: List[str], query_image: str, topk: int | None):
     try:
-        # util.exec("sudo amdgpu.sh --compute")
         results = []
         for board in boards:
             sync_i2i(board, query_image)
@@ -381,8 +374,6 @@ def i2i(boards: List[str], query_image: str, topk: int | None):
             print("no results")
     except Exception as e:
         util.log(e)
-    # finally:
-    #     util.exec("sudo amdgpu.sh --low")
 
 
 def status():
