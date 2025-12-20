@@ -65,25 +65,24 @@ def recvall(sock: socket.socket) -> str:
     return bytes(data).decode()
 
 
-def highlights(query: Tensor, post: str) -> list[str]:
+def highlights(query: Tensor, post: str, model=None) -> list[str]:
+    model = model or text_model
     words = list(set(post.split()))
     embeddings = cast(
         Tensor,
-        text_model.encode_document(
-            words, normalize_embeddings=True, convert_to_tensor=True
-        ),
+        model.encode_document(words, normalize_embeddings=True, convert_to_tensor=True),
     )
-    similarity_scores = text_model.similarity(query, embeddings)[0]
+    similarity_scores = model.similarity(query, embeddings)[0]
     _, indices = topk(similarity_scores, k=math.ceil(len(words) / 10))
-    return list(words[i] for i in indices)
+    return list(words[i] for i in indices if len(words[i]) > 1)
 
 
 def parse_args(cmd: str):
     try:
         args = json.loads(cmd)
-        if args.get("cmd") not in ["t2t", "t2i", "i2i", "status"]:
+        if args.get("cmd") not in ["t2t", "t2i", "i2i", "i2t", "status"]:
             raise ValueError("invalid 'cmd'")
-        if args["cmd"] in ["t2t", "i2i", "t2i"] and not all(
+        if args["cmd"] in ["t2t", "i2i", "t2i", "i2t"] and not all(
             [
                 isinstance(args.get("path"), str),
                 isinstance(args.get("query"), str),
@@ -100,7 +99,8 @@ def parse_args(cmd: str):
 
 
 @log_time
-def embed_text(path: str, emb_path: str):
+def embed_text(path: str, emb_path: str, model=None):
+    model = model or text_model
     log(f"embedding {path} into {emb_path}")
     with open(path, "r") as file:
         corpus: list[dict] = json.loads(file.read())
@@ -120,7 +120,7 @@ def embed_text(path: str, emb_path: str):
             new_texts = [e["text"] for e in new_entries]
             new_embeddings = cast(
                 Tensor,
-                text_model.encode(
+                model.encode(
                     new_texts,
                     convert_to_tensor=True,
                     normalize_embeddings=True,
@@ -142,7 +142,7 @@ def embed_text(path: str, emb_path: str):
         else:
             embeddings = cast(
                 Tensor,
-                text_model.encode_document(
+                model.encode_document(
                     texts, convert_to_tensor=True, normalize_embeddings=True
                 ),
             )
@@ -324,6 +324,48 @@ def i2i(path: str, query_image: str, k: int) -> list[dict]:
 
 
 @log_time
+def i2t(path: str, query_image: str, k: int) -> list[dict]:
+    path = f"{DIR}/{path.strip("/")}"
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"file {path} does not exist")
+    if not os.path.exists(query_image):
+        raise FileNotFoundError(f"query image [{query_image}] does not exist")
+    emb_path = f"{path}.npz"
+    if not os.path.exists(emb_path) or os.path.getmtime(path) > os.path.getmtime(
+        emb_path
+    ):
+        embed_text(path, emb_path, image_model)
+    log(f"querying [{path}] for image '{query_image}'")
+    data = np.load(emb_path)
+    embeddings = torch.from_numpy(data["embeddings"]).cuda()
+    ids = data["ids"]
+    texts = data["texts"]
+    log(f"encoding {query_image}...")
+    query_emb = cast(
+        Tensor,
+        image_model.encode(
+            Image.open(query_image),  # pyright: ignore
+            convert_to_tensor=True,
+            normalize_embeddings=True,
+        ),
+    )
+    scores = util.cos_sim(query_emb, embeddings)[0]
+    top = scores.topk(k)
+    return sorted(
+        [
+            {
+                "score": float(s),
+                "id": ids[i],
+                "highlights": highlights(query_emb, texts[i], image_model),
+            }
+            for s, i in zip(top.values, top.indices)
+        ],
+        key=lambda x: float(x["score"]),
+        reverse=True,
+    )
+
+
+@log_time
 def status() -> dict:
     return {
         "gpu": (
@@ -364,6 +406,9 @@ if __name__ == "__main__":
                     conn.sendall(json.dumps(result).encode())
                 elif args["cmd"] == "i2i":
                     result = i2i(args["path"], args["query"], args["topk"])
+                    conn.sendall(json.dumps(result).encode())
+                elif args["cmd"] == "i2t":
+                    result = i2t(args["path"], args["query"], args["topk"])
                     conn.sendall(json.dumps(result).encode())
                 elif args["cmd"] == "status":
                     result = status()

@@ -28,7 +28,7 @@ def get_args():
     parser.add_argument("--topk", type=int, help="top k semantic results")
     parser.add_argument("--first", type=int, help="first N threads in catalog")
     args = parser.parse_args()
-    if args.mode not in ["load", "grep", "t2t", "t2i", "i2i", "status"]:
+    if args.mode not in ["load", "grep", "t2t", "t2i", "i2i", "i2t", "status"]:
         parser.error("invalid --mode value")
     if args.mode in ["load", "grep", "t2t", "t2i", "i2i"] and (
         args.boards is None
@@ -198,6 +198,31 @@ def sync_t2t(board: str):
             qf.write(data)
 
 
+def sync_i2t(board: str, query_image: str):
+    origin_file = f"{DIR}/{board}"
+    query_file = f"{TSDR_DIR}/{board}.i2t"
+    query_image_path = f"{DIR}/{query_image}"
+    if not os.path.exists(origin_file):
+        raise FileNotFoundError(f"origin file [{origin_file}] does not exist")
+    if not os.path.exists(query_image_path):
+        raise FileNotFoundError(f"query image [{query_image}] does not exist")
+    shutil.copy(query_image_path, f"{TSDR_DIR}/images/{query_image}")
+    if not os.path.exists(query_file) or os.path.getmtime(
+        origin_file
+    ) > os.path.getmtime(query_file):
+        threads = api.unfile4(DIR, board)
+        data = json.dumps(
+            [
+                {"id": p.id, "text": p.text}
+                for t in threads
+                for p in t.posts
+                if len(p.text) > 20
+            ]
+        )
+        with open(query_file, "w") as qf:
+            qf.write(data)
+
+
 def sync_t2i(board: str):
     origin_file = f"{DIR}/{board}"
     query_file = f"{TSDR_DIR}/{board}.x2i"
@@ -298,6 +323,36 @@ def t2t(boards: List[str], query: str, topk: int | None):
                         "cmd": "t2t",
                         "path": f"{board}.t2t",
                         "query": query,
+                        "topk": topk or 5,
+                    }
+                ),
+            )
+            parsed = json.loads(resp)
+            if isinstance(parsed, list):
+                results.extend(parsed)
+            else:
+                print(resp)
+        if results:
+            results.sort(key=lambda r: r["score"], reverse=True)
+            print_query_results(boards, results)
+        else:
+            print("no results")
+    except Exception as e:
+        util.log(e)
+
+
+def i2t(boards: List[str], query_image: str, topk: int | None):
+    try:
+        results = []
+        for board in boards:
+            sync_i2t(board, query_image)
+            resp = util.sendrecv(
+                f"{TSDR_DIR}/tsdr.sock",
+                json.dumps(
+                    {
+                        "cmd": "i2t",
+                        "path": f"{board}.i2t",
+                        "query": f"{TSDR_DIR}/images/{query_image}",
                         "topk": topk or 5,
                     }
                 ),
@@ -418,6 +473,8 @@ if __name__ == "__main__":
         t2i(args.boards, args.query, args.topk)
     if args.mode == "i2i":
         i2i(args.boards, args.query, args.topk)
+    if args.mode == "i2t":
+        i2t(args.boards, args.query, args.topk)
     # if args.mode == "i2t":
     #     i2t(args.boards, args.query, args.topk)  meh
     if args.mode == "status":
