@@ -1,17 +1,15 @@
 import random
+import time
 
 
-N = 1000
-
-
-def random_bit():
-    return 0 if random.random() < 0.5 else 1
+N = 2000
+S = 500
 
 
 def random_genome():
     genome = []
     for i in range(N):
-        genome.append(random_bit())
+        genome.append(0 if random.random() < 0.5 else 1)
     return genome
 
 
@@ -19,7 +17,7 @@ def fitness(target, genome):
     assert len(target) == len(genome)
     sum = 0
     for i in range(len(genome)):
-        sum += 1 if target[i] == genome[i] else 0
+        sum += int(target[i] == genome[i])
     return sum
 
 
@@ -29,19 +27,40 @@ def mutate(prob, genome):
             genome[i] = 0 if genome[i] == 1 else 1
 
 
+def print_stats(target, population):
+    fittest = max(fitness(target, genome) for genome in population)
+    average = sum(fitness(target, genome) for genome in population) / S
+    fixed, segregating, extinct = 0, 0, 0
+    almost = 0
+    for i in range(N):
+        count = sum(int(genome[i] == target[i]) for genome in population)
+        fixed += int(count == S)
+        segregating += int(0 < count < S)
+        extinct += int(count == 0)
+        almost += int(count > S * 0.9)
+    print(f"Fittest: {fittest}", end=", ")
+    print(f"Average: {average}", end="\n")
+    print(f"Fixed: {fixed}", end=", ")
+    print(f"Segregating: {segregating}", end=", ")
+    print(f"Extinct: {extinct}", end=", ")
+    print(f"Almost: {almost}")
+
+
 def selection():
-    size = 100
     target = random_genome()
-    population = [random_genome() for _ in range(size)]
+    population = [random_genome() for _ in range(S)]
     while True:
-        print(max(fitness(target, genome) for genome in population))
-        population = sorted(population, key=lambda g: fitness(target, g), reverse=True)[:size]
-        survivors = population[: size // 4]
+        assert len(population) == S
+        print_stats(target, population)
+        fitnesses = [(fitness(target, population[i]), i) for i in range(S)]
+        sorted_fitnesses = sorted(fitnesses, reverse=True)
+        sorted_population = [population[i] for (_, i) in sorted_fitnesses]
+        survivors = sorted_population[: S // 4]
         new_generation = []
         for genome in survivors:
             for _ in range(4):
                 child = genome.copy()
-                mutate(0.001, child)
+                mutate(1 / N, child)
                 new_generation.append(child)
         population = new_generation
 
