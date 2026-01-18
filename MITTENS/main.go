@@ -8,6 +8,7 @@ import (
 	"time"
 )
 
+// 34.5 secs on r7 350
 const (
 	N = 7000
 	S = 700
