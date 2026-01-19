@@ -89,25 +89,21 @@ func integrate(f func(float64) float64, a, b float64) float64 {
 	return sum
 }
 
+func addmul(xs ...any) []float64 {
+	res := make([]float64, len(xs[0].([]float64)))
+	for i := range res {
+		for j := 0; j < len(xs); j += 2 {
+			res[i] += xs[j].([]float64)[i] * xs[j+1].(float64)
+		}
+	}
+	return res
+}
+
 func solveIVP(
 	ys0 []float64,
 	f func(t float64, ys []float64) []float64,
 	t0 float64,
 ) func(t float64) []float64 {
-	add := func(a, b []float64) []float64 {
-		res := make([]float64, len(a))
-		for i := range a {
-			res[i] = a[i] + b[i]
-		}
-		return res
-	}
-	mul := func(a []float64, k float64) []float64 {
-		res := make([]float64, len(a))
-		for i := range a {
-			res[i] = a[i] * k
-		}
-		return res
-	}
 	h := 0.001
 	return func(tn float64) []float64 {
 		n := int((tn - t0) / h)
@@ -115,10 +111,10 @@ func solveIVP(
 		ys := append([]float64(nil), ys0...)
 		for range n {
 			k1 := f(t, ys)
-			k2 := f(t+h/2, add(ys, mul(k1, h/2)))
-			k3 := f(t+h/2, add(ys, mul(k2, h/2)))
-			k4 := f(t+h, add(ys, mul(k3, h)))
-			ys = add(ys, add(mul(add(add(k1, mul(k2, 2)), mul(k3, 2)), h/6), mul(k4, h/6)))
+			k2 := f(t+h/2, addmul(ys, 1.0, k1, h/2))
+			k3 := f(t+h/2, addmul(ys, 1.0, k2, h/2))
+			k4 := f(t+h, addmul(ys, 1.0, k3, h))
+			ys = addmul(ys, 1.0, addmul(k1, 1.0, k2, 2.0, k3, 2.0, k4, 1.0), h/6)
 			t += h
 		}
 		return ys
