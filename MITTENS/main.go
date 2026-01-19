@@ -9,6 +9,7 @@ import (
 )
 
 // 34.5 secs on r7 350
+// 23.5 on 9950x
 const (
 	N = 7000
 	S = 700
