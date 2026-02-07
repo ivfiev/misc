@@ -53,9 +53,30 @@ func main() {
 	// for t := range 11 {
 	// 	fmt.Printf("%v\n", ivp(float64(t)))
 	// }
-	ivp := solveIVP([]float64{100, 50}, minsky, 0)
-	for t := range 20 {
+	fmt.Printf("%v\n", learning(0, []float64{0.9, 0.04, 0.1}))
+	ivp := solveIVP([]float64{0.01, 1.0, 1.0}, learning, 0)
+	for t := 0.0; t <= 13; t += 0.1 {
 		fmt.Printf("%v\n", ivp(float64(t)))
+	}
+}
+
+func learning(t float64, y []float64) []float64 {
+	const (
+		skill = iota
+		energy
+		practice
+	)
+	const (
+		a = 4
+		b = 1
+		c = 1.5
+		d = 2
+		e = 2
+	)
+	return []float64{
+		a*y[practice]*y[skill]*(1-y[skill]) - b*(1-y[practice])*y[skill],
+		c*(1-y[practice]) - d*y[practice]*y[practice],
+		e*y[energy]*(1-y[practice]) - e*(1-y[energy])*y[practice],
 	}
 }
 
@@ -90,21 +111,5 @@ func automation(t float64, y []float64) []float64 {
 	}
 }
 
-func minsky(t float64, y []float64) []float64 {
-	const (
-		Y = iota
-		D
-	)
-	const (
-		g   = 0.05
-		r   = 0.02
-		phi = 0.02
-		th  = 0.01
-	)
-	return []float64{
-		g*y[Y] - r*y[D],
-		r*y[D] + phi*y[Y] - th*y[D],
-	}
+func pension() {
 }
-
-// TODO model learning/burnout logistic curves
