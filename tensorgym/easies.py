@@ -1,4 +1,6 @@
-from torch import Tensor
+import math
+from typing import Any
+from torch import Tensor, nn
 import torch
 import torch.nn.functional as F
 
@@ -53,3 +55,69 @@ def variance(x: Tensor) -> float:
 
 
 # print(variance(torch.tensor([1.0, 2.0, 3.0, 4.0, 5.0])))
+
+
+def softmax(x: Tensor) -> Tensor:
+    x = x - torch.max(x, dim=1).values.view(-1, 1)
+    x = torch.exp(x)
+    s = torch.sum(x, dim=1)
+    # print(s.shape)
+    # print(x.shape)
+    return x / s.view(-1, 1)  # [X,Y,Z] + [U] = [X,Y,Z] + [1,1,U]
+
+
+# print(softmax(torch.tensor([[1.0, 2.0, 3.0], [2.0, 4.0, 6.0]])))
+
+
+class SimpleMLP(nn.Module):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.layers = nn.Sequential(
+            nn.Linear(8, 4),
+            nn.ReLU(),
+            nn.Linear(4, 4),
+            nn.ReLU(),
+            nn.Linear(4, 2),
+        )
+
+    def forward(self, x):
+        return self.layers(x)
+
+
+# torch.manual_seed(0)
+# mlp = SimpleMLP()
+# print(mlp(torch.tensor([[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8], [0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]])))
+
+
+def attention(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor) -> Tensor:
+    qk = query @ key.T
+    qk /= math.sqrt(float(query.shape[1]))
+    qk = softmax(qk)
+    out = qk @ value
+    return out
+
+
+#
+# print(
+#     attention(
+#         torch.tensor([[1.0, 2.0], [3.0, 4.0]]),
+#         torch.tensor([[1.0, 1.0], [0.0, 0.0]]),
+#         torch.tensor([[2.0, 2.0], [3.0, 3.0]]),
+#     )
+# )
+#
+# print(
+#     attention(
+#         torch.tensor([[1.0, 0.0, 1.0], [0.0, 1.0, 1.0]]),
+#         torch.tensor([[1.0, 1.0, 0.0], [0.0, 0.0, 1.0]]),
+#         torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]),
+#     )
+# )
+
+
+def mse(x: Tensor, y: Tensor) -> float:
+    return float(torch.mean(torch.pow(x - y, torch.tensor(2))))
+
+
+# print(mse(torch.tensor([1.0, 2.0, 3.0]), torch.tensor([1.0, 2.5, 3.5])))
+# print(mse(torch.tensor([[3.0, -3.0, 0.0], [1.0, 0.0, 0.0]]), torch.tensor([[3.0, -2.5, 0.5], [1.0, -1.0, 1.0]])))
