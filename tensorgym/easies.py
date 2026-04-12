@@ -59,11 +59,12 @@ def variance(x: Tensor) -> float:
 
 def softmax(x: Tensor) -> Tensor:
     x = x - torch.max(x, dim=1).values.view(-1, 1)
-    x = torch.exp(x)
-    s = torch.sum(x, dim=1)
+    x = x.exp()
+    s = x.sum(dim=1)
+    # x.numel()
     # print(s.shape)
     # print(x.shape)
-    return x / s.view(-1, 1)  # [X,Y,Z] + [U] = [X,Y,Z] + [1,1,U]
+    return x / s.view(-1, 1)  # [X,Y,Z] + [U] = [X,Y,Z] + [1,1,U]. -1: can infer dims from size
 
 
 # print(softmax(torch.tensor([[1.0, 2.0, 3.0], [2.0, 4.0, 6.0]])))
@@ -97,22 +98,21 @@ def attention(query: torch.Tensor, key: torch.Tensor, value: torch.Tensor) -> Te
     return out
 
 
-#
-# print(
-#     attention(
-#         torch.tensor([[1.0, 2.0], [3.0, 4.0]]),
-#         torch.tensor([[1.0, 1.0], [0.0, 0.0]]),
-#         torch.tensor([[2.0, 2.0], [3.0, 3.0]]),
-#     )
-# )
-#
-# print(
-#     attention(
-#         torch.tensor([[1.0, 0.0, 1.0], [0.0, 1.0, 1.0]]),
-#         torch.tensor([[1.0, 1.0, 0.0], [0.0, 0.0, 1.0]]),
-#         torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]),
-#     )
-# )
+print(
+    attention(
+        torch.tensor([[1.0, 2.0], [3.0, 4.0]]),
+        torch.tensor([[1.0, 1.0], [0.0, 0.0]]),
+        torch.tensor([[2.0, 2.0], [3.0, 3.0]]),
+    )
+)
+
+print(
+    attention(
+        torch.tensor([[1.0, 0.0, 1.0], [0.0, 1.0, 1.0]]),
+        torch.tensor([[1.0, 1.0, 0.0], [0.0, 0.0, 1.0]]),
+        torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]]),
+    )
+)
 
 
 def mse(x: Tensor, y: Tensor) -> float:
