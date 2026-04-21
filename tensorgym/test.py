@@ -15,7 +15,7 @@ B = torch.randn((10000, 10000), device=d)
 
 start = now()
 
-for i in range(10):
+for i in range(100):
     A = A @ B
     A = A * math.sqrt(1.0 / A.shape[0])
 torch.cuda.synchronize()
@@ -25,3 +25,6 @@ elapsed = end - start
 
 print(A)
 print(f"{elapsed} ms")
+
+# -0:  717mv 237W 10785ms
+# -80: 695mv 232W 10796ms
