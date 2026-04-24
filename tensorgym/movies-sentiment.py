@@ -9,9 +9,9 @@ device = "cuda"
 
 data = load_dataset("rotten_tomatoes")
 st = SentenceTransformer("all-mpnet-base-v2")
-x_train = st.encode(data["train"][:]["text"], convert_to_tensor=True, normalize_embeddings=True).to(device)
+x_train = st.encode(data["train"][:]["text"], convert_to_tensor=True, normalize_embeddings=True, show_progress_bar=True).to(device)
 y_train = torch.tensor(data["train"][:]["label"], device=device, dtype=torch.float32).view(-1, 1)
-x_test = st.encode(data["test"][:]["text"], convert_to_tensor=True, normalize_embeddings=True).to(device)
+x_test = st.encode(data["test"][:]["text"], convert_to_tensor=True, normalize_embeddings=True, show_progress_bar=True).to(device)
 y_test = torch.tensor(data["test"][:]["label"], device=device, dtype=torch.float32).view(-1, 1)
 
 model = nn.Sequential(
@@ -24,11 +24,15 @@ model = nn.Sequential(
 loader = DataLoader(TensorDataset(x_train, y_train), batch_size=64, shuffle=True)
 adam = optim.Adam(model.parameters(), lr=0.001)
 
-with torch.no_grad():
-    preds = model(x_test)
-    correct = (((preds > 0.5).float()) == y_test).float().mean()
-    print(f"Correct: {correct}")
 
+def eval():
+    with torch.no_grad():
+        preds = model(x_test)
+        correct = (((preds > 0.5).float()) == y_test).float().mean()
+        print(f"Correct: {correct}")
+
+
+eval()
 for e in range(3):
     for x, y in loader:
         preds = model(x)
@@ -36,7 +40,7 @@ for e in range(3):
         loss.backward()
         adam.step()
         adam.zero_grad()
-    with torch.no_grad():
-        preds = model(x_test)
-        correct = (((preds > 0.5).float()) == y_test).float().mean()
-        print(f"Correct: {correct}")
+    eval()
+
+# https://huggingface.co/spaces/mteb/leaderboard
+# do clustering
