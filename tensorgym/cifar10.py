@@ -57,7 +57,7 @@ with torch.no_grad():
     for x, y in test_ld:
         x, y = x.to(device), y.to(device)
         logits = model(x)
-        predicted = torch.argmax(logits, dim=-1)
+        predicted = logits.argmax(dim=-1)
         total += y.size(0)
         correct += (predicted == y).sum().item()
 print(float(correct) / float(total))

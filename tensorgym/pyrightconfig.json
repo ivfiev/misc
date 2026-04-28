@@ -4,4 +4,5 @@
   "stubPath": "./typings",
   "typeCheckingMode": "basic",
   "autoImportCompletions": false,
+  "useLibraryCodeForTypes": true
 }
