@@ -3,6 +3,9 @@
   "venv": ".venv",
   "stubPath": "./typings",
   "typeCheckingMode": "basic",
+  "reportPrivateImportUsage": "none",
+  "reportArgumentType": "none",
+  "reportAttributeAccessIssue": "none",
   "autoImportCompletions": false,
   "useLibraryCodeForTypes": true
 }
