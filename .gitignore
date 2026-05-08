@@ -12,3 +12,4 @@ __pycache__
 xax/src/impl/sample
 ignore
 dist-newstyle
+**/typings
