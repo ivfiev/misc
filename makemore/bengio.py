@@ -34,15 +34,32 @@ val_xs, val_ys = compile(words[n80 : n80 + n10])
 test_xs, test_ys = compile(words[n80 + n10 :])
 
 E = torch.randn((V, C))
+
 W1 = torch.randn((T * C, 300)) / float(T * C) ** 0.5
 B1 = torch.randn((300,)) * 0.01
+BNG1 = torch.ones(300)
+BNB1 = torch.zeros(300)
+bnmean = torch.zeros(300)
+bnstd = torch.ones(300)
+
 W2 = torch.randn((300, V)) / 300**0.5
 B2 = torch.randn((V,)) * 0.01
-parameters: list[Tensor] = [E, W1, B1, W2, B2]
+
+parameters: list[Tensor] = [E, W1, B1, W2, B2, BNG1, BNB1]
 
 
-def forward(xs):
-    return (E[xs].view(-1, T * C) @ W1 + B1).tanh() @ W2 + B2
+def forward(xs, infer=False):
+    global bnmean, bnstd
+    h = E[xs].view(-1, T * C) @ W1 + B1
+    mean = bnmean if infer else h.mean(dim=0)
+    std = bnstd if infer else h.std(dim=0)
+    h = (h - mean) / std
+    h = BNG1 * h + BNB1
+    if not infer:
+        with torch.no_grad():
+            bnmean = 0.999 * bnmean + 0.001 * mean
+            bnstd = 0.999 * bnstd + 0.001 * std
+    return h.tanh() @ W2 + B2
 
 
 print("#parameters", sum(p.nelement() for p in parameters))
@@ -65,12 +82,13 @@ print("train", F.cross_entropy(forward(train_xs), train_ys).item())
 print("val", F.cross_entropy(forward(val_xs), val_ys).item())
 print("test", F.cross_entropy(forward(test_xs), test_ys).item())
 
+
 with torch.no_grad():
     for _ in range(10):
         ctx = [".", ".", "."]
         while True:
             x = torch.tensor([stoi[c] for c in ctx], dtype=torch.int)
-            logits = forward(x)
+            logits = forward(x, infer=True)
             probs = logits.softmax(dim=-1)
             sample = probs.multinomial(num_samples=1)
             c = itos[sample.item()]
