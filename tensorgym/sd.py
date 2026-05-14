@@ -19,21 +19,21 @@ text_inputs = tokenizer(prompt, padding="max_length", max_length=tokenizer.model
 with torch.inference_mode():
     text_embeddings = text_encoder(text_inputs.input_ids.to(device))[0]
 
-guidance_scale = 20
+guidance_scale = 7
 
-# empty prompt for "unconditional"
 uncond_input = tokenizer("", padding="max_length", max_length=tokenizer.model_max_length, return_tensors="pt")
 
 with torch.inference_mode():
     uncond_embeddings = text_encoder(uncond_input.input_ids.to(device))[0]
 
-# concatenate
+# create uncond & cond embeds to guide diffusion
 embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
 batch_size = 1
 height = 512
 width = 512
 
+# 1 latent 4x64x64
 latents = torch.randn(
     (batch_size, unet.config.in_channels, height // 8, width // 8),
     device=device,
@@ -46,14 +46,19 @@ scheduler.set_timesteps(num_steps, device=device)
 latents = latents * scheduler.init_noise_sigma
 
 for t in scheduler.timesteps:
+    # double latents, uncold & cond - for unet
     latent_input = torch.cat([latents] * 2)
     latent_input = scheduler.scale_model_input(latent_input, t)
     with torch.inference_mode():
+        # 2 noise preds from unet
         noise_pred = unet(latent_input, t, encoder_hidden_states=embeddings).sample
     noise_uncond, noise_text = noise_pred.chunk(2)
+    # next step vector - default denoise + bias towards proompt
+    # why not 'noise_text + ...'? schedulers prefer an uncond component for some reason
     noise_pred = noise_uncond + guidance_scale * (noise_text - noise_uncond)
     latents = scheduler.step(noise_pred, t, latents).prev_sample
 
+# sth to do with normalizing variance
 latents = latents / 0.18215
 
 with torch.inference_mode():
