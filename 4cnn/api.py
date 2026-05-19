@@ -1,0 +1,84 @@
+import json
+import requests
+import util
+from dataclasses import dataclass
+from typing import List, Optional
+
+
+@dataclass
+class Post:
+    id: str
+    url: str
+    thread_id: str
+    subj: str
+    text: str
+    image_url: Optional[str]
+    timestamp: int
+
+
+@dataclass
+class Thread:
+    id: str
+    url: str
+    posts: List[Post]
+
+
+def catalog4(board: str) -> List[Thread] | None:
+    try:
+        resp = requests.get(f"https://a.4cdn.org/{board}/threads.json", timeout=10)
+        resp.raise_for_status()
+        json = resp.json()
+        threads = [
+            Thread(
+                id=t["no"],
+                url=f"https://boards.4chan.org/{board}/thread/{t["no"]}",
+                posts=[],
+            )
+            for page in json
+            for t in page["threads"]
+        ]
+        return threads
+    except requests.HTTPError as e:
+        util.log(e)
+        util.log(f"failed to get catalog /{board}/")
+        return None
+
+
+def thread4(board: str, id: str | int) -> Thread | None:
+    try:
+        resp = requests.get(f"https://a.4cdn.org/{board}/thread/{id}.json", timeout=10)
+        resp.raise_for_status()
+        json = resp.json()
+        thread = Thread(
+            id=str(id),
+            url=f"https://boards.4chan.org/{board}/thread/{id}",
+            posts=[
+                Post(
+                    id=str(p["no"]),
+                    url=f"https://boards.4chan.org/{board}/thread/{id}/#p{p["no"]}",
+                    thread_id=str(id),
+                    subj=util.unescape(p.get("sub")),
+                    text=util.unescape(p.get("com", "")),
+                    timestamp=p["time"],
+                    image_url=(f"https://i.4cdn.org/{board}/{p["tim"]}s.jpg" if p.get("ext") else None),
+                )
+                for p in json["posts"]
+            ],
+        )
+        return thread
+    except requests.HTTPError as e:
+        util.log(e)
+        util.log(f"failed to get thread /{board}/{id}")
+        return None
+
+
+def unfile4(dir: str, board: str) -> List[Thread]:
+    result: List[Thread] = []
+    with open(f"{dir}/{board}", "r") as file:
+        threads = json.loads(file.read())
+        for thread in threads:
+            posts: List[Post] = [Post(**p) for p in thread["posts"]]
+            thread = Thread(**thread)
+            thread.posts = posts
+            result.append(thread)
+        return result
