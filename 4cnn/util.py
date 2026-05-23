@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import datetime
+import signal
 import socket
 import bs4
 import re
@@ -55,6 +56,11 @@ def download(url: str, path: str) -> bool:
     except requests.HTTPError as e:
         log(e)
         log(f"failed to download {url}")
+        return False
+    except Exception as e:
+        log(e)
+        log("fatal error during download")
+        os.kill(os.getpid(), signal.SIGTERM)
         return False
 
 
