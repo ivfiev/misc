@@ -1,9 +1,9 @@
 type vec = list[float]
 type mat = list[list[float]]
 
-D = 64
-E = {e: [1.0 if j == i else 0 for j in range(D)] for i, e in enumerate("^abcde$")}
-P = {p: [1.0 if j == p + len(E) else 0 for j in range(D)] for p in range(12)}
+D = 32
+E = {e: [1.0 if j == i else 0 for j in range(D)] for i, e in enumerate("^abc$")}
+P = {p: [1.0 if j == p + len(E) else 0 for j in range(D)] for p in range(9)}
 
 
 def mm(a: mat, b: mat) -> mat:
@@ -57,7 +57,6 @@ class Attention:
         v = mm(x, self.values)  # n x v
         qk = mm(q, t(k))  # n x n
         qk = self._hardmax(qk)
-        pm(qk)
         x = mm(qk, v)  # n x v
         x = mm(x, self.proj)
         return x
@@ -74,10 +73,10 @@ class FFN:
         self.bias_out = bias_out
 
     def __call__(self, x: mat) -> mat:
-        x = mm(x, t(self.input))
+        x = mm(x, self.input)
         x = va(x, self.bias_in)
         x = relu(x)
-        x = mm(x, t(self.output))
+        x = mm(x, self.output)
         x = va(x, self.bias_out)
         return x
 
@@ -129,7 +128,7 @@ def build_ffn(codes: list[list]) -> FFN:
             for w in write:
                 output[w][ip] = 1.0
             ip += 1
-    return FFN(input, bias_in, output, bias_out)
+    return FFN(t(input), bias_in, t(output), bias_out)
 
 
 def build_attn(codes: list[list]) -> Attention:
@@ -149,15 +148,15 @@ def build_attn(codes: list[list]) -> Attention:
     return Attention(t(q), t(k), t(v), p)
 
 
-def build_transformer(codes: list[list]):
+def run(program: list[list], input: str):
     blocks = []
     unembed = None
-    for code in codes:
+    for code in program:
         if len(code) == 2:
             blocks.append(Block([build_attn(code) for code in code[0]], build_ffn(code[1])))
         elif len(code) == 1:
             unembed = code[0]
-    return Transformer(blocks, unembed)
+    return Transformer(blocks, unembed)(input)
 
 
 def who(c):
@@ -173,22 +172,27 @@ def num(base, count):
 
 
 if __name__ == "__main__":
-    model = build_transformer(
+    palindrome = [
+        [
+            [],
+            [
+                ["NOT", [19], [19]],
+            ],
+        ],
         [
             [
                 [
-                    [
-                        ["QUERY", [who("^")]],
-                        ["KEY", [who("$")]],
-                        ["VALUE", num(len(E), len(P))],
-                        ["PROJ", num(30, len(P))],
-                    ],
+                    ["QUERY", [19]],
+                    ["KEY", [who("$")]],
+                    ["VALUE", num(len(E), len(P))],
+                    ["PROJ", num(20, len(P))],
                 ],
-                [],
             ],
-            [
-                ([0], range(30, 43)),
-            ],
-        ]
-    )
-    pm(model("^aba$"))
+            [],
+        ],
+        [
+            (range(0, 5), range(20, 20 + len(P))),
+        ],
+    ]
+
+    pm(run(palindrome, "^aba$"))
