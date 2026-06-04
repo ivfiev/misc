@@ -1,0 +1,84 @@
+from model import *
+
+D = 48
+E = {e: [1.0 if j == i else 0 for j in range(D)] for i, e in enumerate("^abc$")}
+P = {p: [1.0 if j == p + len(E) else 0 for j in range(D)] for p in range(9)}
+
+
+def build_ffn(codes: list[list]) -> FFN:
+    logic = ["AND", "OR", "NOT"]
+    other = ["ZERO"]
+    n = max(1, sum(code[0] in [*logic, *other] for code in codes))
+    input = [[0.0] * D for _ in range(n)]
+    output = [[0.0] * n for _ in range(D)]
+    bias_in = [0.0] * n
+    bias_out = [0.0] * D
+    for ip, code in enumerate(codes):
+        c = code[0]
+        if c in ["AND", "OR", "NOT"]:
+            features = code[1]
+            write = code[2]
+            for f in features:
+                input[ip][f] = 1.0
+            bias_in[ip] = -len({*features}) + 1.0 if c == "AND" else 0.0
+            for w in write:
+                output[w][ip] = -3.0 if c == "NOT" else 1.0
+                bias_out[w] = 1.0 if c == "NOT" else 0.0
+        if c == "ZERO":
+            bit = code[1]
+            input[ip][bit] = 1.0
+            output[bit][ip] = -1.0
+    return FFN(t(input), bias_in, t(output), bias_out)
+
+
+def build_attn(codes: list[list]) -> Attention:
+    q, k, v, p = [], [], [], []
+    for code in codes:
+        c = code[0]
+        features = code[1]
+        m = {
+            "QUERY": q,
+            "KEY": k,
+            "VALUE": v,
+            "PROJ": p,
+        }[c]
+        for f in features:
+            m.append([0] * D)
+            m[-1][f] = 1.0
+    return Attention(t(q), t(k), t(v), p)
+
+
+def run(program: list[list], input: str):
+    blocks = []
+    unembed = None
+    for code in program:
+        if len(code) == 2:
+            blocks.append(Block([build_attn(code) for code in code[0]], build_ffn(code[1])))
+        elif len(code) == 1:
+            unembed = code[0]
+    return Transformer(blocks, E, P, unembed)(input)
+
+
+def who(c):
+    return next(i for i, e in enumerate(E[c]) if e == 1.0)
+
+
+def where(n):
+    return next(i for i, e in enumerate(P[n]) if e == 1.0)
+
+
+def slice(base, count):
+    return [x for x in range(base, base + count)]
+
+
+# a = a - b
+def subtract(a, b, c):
+    return [
+        *[["ZERO", i] for i in range(a, a + c)],
+        *[["AND", [i, j], [a + (i - a) - (j - b)]] for j in range(b, b + c) for i in range(a, a + c) if (i - a) >= (j - b)],
+    ]
+
+
+# d = a[0:c] == b[0:c], assume only one 1
+def cmp_one_hot(a, b, c, d):
+    return [["AND", [a + i, b + i], [d]] for i in range(c)]
