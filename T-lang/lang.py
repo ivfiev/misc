@@ -72,25 +72,39 @@ def slice(base, count):
 
 
 # a = a - b
-def subtract(a, b, c):
+def sub_one_hot(a, b, c):
     return [
         *[["ZERO", i] for i in range(a, a + c)],
         *[["AND", [i, j], [a + (i - a) - (j - b)]] for j in range(b, b + c) for i in range(a, a + c) if (i - a) >= (j - b)],
     ]
 
 
+# a = a + b
+def add_one_hot(a, b, c):
+    return [
+        *[["ZERO", i] for i in range(a, a + c)],
+        *[["AND", [i, j], [a + (i - a) + (j - b)]] for j in range(b, b + c) for i in range(a, a + c) if (i - a) + (j - b) < c],
+    ]
+
+
 # d = a[0:c] == b[0:c], assume only one 1
-def cmp_one_hot(a, b, c, d):
+def eq_one_hot(a, b, c, d):
     return [["AND", [a + i, b + i], [d]] for i in range(c)]
 
 
-class Allocator:
+# d = a[0:c] < b[0:c], assume only one 1
+def lt_one_hot(a, b, c, d):
+    return [["AND", [a + j, b + i], [d]] for i in range(c) for j in range(i)]
+
+
+class FeatureAllocator:
     def __init__(self):
         self.n = len(E) + len(P)
         self.EMB = 0
         self.POS = len(E)
 
     def alloc(self, range=1):
+        assert self.n + range < D
         n = self.n
         self.n += range
         return n

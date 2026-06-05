@@ -2,7 +2,7 @@ from lang import *
 
 
 def is_palindrome(s: str) -> bool:
-    a = Allocator()
+    a = FeatureAllocator()
     S = a.alloc()
     A = a.alloc()
     POS = a.alloc(len(P))
@@ -27,7 +27,7 @@ def is_palindrome(s: str) -> bool:
                 ],
             ],
             [
-                *subtract(POS, a.POS, len(P)),  # subtract actual pos from mirrored
+                *sub_one_hot(POS, a.POS, len(P)),  # subtract actual pos from mirrored
                 ["NOT", [S], [S]],  # now this bit is 0 for special, 1 for common tokens
             ],
         ],
@@ -41,7 +41,7 @@ def is_palindrome(s: str) -> bool:
                 ]
             ],
             [
-                *cmp_one_hot(a.EMB, ID, len(E), CMP),  # compare one-hot into 40
+                *eq_one_hot(a.EMB, ID, len(E), CMP),  # compare one-hot into 40
             ],
         ],
         [
@@ -71,7 +71,7 @@ def is_palindrome(s: str) -> bool:
 
 
 def count_letter(s: str, c: str) -> int:
-    a = Allocator()
+    a = FeatureAllocator()
     POS = a.alloc(len(P))
     code = [
         [
@@ -88,6 +88,73 @@ def count_letter(s: str, c: str) -> int:
         [lambda m: int(sum(m[0][POS : POS + len(P)]))],
     ]
     return run(code, f"^{s}$")
+
+
+def strcmp(s1: str, s2: str) -> bool:
+    a = FeatureAllocator()
+    A = a.alloc()
+    POS = a.alloc(len(P))
+    BRO = a.alloc(len(E))
+    EQ = a.alloc()
+    LT = a.alloc()
+    RESULT = a.alloc()
+    C = a.alloc()
+    code = [
+        [
+            [],
+            [["NOT", [A], [A]]],
+        ],
+        [
+            [
+                [
+                    # copy pos of | into each token
+                    ["QUERY", [A]],
+                    ["KEY", [who("|")]],
+                    ["VALUE", slice(a.POS, len(P))],
+                    ["PROJ", slice(POS, len(P))],
+                ],
+            ],
+            [
+                *add_one_hot(POS, a.POS, len(P)),  # add curr pos to |'s pos to obtain opposite
+                *lt_one_hot(a.POS, POS, len(P), LT),  # flag if to the left of |
+            ],
+        ],
+        [
+            [
+                [
+                    # copy the twin token embedding
+                    ["QUERY", slice(POS, len(P))],
+                    ["KEY", slice(a.POS, len(P))],
+                    ["VALUE", slice(a.EMB, len(E))],
+                    ["PROJ", slice(BRO, len(E))],
+                ],
+            ],
+            [
+                *eq_one_hot(a.EMB, BRO, len(E), EQ),  # EQ = 1 if twin matches
+            ],
+        ],
+        [
+            [],
+            [
+                ["NOT", [EQ], [EQ]],  # negate EQ for aggregation
+                ["NOT", [who("^")], [C]],  # only want to hear from letters
+            ],
+        ],
+        [
+            [
+                [
+                    # aggregate all !EQs, if >0 then return false else true
+                    ["QUERY", [who("^"), who("^")]],
+                    ["KEY", [LT, C]],
+                    ["VALUE", [EQ]],
+                    ["PROJ", [RESULT]],
+                ],
+            ],
+            [],
+        ],
+        [lambda m: m[0][RESULT]],
+    ]
+    return run(code, f"^{s1}|{s2}$") + run(code, f"^{s2}|{s1}$") == 0.0  # meh
 
 
 def run_tests():
@@ -107,3 +174,16 @@ def run_tests():
         ),
     )
     print("strawberry", count_letter("strawberry", "r") == 3.0)
+    print(
+        "strcmp    ",
+        all(
+            [
+                strcmp("a", "a"),
+                strcmp("strcmp", "strcmp"),
+                not strcmp("hello", "world"),
+                not strcmp("a", "b"),
+                not strcmp("a", "aa"),
+                not strcmp("aa", "a"),
+            ]
+        ),
+    )
