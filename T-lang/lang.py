@@ -1,8 +1,8 @@
 from model import *
 
-D = 48
-E = {e: [1.0 if j == i else 0 for j in range(D)] for i, e in enumerate("^abc$")}
-P = {p: [1.0 if j == p + len(E) else 0 for j in range(D)] for p in range(9)}
+D = 192
+E = {e: [1.0 if j == i else 0 for j in range(D)] for i, e in enumerate("^abcdefghijklmnopqrstuvwxyz|?$")}
+P = {p: [1.0 if j == p + len(E) else 0 for j in range(D)] for p in range(18)}
 
 
 def build_ffn(codes: list[list]) -> FFN:
@@ -82,3 +82,15 @@ def subtract(a, b, c):
 # d = a[0:c] == b[0:c], assume only one 1
 def cmp_one_hot(a, b, c, d):
     return [["AND", [a + i, b + i], [d]] for i in range(c)]
+
+
+class Allocator:
+    def __init__(self):
+        self.n = len(E) + len(P)
+        self.EMB = 0
+        self.POS = len(E)
+
+    def alloc(self, range=1):
+        n = self.n
+        self.n += range
+        return n
