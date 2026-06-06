@@ -1,8 +1,17 @@
 from model import *
 
 D = 192
-E = {e: [1.0 if j == i else 0 for j in range(D)] for i, e in enumerate("^abcdefghijklmnopqrstuvwxyz|?$")}
-P = {p: [1.0 if j == p + len(E) else 0 for j in range(D)] for p in range(18)}
+E = {e: [1.0 if j == i else 0.0 for j in range(D)] for i, e in enumerate("^abcdefghijklmnopqrstuvwxyz|?$")}
+P = {p: [1.0 if j == p + len(E) else 0.0 for j in range(D)] for p in range(18)}
+
+
+def un_E(u: vec) -> str:
+    assert len(u) == len(E)
+    assert sum(u) == 1.0
+    for k, v in E.items():
+        if v[: len(E)] == u:
+            return k
+    raise Exception("cannot unembed")
 
 
 def build_ffn(codes: list[list]) -> FFN:
@@ -95,6 +104,11 @@ def eq_one_hot(a, b, c, d):
 # d = a[0:c] < b[0:c], assume only one 1
 def lt_one_hot(a, b, c, d):
     return [["AND", [a + j, b + i], [d]] for i in range(c) for j in range(i)]
+
+
+# d = a[0:c] > b[0:c], assume only one 1
+def gt_one_hot(a, b, c, d):
+    return [["AND", [a + i, b + j], [d]] for i in range(c) for j in range(i)]
 
 
 class FeatureAllocator:

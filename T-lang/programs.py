@@ -157,6 +157,64 @@ def strcmp(s1: str, s2: str) -> bool:
     return run(code, f"^{s1}|{s2}$") + run(code, f"^{s2}|{s1}$") == 0.0  # meh
 
 
+def reverse(s: str) -> str:
+    a = FeatureAllocator()
+    A = a.alloc()
+    MID = a.alloc(len(P))
+    POS = a.alloc(len(P))
+    BRO = a.alloc(len(E))
+    EQ = a.alloc()
+    GT = a.alloc()
+    RESULT = a.alloc()
+    C = a.alloc()
+    code = [
+        [
+            [],
+            [["NOT", [A], [A]]],
+        ],
+        [
+            [
+                [
+                    # copy pos of $ into each token
+                    ["QUERY", [A]],
+                    ["KEY", [who("$")]],
+                    ["VALUE", slice(a.POS, len(P))],
+                    ["PROJ", slice(POS, len(P))],
+                ],
+                [
+                    # copy pos of | into each token
+                    ["QUERY", [A]],
+                    ["KEY", [who("|")]],
+                    ["VALUE", slice(a.POS, len(P))],
+                    ["PROJ", slice(MID, len(P))],
+                ],
+            ],
+            [
+                *sub_one_hot(POS, a.POS, len(P)),  # sub |'s pos from curr pos to obtain opposite
+                *gt_one_hot(a.POS, MID, len(P), GT),  # flag if to the right of |
+            ],
+        ],
+        [
+            [
+                [
+                    # copy the twin token embedding
+                    ["QUERY", slice(POS, len(P))],
+                    ["KEY", slice(a.POS, len(P))],
+                    ["VALUE", slice(a.EMB, len(E))],
+                    ["PROJ", slice(BRO, len(E))],
+                ],
+            ],
+            [
+                ["AND", [who("?"), GT], [RESULT]],
+            ],
+        ],
+        [
+            lambda m: "".join(un_E(u[BRO : BRO + len(E)]) for u in m if u[RESULT] == 1.0),
+        ],
+    ]
+    return run(code, f"^{s}|{str('?' * len(s))}$")
+
+
 def run_tests():
     print(
         "palindrome",
@@ -184,6 +242,17 @@ def run_tests():
                 not strcmp("a", "b"),
                 not strcmp("a", "aa"),
                 not strcmp("aa", "a"),
+            ]
+        ),
+    )
+    print(
+        "reverse   ",
+        all(
+            [
+                reverse("abc") == "cba",
+                reverse("a") == "a",
+                reverse("hello") == "olleh",
+                reverse("xyzab") == "bazyx",
             ]
         ),
     )
