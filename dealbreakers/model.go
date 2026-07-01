@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math"
 	"strings"
 )
 
@@ -15,6 +14,10 @@ type M struct {
 
 func RandomM(r *Random) *M {
 	return &M{r.Ns(ATTRS, 0, 1), make([]*W, 0)}
+}
+
+func NewM(x []float64) *M {
+	return &M{X: x, W: make([]*W, 0)}
 }
 
 func (m *M) Day(ws []*W, r *Random) {
@@ -30,72 +33,65 @@ func (m *M) String() string {
 	if len(m.W) > 0 {
 		for _, w := range m.W {
 			fmt.Fprintf(&b, "  %s, p=%.2f\n", w.String(), w.Yes(m))
+			fmt.Fprintf(&b, "  example([]float64{%.2f, %.2f, %.2f}, []float64{%.2f, %.2f, %.2f}, []float64{%.2f, %.2f, %.2f}, )\n", m.X[0], m.X[1], m.X[2], w.X[0], w.X[1], w.X[2], w.P[0], w.P[1], w.P[2])
 		}
 	}
 	return b.String()
 }
 
 type W struct {
-	X  []float64
-	P  []float64
-	Sx []*Logistic
-	A  []float64
-	Sa *Logistic
-	D  float64
-	I  float64
-	B  float64
-}
-
-func RandomW(r *Random) *W {
-	w := &W{
-		X: r.Ns(ATTRS, 0, 1),
-		P: r.Ns(ATTRS, 0, 1),
-		A: []float64{clamp(0.01, r.N(0.1, 0.05), 0.25), clamp(0.333, r.N(0.5, 0.1), 0.999)},
-		D: clamp(0, r.N(0.1, 0.02), 0.2),
-		I: clamp(0, r.N(0.25, 0.05), 0.5),
-		B: clamp(0, r.N(0.1, 0.02), 0.2),
-	}
-	softmax(w.P)
-	w.fit()
-	return w
-}
-
-func NewW(x, p, a []float64, d, i, b float64) *W {
-	w := &W{
-		X: x,
-		P: p,
-		A: a,
-		D: d,
-		I: i,
-		B: b,
-	}
-	w.fit()
-	return w
-}
-
-func (w *W) fit() {
-	w.Sx = []*Logistic{
-		FitLogistic3(1, -1, 0.05, 0, 0.2, 1, 0.4),
-		FitLogistic3(1, -1, 0.08, 0, 0.333, 1, 0.5),
-		FitLogistic3(1, -1, 0.08, 0, 0.333, 1, 0.5),
-	}
-	w.Sa = FitLogistic2(1, 0.25, w.A[0], 0.999, w.A[1])
+	X []float64
+	P []float64
+	W []float64
 }
 
 func (w *W) Yes(m *M) float64 {
-	sum := 0.0
-	for i := range w.X {
-		d := m.X[i] - w.X[i]
-		penalty := w.D * math.Pow(min(0, d), 2)
-		inflation := w.I * max(0, w.X[i])
-		bonus := w.B * math.Pow(max(0, d), 2)
-		sum += w.Sx[i].Y(m.X[i]-penalty-inflation+bonus) * w.P[i]
+	d0, d1, d2 := w.X[0]-m.X[0], w.X[1]-m.X[1], w.X[2]-m.X[2]
+	p0, p1, p2 := w.P[0], w.P[1], w.P[2]
+	m0, m1, m2 := m.X[0], m.X[1], m.X[2]
+
+	i := 0
+	t := func() float64 {
+		w := w.W[i]
+		i++
+		return w
 	}
-	return w.Sa.Y(sum) * sum
+
+	// e := t()*d0 + t()*d1 + t()*d2
+	// e := t()*pos(d0)*pos(d1) + t()*pos(d0)*pos(d2) + t()*pos(d1)*pos(d2)
+	// e += t()*neg(d0)*neg(d1) + t()*neg(d0)*neg(d2) + t()*neg(d1)*neg(d2)
+	e := t()*d0*p0 + t()*d1*p1 + t()*d2*p2
+	// e += t()*pos(d0)*pos(d1)*p0*p1 + t()*pos(d0)*pos(d2)*p0*p2 + t()*pos(d1)*pos(d2)*p1*p2
+	// e += t()*neg(d0)*neg(d1)*p0*p1 + t()*neg(d0)*neg(d2)*p0*p2 + t()*neg(d1)*neg(d2)*p1*p2
+	// e += t()*d0*d0 + t()*d1*d1 + t()*d2*d2
+	// e += t()*d0*d0*d0 + t()*d1*d1*d1 + t()*d2*d2*d2
+	e += t()*m0 + t()*m1 + t()*m2
+
+	e = sigmoid(e)
+	a := sigmoid(t() * (e - t()))
+	return a * e
+}
+
+func RandomW(r *Random, ws []float64) *W {
+	w := &W{
+		X: r.Ns(ATTRS, 0, 1),
+		P: r.Ns(ATTRS, 0, 1),
+		W: ws,
+	}
+	softmax(w.P)
+	return w
+}
+
+func NewW(x, p, w []float64) *W {
+	return &W{
+		X: x,
+		P: p,
+		W: w,
+	}
 }
 
 func (w *W) String() string {
-	return fmt.Sprintf("X: %s, P: %s, A: %s, DIB: %s", fmtv(w.X), fmtv(w.P), fmtv(w.A), fmtv([]float64{w.D, w.I, w.B}))
+	return fmt.Sprintf("X: %s, P: %s", fmtv(w.X), fmtv(w.P))
 }
 
 func fmtv(v []float64) string {

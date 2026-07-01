@@ -34,26 +34,17 @@ func (r *Random) U(a, b float64) float64 {
 }
 
 type Logistic struct { // piecewise
-	L, kl, kg, xl, xg float64
+	L, k, x0 float64
 }
 
-func FitLogistic3(L, xl, yl, xm, ym, xg, yg float64) *Logistic {
+func FitLogistic(L, xm, ym, xg, yg float64) *Logistic {
 	kg := (math.Log(L/yg-1) - math.Log(L/ym-1)) / (xm - xg)
-	kl := (math.Log(L/yl-1) - math.Log(L/ym-1)) / (xm - xl)
 	xg = math.Log(L/ym-1)/kg + xm
-	xl = math.Log(L/ym-1)/kl + xm
-	return &Logistic{L, kl, kg, xl, xg}
-}
-
-func FitLogistic2(L, xm, ym, xg, yg float64) *Logistic {
-	return FitLogistic3(L, xg, yg, xm, ym, xg, yg)
+	return &Logistic{L, kg, xg}
 }
 
 func (l *Logistic) Y(x float64) float64 {
-	if x < 0 {
-		return l.L / (1 + math.Exp(-l.kl*(x-l.xl)))
-	}
-	return l.L / (1 + math.Exp(-l.kg*(x-l.xg)))
+	return l.L / (1 + math.Exp(-l.k*(x-l.x0)))
 }
 
 func softmax(v []float64) {
@@ -68,4 +59,22 @@ func softmax(v []float64) {
 
 func clamp(a, x, b float64) float64 {
 	return max(a, min(x, b))
+}
+
+func sigmoid(x float64) float64 {
+	return 1 / (1 + math.Exp(-x))
+}
+
+func pos(x float64) float64 {
+	if x < 0 {
+		return 0
+	}
+	return x
+}
+
+func neg(x float64) float64 {
+	if x > 0 {
+		return 0
+	}
+	return x
 }

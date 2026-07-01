@@ -5,18 +5,17 @@ import (
 	"testing"
 )
 
+var WS = train(NewRandom(42))
+
 func basicM(x float64) *M {
-	return &M{X: []float64{x, x, x}}
+	return NewM([]float64{x, x, x})
 }
 
 func basicW(x float64) *W {
 	return NewW(
 		[]float64{x, x, x},
 		[]float64{0.4, 0.3, 0.3},
-		[]float64{0.1, 0.5},
-		0.1,
-		0.25,
-		0.1,
+		WS,
 	)
 }
 
@@ -109,10 +108,7 @@ func TestMixed1(t *testing.T) {
 	w := NewW(
 		[]float64{2, -1, -1},
 		[]float64{0.9, 0.1, 0.1},
-		[]float64{0.1, 0.5},
-		0.1,
-		0.25,
-		0.1,
+		WS,
 	)
 	fmt.Printf("mixed1: %f\n", w.Yes(m))
 }
@@ -122,10 +118,7 @@ func TestMixed2(t *testing.T) {
 	w := NewW(
 		[]float64{2, -1, -1},
 		[]float64{0.05, 0.9, 0.05},
-		[]float64{0.1, 0.5},
-		0.1,
-		0.25,
-		0.1,
+		WS,
 	)
 	fmt.Printf("mixed2: %f\n", w.Yes(m))
 }
@@ -135,10 +128,7 @@ func TestMixed3(t *testing.T) {
 	w := NewW(
 		[]float64{-1, 1.4, 1.5},
 		[]float64{0.2, 0.3, 0.5},
-		[]float64{0.1, 0.5},
-		0.1,
-		0.25,
-		0.1,
+		WS,
 	)
 	fmt.Printf("mixed3: %f\n", w.Yes(m))
 }
@@ -148,10 +138,7 @@ func TestMixed4(t *testing.T) {
 	w := NewW(
 		[]float64{3, -1, -1},
 		[]float64{0.8, 0.2, 0.0},
-		[]float64{0.1, 0.5},
-		0.1,
-		0.25,
-		0.1,
+		WS,
 	)
 	fmt.Printf("mixed4: %f\n", w.Yes(m))
 }
