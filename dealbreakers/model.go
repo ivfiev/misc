@@ -21,9 +21,16 @@ func NewM(x []float64) *M {
 }
 
 func (m *M) Day(ws []*W, r *Random) {
-	w := ws[r.Ix(len(ws))]
-	if r.U(0, 1) < w.Yes(m) {
-		m.W = append(m.W, w)
+	const k = 10
+	var c *W
+	for range k {
+		w := ws[r.Ix(len(ws))]
+		if c == nil || w.X[0] > c.X[0] {
+			c = w
+		}
+	}
+	if r.U(0, 1) < c.Yes(m) {
+		m.W = append(m.W, c)
 	}
 }
 
@@ -33,7 +40,7 @@ func (m *M) String() string {
 	if len(m.W) > 0 {
 		for _, w := range m.W {
 			fmt.Fprintf(&b, "  %s, p=%.2f\n", w.String(), w.Yes(m))
-			fmt.Fprintf(&b, "  example([]float64{%.2f, %.2f, %.2f}, []float64{%.2f, %.2f, %.2f}, []float64{%.2f, %.2f, %.2f}, )\n", m.X[0], m.X[1], m.X[2], w.X[0], w.X[1], w.X[2], w.P[0], w.P[1], w.P[2])
+			// fmt.Fprintf(&b, "  example([]float64{%.2f, %.2f, %.2f}, []float64{%.2f, %.2f, %.2f}, []float64{%.2f, %.2f, %.2f}, )\n", m.X[0], m.X[1], m.X[2], w.X[0], w.X[1], w.X[2], w.P[0], w.P[1], w.P[2])
 		}
 	}
 	return b.String()
@@ -43,6 +50,7 @@ type W struct {
 	X []float64
 	P []float64
 	W []float64
+	A *Logistic
 }
 
 func (w *W) Yes(m *M) float64 {
@@ -57,27 +65,21 @@ func (w *W) Yes(m *M) float64 {
 		return w
 	}
 
-	// e := t()*d0 + t()*d1 + t()*d2
-	// e := t()*pos(d0)*pos(d1) + t()*pos(d0)*pos(d2) + t()*pos(d1)*pos(d2)
-	// e += t()*neg(d0)*neg(d1) + t()*neg(d0)*neg(d2) + t()*neg(d1)*neg(d2)
 	e := t()*d0*p0 + t()*d1*p1 + t()*d2*p2
-	// e += t()*pos(d0)*pos(d1)*p0*p1 + t()*pos(d0)*pos(d2)*p0*p2 + t()*pos(d1)*pos(d2)*p1*p2
-	// e += t()*neg(d0)*neg(d1)*p0*p1 + t()*neg(d0)*neg(d2)*p0*p2 + t()*neg(d1)*neg(d2)*p1*p2
-	// e += t()*d0*d0 + t()*d1*d1 + t()*d2*d2
-	// e += t()*d0*d0*d0 + t()*d1*d1*d1 + t()*d2*d2*d2
-	e += t()*m0 + t()*m1 + t()*m2
-
+	e += t()*pos(d0)*pos(d1) + t()*pos(d0)*pos(d2) + t()*pos(d1)*pos(d2)
+	e += t()*neg(d0)*neg(d1) + t()*neg(d0)*neg(d2) + t()*neg(d1)*neg(d2)
+	e += t()*m0*p0 + t()*m1*p1 + t()*m2*p2
+	e += t()
 	e = sigmoid(e)
-	a := sigmoid(t() * (e - t()))
-	return a * e
+	return w.A.Y(e) * e
 }
 
 func RandomW(r *Random, ws []float64) *W {
-	w := &W{
-		X: r.Ns(ATTRS, 0, 1),
-		P: r.Ns(ATTRS, 0, 1),
-		W: ws,
-	}
+	w := NewW(
+		r.Ns(ATTRS, 0, 1),
+		r.Ns(ATTRS, 0, 1),
+		ws,
+	)
 	softmax(w.P)
 	return w
 }
@@ -87,6 +89,7 @@ func NewW(x, p, w []float64) *W {
 		X: x,
 		P: p,
 		W: w,
+		A: FitLogistic(1, 0.25, 0.10, 1.0, 0.50),
 	}
 }
 

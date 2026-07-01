@@ -34,7 +34,7 @@ func spsa(w []float64, f func() float64, r *Random, eps, lr float64, steps int) 
 }
 
 func train(r *Random) []float64 {
-	const n = 8
+	const n = 13
 	w := r.Ns(n, 0, 0.025)
 
 	ws := make([]*W, 0)
@@ -125,6 +125,8 @@ func train(r *Random) []float64 {
 	example([]float64{4.07, 0.84, 1.63}, []float64{1.32, 0.22, 0.06}, []float64{0.36, 0.08, 0.55}, 0.25)
 	example([]float64{4.49, 0.63, 0.34}, []float64{2.22, 0.16, -0.77}, []float64{0.06, 0.42, 0.51}, 0.25)
 	example([]float64{4.49, 0.63, 0.34}, []float64{2.06, 0.49, 0.18}, []float64{0.38, 0.25, 0.38}, 0.50)
+	example([]float64{1.19, 1.92, 2.87}, []float64{2.49, -0.38, 0.35}, []float64{0.12, 0.74, 0.14}, 0.30)
+	example([]float64{1.19, 1.92, 2.87}, []float64{2.11, -1.59, 1.01}, []float64{0.20, 0.63, 0.18}, 0.25)
 	//
 	//
 	loss := func() float64 {

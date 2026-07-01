@@ -33,7 +33,7 @@ func (r *Random) U(a, b float64) float64 {
 	return a + b*r.rng.Float64()
 }
 
-type Logistic struct { // piecewise
+type Logistic struct {
 	L, k, x0 float64
 }
 
