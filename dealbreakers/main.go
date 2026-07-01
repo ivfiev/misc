@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-const ATTRS = 2
+const ATTRS = 3
 
 type M struct {
 	X []float64
@@ -39,37 +39,66 @@ func (m *M) String() string {
 }
 
 type W struct {
-	X []float64
-	P []float64
-	S []*Logistic
-	T []float64
-	A float64
+	X  []float64
+	P  []float64
+	Sx []*Logistic
+	A  []float64
+	Sa *Logistic
+	D  float64
+	I  float64
+	B  float64
 }
 
 func RandomW(r *Random) *W {
-	w := &W{r.Ns(ATTRS, 0, 1), r.Ns(ATTRS, 0, 1), nil, r.Ns(ATTRS, -1, 0.5), r.U(0, 0.25)}
-	softmax(w.P)
-	w.S = []*Logistic{
-		FitLogistic(1, -1, 0.01, 0, 0.1, 1, 0.4),
-		FitLogistic(1, -1, 0.02, 0, 0.2, 1, 0.5),
+	w := &W{
+		X: r.Ns(ATTRS, 0, 1),
+		P: r.Ns(ATTRS, 0, 1),
+		A: []float64{clamp(0.01, r.N(0.1, 0.05), 0.25), clamp(0.333, r.N(0.5, 0.1), 0.999)},
+		D: clamp(0, r.N(0.1, 0.02), 0.2),
+		I: clamp(0, r.N(0.25, 0.05), 0.5),
+		B: clamp(0, r.N(0.1, 0.02), 0.2),
 	}
+	softmax(w.P)
+	w.fit()
 	return w
+}
+
+func NewW(x, p, a []float64, d, i, b float64) *W {
+	w := &W{
+		X: x,
+		P: p,
+		A: a,
+		D: d,
+		I: i,
+		B: b,
+	}
+	w.fit()
+	return w
+}
+
+func (w *W) fit() {
+	w.Sx = []*Logistic{
+		FitLogistic3(1, -1, 0.05, 0, 0.2, 1, 0.4),
+		FitLogistic3(1, -1, 0.08, 0, 0.333, 1, 0.5),
+		FitLogistic3(1, -1, 0.08, 0, 0.333, 1, 0.5),
+	}
+	w.Sa = FitLogistic2(1, 0.25, w.A[0], 0.999, w.A[1])
 }
 
 func (w *W) Yes(m *M) float64 {
 	sum := 0.0
 	for i := range w.X {
 		d := m.X[i] - w.X[i]
-		if d < w.T[i] {
-			return 0
-		}
-		sum += w.S[i].Y(d) * w.P[i]
+		penalty := w.D * math.Pow(min(0, d), 2)
+		inflation := w.I * max(0, w.X[i])
+		bonus := w.B * math.Pow(max(0, d), 2)
+		sum += w.Sx[i].Y(m.X[i]-penalty-inflation+bonus) * w.P[i]
 	}
-	return w.A * sum
+	return w.Sa.Y(sum) * sum
 }
 
 func (w *W) String() string {
-	return fmt.Sprintf("X: %s, P: %s, A: %.2f", fmtv(w.X), fmtv(w.P), w.A)
+	return fmt.Sprintf("X: %s, P: %s, A: %s, DIB: %s", fmtv(w.X), fmtv(w.P), fmtv(w.A), fmtv([]float64{w.D, w.I, w.B}))
 }
 
 type Random struct {
@@ -104,12 +133,16 @@ type Logistic struct { // piecewise
 	L, kl, kg, xl, xg float64
 }
 
-func FitLogistic(L, xl, yl, xm, ym, xg, yg float64) *Logistic {
+func FitLogistic3(L, xl, yl, xm, ym, xg, yg float64) *Logistic {
 	kg := (math.Log(L/yg-1) - math.Log(L/ym-1)) / (xm - xg)
 	kl := (math.Log(L/yl-1) - math.Log(L/ym-1)) / (xm - xl)
 	xg = math.Log(L/ym-1)/kg + xm
 	xl = math.Log(L/ym-1)/kl + xm
 	return &Logistic{L, kl, kg, xl, xg}
+}
+
+func FitLogistic2(L, xm, ym, xg, yg float64) *Logistic {
+	return FitLogistic3(L, xg, yg, xm, ym, xg, yg)
 }
 
 func (l *Logistic) Y(x float64) float64 {
@@ -127,6 +160,10 @@ func softmax(v []float64) {
 	for i := range v {
 		v[i] = math.Exp(v[i]) / sum
 	}
+}
+
+func clamp(a, x, b float64) float64 {
+	return max(a, min(x, b))
 }
 
 func fmtv(v []float64) string {
@@ -151,7 +188,7 @@ func sim() {
 		ms[i] = RandomM(r)
 		ws[i] = RandomW(r)
 	}
-	for range 100 {
+	for range 365 {
 		for _, m := range ms {
 			m.Day(ws, r)
 		}
@@ -167,21 +204,6 @@ func sim() {
 	fmt.Printf("%v\n", ms[n/2])
 	fmt.Printf("%v\n", ms[n/10*8])
 	fmt.Printf("%v\n", ms[n-1])
-}
-
-func test() {
-	// r := NewRandom(42)
-	m := M{X: []float64{-1, -1}}
-	w := W{
-		X: []float64{0, 0},
-		P: []float64{0.5, 0.5},
-		T: []float64{-3, -3},
-		S: []*Logistic{
-			FitLogistic(1, -1, 0.03, 0, 0.2, 1, 0.4),
-			FitLogistic(1, -1, 0.05, 0, 0.3, 1, 0.5),
-		},
-	}
-	fmt.Printf("%f\n", w.Yes(&m))
 }
 
 func main() {
