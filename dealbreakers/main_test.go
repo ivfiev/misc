@@ -85,36 +85,36 @@ func Test0_2(t *testing.T) {
 	fmt.Printf("0-2: %f\n", w.Yes(m))
 }
 
-func Test50(t *testing.T) {
-	m := basicM(5)
+func Test40(t *testing.T) {
+	m := basicM(4)
 	w := basicW(0)
-	fmt.Printf("50: %f\n", w.Yes(m))
+	fmt.Printf("40: %f\n", w.Yes(m))
 }
 
-func Test55(t *testing.T) {
-	m := basicM(5)
-	w := basicW(5)
-	fmt.Printf("55: %f\n", w.Yes(m))
+func Test44(t *testing.T) {
+	m := basicM(4)
+	w := basicW(4)
+	fmt.Printf("44: %f\n", w.Yes(m))
 }
 
-func Test25(t *testing.T) {
+func Test24(t *testing.T) {
 	m := basicM(2)
-	w := basicW(5)
-	fmt.Printf("25: %f\n", w.Yes(m))
+	w := basicW(4)
+	fmt.Printf("24: %f\n", w.Yes(m))
 }
 
 func TestMixed1(t *testing.T) {
-	m := &M{X: []float64{-1, 2, 1}}
+	m := NewM([]float64{-1, 2, 1})
 	w := NewW(
 		[]float64{2, -1, -1},
-		[]float64{0.9, 0.1, 0.1},
+		[]float64{0.9, 0.05, 0.05},
 		WS,
 	)
 	fmt.Printf("mixed1: %f\n", w.Yes(m))
 }
 
 func TestMixed2(t *testing.T) {
-	m := &M{X: []float64{-1, 2, 1}}
+	m := NewM([]float64{-1, 2, 1})
 	w := NewW(
 		[]float64{2, -1, -1},
 		[]float64{0.05, 0.9, 0.05},
@@ -124,7 +124,7 @@ func TestMixed2(t *testing.T) {
 }
 
 func TestMixed3(t *testing.T) {
-	m := &M{X: []float64{0.5, 1.5, -1}}
+	m := NewM([]float64{0.5, 1.5, -1})
 	w := NewW(
 		[]float64{-1, 1.4, 1.5},
 		[]float64{0.2, 0.3, 0.5},
@@ -134,7 +134,7 @@ func TestMixed3(t *testing.T) {
 }
 
 func TestMixed4(t *testing.T) {
-	m := &M{X: []float64{3, -1, -1}}
+	m := NewM([]float64{3, -1, -1})
 	w := NewW(
 		[]float64{3, -1, -1},
 		[]float64{0.8, 0.2, 0.0},

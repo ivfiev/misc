@@ -54,9 +54,10 @@ type W struct {
 }
 
 func (w *W) Yes(m *M) float64 {
-	d0, d1, d2 := w.X[0]-m.X[0], w.X[1]-m.X[1], w.X[2]-m.X[2]
 	p0, p1, p2 := w.P[0], w.P[1], w.P[2]
 	m0, m1, m2 := m.X[0], m.X[1], m.X[2]
+	w0, w1, w2 := w.X[0], w.X[1], w.X[2]
+	d0, d1, d2 := w0-m0, w1-m1, w2-m2
 
 	i := 0
 	t := func() float64 {
@@ -65,13 +66,14 @@ func (w *W) Yes(m *M) float64 {
 		return w
 	}
 
-	e := t()*d0*p0 + t()*d1*p1 + t()*d2*p2
-	e += t()*pos(d0)*pos(d1) + t()*pos(d0)*pos(d2) + t()*pos(d1)*pos(d2)
-	e += t()*neg(d0)*neg(d1) + t()*neg(d0)*neg(d2) + t()*neg(d1)*neg(d2)
-	e += t()*m0*p0 + t()*m1*p1 + t()*m2*p2
-	e += t()
-	e = sigmoid(e)
-	return w.A.Y(e) * e
+	E := t()*d0*p0 + t()*d1*p1 + t()*d2*p2
+	E += t()*pos(d0)*pos(d1) + t()*pos(d0)*pos(d2) + t()*pos(d1)*pos(d2)
+	E += t()*neg(d0)*neg(d1) + t()*neg(d0)*neg(d2) + t()*neg(d1)*neg(d2)
+	E += t()*m0*p0 + t()*m1*p1 + t()*m2*p2
+	E += t()
+	E = sigmoid(E)
+	A := w.A.Y(E)
+	return A * E
 }
 
 func RandomW(r *Random, ws []float64) *W {
