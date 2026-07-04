@@ -5,19 +5,23 @@ import (
 	"strings"
 )
 
-const ATTRS = 3
+const (
+	ATTRSX = 3
+	ATTRSY = 2
+)
 
 type M struct {
 	X []float64
+	Y []float64
 	W []*W
 }
 
 func RandomM(r *Random) *M {
-	return &M{r.Ns(ATTRS, 0, 1), make([]*W, 0)}
+	return &M{r.Ns(ATTRSX, 0, 1), r.Ns(ATTRSY, 0, 1), make([]*W, 0)}
 }
 
-func NewM(x []float64) *M {
-	return &M{X: x, W: make([]*W, 0)}
+func NewM(x, y []float64) *M {
+	return &M{X: x, Y: y, W: make([]*W, 0)}
 }
 
 func (m *M) Day(ws []*W, r *Random) {
@@ -29,17 +33,19 @@ func (m *M) Day(ws []*W, r *Random) {
 			c = w
 		}
 	}
-	if r.U(0, 1) < c.Yes(m) {
+	if r.U(0, 1) < c.Covfefe(m) {
 		m.W = append(m.W, c)
 	}
 }
 
 func (m *M) String() string {
 	var b strings.Builder
-	fmt.Fprintf(&b, "X: %s\n", fmtv(m.X))
+	fmt.Fprintf(&b, "X: %s, Y: %s\n", fmtv(m.X), fmtv(m.Y))
 	if len(m.W) > 0 {
 		for _, w := range m.W {
-			fmt.Fprintf(&b, "  %s, p=%.2f\n", w.String(), w.Yes(m))
+			p0 := w.Covfefe(m)
+			_, p1 := w.LTR(m)
+			fmt.Fprintf(&b, "  %s, p0=%.2f, p1=%.2f\n", w.String(), p0, p1)
 			// fmt.Fprintf(&b, "  example([]float64{%.2f, %.2f, %.2f}, []float64{%.2f, %.2f, %.2f}, []float64{%.2f, %.2f, %.2f}, )\n", m.X[0], m.X[1], m.X[2], w.X[0], w.X[1], w.X[2], w.P[0], w.P[1], w.P[2])
 		}
 	}
@@ -47,21 +53,24 @@ func (m *M) String() string {
 }
 
 type W struct {
-	X []float64
-	P []float64
-	W []float64
-	A *Logistic
+	X  []float64
+	Px []float64
+	Wx []float64
+	A  *Logistic
+
+	Y  []float64
+	Wy []float64
 }
 
-func (w *W) Yes(m *M) float64 {
-	p0, p1, p2 := w.P[0], w.P[1], w.P[2]
+func (w *W) Covfefe(m *M) float64 {
+	p0, p1, p2 := w.Px[0], w.Px[1], w.Px[2]
 	m0, m1, m2 := m.X[0], m.X[1], m.X[2]
 	w0, w1, w2 := w.X[0], w.X[1], w.X[2]
 	d0, d1, d2 := w0-m0, w1-m1, w2-m2
 
 	i := 0
 	t := func() float64 {
-		w := w.W[i]
+		w := w.Wx[i]
 		i++
 		return w
 	}
@@ -76,27 +85,54 @@ func (w *W) Yes(m *M) float64 {
 	return A * E
 }
 
-func RandomW(r *Random, ws []float64) *W {
+func (w *W) LTR(m *M) (float64, float64) {
+	const T = 10.0
+	i := 0
+	t := func() float64 {
+		w := w.Wy[i]
+		i++
+		return w
+	}
+	U := 0.0
+	for i := range w.Y {
+		wy, my := w.Y[i], m.Y[i]
+		U += t() * (wy - my)
+		U += t() * pos(wy) * pos(my)
+		U += t() * neg(wy) * neg(my)
+		U += t() * pos(wy) * neg(my)
+		U += t() * neg(wy) * pos(my)
+	}
+	U += t()
+	P := sigmoid(U / T)
+	return U, P
+}
+
+func RandomW(r *Random, wx, wy []float64) *W {
 	w := NewW(
-		r.Ns(ATTRS, 0, 1),
-		r.Ns(ATTRS, 0, 1),
-		ws,
+		r.Ns(ATTRSX, 0, 1),
+		r.Ns(ATTRSX, 0, 1),
+		wx,
+		r.Ns(ATTRSY, 0, 1),
+		wy,
 	)
-	softmax(w.P)
+	softmax(w.Px)
 	return w
 }
 
-func NewW(x, p, w []float64) *W {
+func NewW(x, p, wx, y, wy []float64) *W {
 	return &W{
-		X: x,
-		P: p,
-		W: w,
-		A: FitLogistic(1, 0.25, 0.10, 1.0, 0.50),
+		X:  x,
+		Px: p,
+		Wx: wx,
+		A:  FitLogistic(1, 0.25, 0.10, 1.0, 0.50),
+		Y:  y,
+		Wy: wy,
 	}
 }
 
 func (w *W) String() string {
-	return fmt.Sprintf("X: %s, P: %s", fmtv(w.X), fmtv(w.P))
+	return fmt.Sprintf("X: %s, P: %s, Y: %s", fmtv(w.X), "-", fmtv(w.Y))
+	// return fmt.Sprintf("X: %s, P: %s, Y: %s", fmtv(w.X), fmtv(w.Px), fmtv(w.Y))
 }
 
 func fmtv(v []float64) string {

@@ -65,6 +65,10 @@ func sigmoid(x float64) float64 {
 	return 1 / (1 + math.Exp(-x))
 }
 
+func sigmoid3(x, k, x0 float64) float64 {
+	return 1 / (1 + math.Exp(-k*(x-x0)))
+}
+
 func pos(x float64) float64 {
 	if x < 0 {
 		return 0

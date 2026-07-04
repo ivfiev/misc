@@ -6,14 +6,14 @@ import (
 	"time"
 )
 
-func sim(w []float64) {
+func sim(wx, wy []float64) {
 	r := NewRandom(time.Now().UnixMilli())
 	n := 10000
 	ms := make([]*M, n)
 	ws := make([]*W, n)
 	for i := range n {
 		ms[i] = RandomM(r)
-		ws[i] = RandomW(r, w)
+		ws[i] = RandomW(r, wx, wy)
 	}
 	for range 365 {
 		for _, m := range ms {
@@ -43,7 +43,9 @@ func sim(w []float64) {
 
 func main() {
 	r := NewRandom(42)
-	w := train(r)
-	println(fmtv(w))
-	sim(w)
+	wx := trainWx(r)
+	wy := trainWy(r)
+	println(fmtv(wx))
+	println(fmtv(wy))
+	sim(wx, wy)
 }
