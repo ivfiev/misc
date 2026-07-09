@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"strings"
 )
 
@@ -60,6 +61,8 @@ type W struct {
 
 	Y  []float64
 	Wy []float64
+
+	Pc float64 // force when X == nil
 }
 
 func (w *W) Covfefe(m *M) float64 {
@@ -93,7 +96,12 @@ func (w *W) LTR(m *M) (float64, float64) {
 		i++
 		return w
 	}
+	pc := w.Pc
+	if w.X != nil {
+		pc = w.Covfefe(m)
+	}
 	U := 0.0
+	U += t() * math.Log(pc/(1-pc))
 	for i := range w.Y {
 		wy, my := w.Y[i], m.Y[i]
 		U += t() * (wy - my)
@@ -128,6 +136,11 @@ func NewW(x, p, wx, y, wy []float64) *W {
 		Y:  y,
 		Wy: wy,
 	}
+}
+
+func (w *W) WithPc(pc float64) *W {
+	w.Pc = pc
+	return w
 }
 
 func (w *W) String() string {

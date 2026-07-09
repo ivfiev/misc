@@ -210,27 +210,46 @@ func trainWx(r *Random) []float64 {
 }
 
 func trainWy(r *Random) []float64 {
-	const n = 11
+	const n = 16
+	pcs := []float64{0.01, 0.03, 0.10, 0.25, 0.50}
 	wy := r.Ns(n, 0, 0.025)
 	data := NewDataset()
 
 	gt := func(w0y, m0y, w1y, m1y vec) {
-		data.AddGt(
-			NewW(nil, nil, nil, w0y, wy),
-			NewM(nil, m0y),
-			NewW(nil, nil, nil, w1y, wy),
-			NewM(nil, m1y),
-		)
+		for _, pc := range pcs {
+			data.AddGt(
+				NewW(nil, nil, nil, w0y, wy).WithPc(pc),
+				NewM(nil, m0y),
+				NewW(nil, nil, nil, w1y, wy).WithPc(pc),
+				NewM(nil, m1y),
+			)
+		}
+		for i := 0; i < len(pcs)-1; i++ {
+			data.AddGt(
+				NewW(nil, nil, nil, w0y, wy).WithPc(pcs[i+1]),
+				NewM(nil, m0y),
+				NewW(nil, nil, nil, w0y, wy).WithPc(pcs[i]),
+				NewM(nil, m0y),
+			)
+			data.AddGt(
+				NewW(nil, nil, nil, w1y, wy).WithPc(pcs[i+1]),
+				NewM(nil, m1y),
+				NewW(nil, nil, nil, w1y, wy).WithPc(pcs[i]),
+				NewM(nil, m1y),
+			)
+		}
 	}
 
-	point := func(w0y, m0y vec, y float64) {
-		data.AddPoint(NewW(nil, nil, nil, w0y, wy), NewM(nil, m0y), y)
+	point := func(w0y, m0y vec, pc, y float64) {
+		data.AddPoint(NewW(nil, nil, nil, w0y, wy).WithPc(pc), NewM(nil, m0y), y)
 	}
 
-	point(vec{-1, 0}, vec{1, 0}, 0.10)
-	point(vec{0, 0}, vec{0, 0}, 0.25)
-	point(vec{0, 1}, vec{0, 1}, 0.35)
-	point(vec{0, -1}, vec{0, -1}, 0.30)
+	// point(vec{-1, 0}, vec{1, 0}, 0.10)
+	point(vec{0, 0}, vec{0, 0}, 0.01, 0.05)
+	point(vec{0, 0}, vec{0, 0}, 0.035, 0.10)
+	point(vec{0, 0}, vec{0, 0}, 0.50, 0.90)
+	// point(vec{0, 1}, vec{0, 1}, 0.35)
+	// point(vec{0, -1}, vec{0, -1}, 0.30)
 
 	gt(vec{0, 0}, vec{0, 0}, vec{-2, 0}, vec{2, 0})
 	gt(vec{-1, 0}, vec{1, 0}, vec{-2, 0}, vec{2, 0})

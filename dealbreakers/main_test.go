@@ -35,14 +35,14 @@ func basicWy(y float64) *W {
 	return NewW(
 		nil, nil, nil,
 		[]float64{y, y}, Wy,
-	)
+	).WithPc(0.035)
 }
 
 func advWy(y []float64) *W {
 	return NewW(
 		nil, nil, nil,
 		y, Wy,
-	)
+	).WithPc(0.035)
 }
 
 func Test00(t *testing.T) {
@@ -196,7 +196,7 @@ func TestY_pol_22(t *testing.T) {
 	w := advWy([]float64{2, 0})
 	m := advMy([]float64{-2, 0})
 	_, p := w.LTR(m)
-	fmt.Printf("Y-pol-22: %f\n", p)
+	fmt.Printf("Y-pol-2-2: %f\n", p)
 }
 
 func TestY_pol_222(t *testing.T) {
@@ -204,4 +204,32 @@ func TestY_pol_222(t *testing.T) {
 	m := advMy([]float64{2, 0})
 	_, p := w.LTR(m)
 	fmt.Printf("Y-pol-22: %f\n", p)
+}
+
+func TestY_Pc0(t *testing.T) {
+	w := advWy([]float64{0, 0}).WithPc(0.01)
+	m := advMy([]float64{0, 0})
+	_, p := w.LTR(m)
+	fmt.Printf("Y-PC-0.01: %f\n", p)
+}
+
+func TestY_Pc1(t *testing.T) {
+	w := advWy([]float64{0, 0}).WithPc(0.05)
+	m := advMy([]float64{0, 0})
+	_, p := w.LTR(m)
+	fmt.Printf("Y-PC-0.05: %f\n", p)
+}
+
+func TestY_Pc2(t *testing.T) {
+	w := advWy([]float64{0, 0}).WithPc(0.15)
+	m := advMy([]float64{0, 0})
+	_, p := w.LTR(m)
+	fmt.Printf("Y-PC-0.15: %f\n", p)
+}
+
+func TestY_Pc3(t *testing.T) {
+	w := advWy([]float64{0, 0}).WithPc(0.50)
+	m := advMy([]float64{0, 0})
+	_, p := w.LTR(m)
+	fmt.Printf("Y-PC-0.50: %f\n", p)
 }
