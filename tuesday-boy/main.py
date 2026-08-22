@@ -3,7 +3,6 @@ days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 
 def cond(xs, *ps):
-    n = len(xs)
     k = len(xs)
     for p in ps:
         xs = [x for x in xs if p(x)]
