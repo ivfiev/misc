@@ -8,6 +8,7 @@ import (
 	"simd/archsimd"
 	"slices"
 	"time"
+	"unsafe"
 )
 
 const (
@@ -513,11 +514,81 @@ func matprods() {
 	// fmt.Printf("%v\n", c)
 }
 
+func substringScalar(needle, haystack string) int {
+	for i := range len(haystack) - len(needle) {
+		if needle == haystack[i:i+len(needle)] {
+			return i
+		}
+	}
+	return -1
+	// return strings.Index(haystack, needle) // this is faster
+}
+
+func substringSimd(needle, haystack string) int {
+	needleBytes := unsafe.Slice((*uint8)(unsafe.StringData(needle)), len(needle))
+	haystackBytes := unsafe.Slice((*uint8)(unsafe.StringData(haystack)), len(haystack))
+	first := archsimd.BroadcastUint8x64(needleBytes[0])
+	whole, count := archsimd.LoadUint8x64Part(needleBytes)
+	mask := archsimd.Mask8x64FromBits((1 << count) - 1).ToBits()
+	for i := 0; i < len(haystackBytes); {
+		hs, di := archsimd.LoadUint8x64Part(haystackBytes[i:])
+		matches := hs.Equal(first).ToBits()
+		offset := bits.TrailingZeros64(matches)
+		if offset == 0 {
+			found := hs.Equal(whole).ToBits()
+			if found&mask == mask {
+				return i
+			}
+			offset = bits.TrailingZeros64(matches ^ (1 << offset))
+		}
+		if offset < di {
+			i += offset
+		} else {
+			i += di
+		}
+	}
+	return -1
+}
+
+func substrings() {
+	runes := []rune("abcdefghijklmnopqrstuvwxyz")
+	haystackRunes := make([]rune, 10000000)
+	for i := range haystackRunes {
+		haystackRunes[i] = runes[rand.Int()%8]
+	}
+	needleRunes := make([][]rune, 100)
+	for i := range needleRunes {
+		n := 1 + rand.Int()%64
+		needleRunes[i] = make([]rune, n)
+		for j := range n {
+			needleRunes[i][j] = runes[rand.Int()%8]
+		}
+	}
+	haystack := string(haystackRunes)
+	measure(
+		func() (string, any) {
+			sum := 0
+			for _, needleRunes := range needleRunes {
+				sum += substringSimd(string(needleRunes), haystack)
+			}
+			return "simd substring", sum
+		},
+		func() (string, any) {
+			sum := 0
+			for _, needleRunes := range needleRunes {
+				sum += substringScalar(string(needleRunes), haystack)
+			}
+			return "scalar substring", sum
+		},
+	)
+}
+
 func main() {
 	// dotProds()
 	// strlens()
 	// counts()
 	// softmaxes()
 	// matprods()
-	exps()
+	// exps()
+	substrings()
 }
