@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"math/bits"
 	"math/rand/v2"
 	"simd/archsimd"
 	"slices"
+	"strings"
+	"sync"
 	"time"
 	"unsafe"
 )
@@ -24,47 +27,71 @@ func randVec() []float32 {
 	return v
 }
 
-func calcError(want, got any) float64 {
+func calcError(want, got any) (float64, float64, float64) {
 	switch want.(type) {
 	case float32:
 		want, got := want.(float32), got.(float32)
-		return math.Abs(float64(want - got))
+		return math.Abs(float64(want - got)), float64(want), float64(got)
 	case float64:
 		want, got := want.(float64), got.(float64)
-		return math.Abs(want - got)
+		return math.Abs(want - got), want, got
 	case []float32:
 		want, got := want.([]float32), got.([]float32)
-		err := 0.0
+		err, errWant, errGot := 0.0, 0.0, 0.0
 		for i := range want {
-			err = max(err, math.Abs(float64((want[i]-got[i])/want[i])))
+			w := float64(want[i])
+			g := float64(got[i])
+			rel := math.Abs(w-g) / w
+			if rel > err {
+				err = rel
+				errWant = w
+				errGot = g
+			}
 		}
-		return err
+		return err, errWant, errGot
 	case []float64:
 		want, got := want.([]float64), got.([]float64)
-		err := 0.0
+		err, errWant, errGot := 0.0, 0.0, 0.0
 		for i := range want {
-			err = max(err, math.Abs(float64((want[i]-got[i])/want[i])))
+			w := float64(want[i])
+			g := float64(got[i])
+			rel := math.Abs(w-g) / w
+			if rel > err {
+				err = rel
+				errWant = w
+				errGot = g
+			}
 		}
-		return err
+		return err, errWant, errGot
 	case [][]float32:
 		want, got := want.([][]float32), got.([][]float32)
-		err := 0.0
+		err, errWant, errGot := 0.0, 0.0, 0.0
 		for i := range want {
-			err = max(err, calcError(want[i], got[i]))
+			errT, errW, errG := calcError(want[i], got[i])
+			if errT > err {
+				err = errT
+				errWant = errW
+				errGot = errG
+			}
 		}
-		return err
+		return err, errWant, errGot
 	case [][]float64:
 		want, got := want.([][]float64), got.([][]float64)
-		err := 0.0
+		err, errWant, errGot := 0.0, 0.0, 0.0
 		for i := range want {
-			err = max(err, calcError(want[i], got[i]))
+			errT, errW, errG := calcError(want[i], got[i])
+			if errT > err {
+				err = errT
+				errWant = errW
+				errGot = errG
+			}
 		}
-		return err
+		return err, errWant, errGot
 	case int:
 		want, got := want.(int), got.(int)
-		return math.Abs(float64(want - got))
+		return math.Abs(float64(want - got)), float64(want), float64(got)
 	default:
-		return -1.0
+		return -1.0, -1.0, -1.0
 	}
 }
 
@@ -74,10 +101,26 @@ func measure(f, g func() (string, any)) {
 	t1 := time.Now()
 	labelg, gs := g()
 	t2 := time.Now()
-	fmt.Printf("%s: %dms\n%s: %dms\nerr: %.6f\n",
-		labelf, t1.Sub(t0).Milliseconds(),
-		labelg, t2.Sub(t1).Milliseconds(),
-		calcError(fs, gs))
+	err, errWant, errGot := calcError(fs, gs)
+	fmt.Printf("%s: %f s\n%s: %f s\nerr: %.6f, want: %.12f, got: %.12f\n",
+		labelf, t1.Sub(t0).Seconds(),
+		labelg, t2.Sub(t1).Seconds(),
+		err, errWant, errGot)
+}
+
+func persec(ctx context.Context, label string, f func()) {
+	count := 0.0
+	start := time.Now()
+	for {
+		f()
+		count++
+		secs := time.Since(start).Seconds()
+		if secs >= 1 {
+			fmt.Printf("%.2f %s/s\n", count/secs, label)
+			count = 0
+			start = time.Now()
+		}
+	}
 }
 
 func dotScalar(u, v []float32) float32 {
@@ -467,61 +510,66 @@ func matprodSIMD(A, B, C [][]float32) {
 	}
 }
 
+func matprodSIMDpar(A, B, C [][]float32) {
+	worker := func(start, end int) {
+		bvec := make([]float32, len(B))
+		var buf [16]float32
+		for b := start; b < end; b++ {
+			for i := range B {
+				bvec[i] = B[i][b]
+			}
+			for a := range A {
+				acc := archsimd.BroadcastFloat32x16(0.0)
+				for i := 0; i < len(A); {
+					as, di := archsimd.LoadFloat32x16Part(A[a][i:])
+					bs, _ := archsimd.LoadFloat32x16Part(bvec[i:])
+					acc = as.MulAdd(bs, acc)
+					i += di
+				}
+				acc.StoreArray(&buf)
+				C[a][b] = 0.0
+				for i := range buf {
+					C[a][b] += buf[i]
+				}
+			}
+		}
+	}
+
+	step := 32
+	if len(B) > 1000 {
+		step = len(B) / 32
+	}
+	var wg sync.WaitGroup
+	for i := 0; i < len(B); i += step {
+		wg.Go(func() { worker(i, min(i+step, len(B))) })
+	}
+	wg.Wait()
+}
+
 func matprods() {
-	const d = 250
+	const d = 1000
 	const n = 1
 	a := make([][]float32, d)
 	b := make([][]float32, d)
-	c1 := make([][]float32, d)
-	c2 := make([][]float32, d)
+	c := make([][]float32, d)
 	for i := range d {
 		a[i] = make([]float32, d)
 		b[i] = make([]float32, d)
-		c1[i] = make([]float32, d)
-		c2[i] = make([]float32, d)
+		c[i] = make([]float32, d)
 		for j := range d {
 			a[i][j] = float32(rand.NormFloat64() / math.Sqrt(d))
 			b[i][j] = float32(rand.NormFloat64() / math.Sqrt(d))
 		}
 	}
-	measure(
-		func() (string, any) {
-			for range n {
-				matprodScalar(a, b, c1)
-			}
-			return "matprod scalar", c1
-		},
-		func() (string, any) {
-			for range n {
-				matprodSIMD(a, b, c2)
-			}
-			return "matprod simd", c2
-		},
-	)
-	// a := [][]float32{
-	// 	{1, 2},
-	// 	{3, 4},
-	// }
-	// b := [][]float32{
-	// 	{2, 3},
-	// 	{4, 5},
-	// }
-	// c := [][]float32{{0, 0}, {0, 0}}
-	// matprodScalar(a, b, c)
-	// fmt.Printf("%v\n", c)
-	// c = [][]float32{{0, 0}, {0, 0}}
-	// matprodSIMD(a, b, c)
-	// fmt.Printf("%v\n", c)
+	persec(context.Background(), "MM", func() {
+		matprodScalar(a, b, c)
+		// matprodSIMD(a, b, c)
+		// matprodSIMDpar(a, b, c)
+	})
 }
 
 func substringScalar(needle, haystack string) int {
-	for i := range len(haystack) - len(needle) {
-		if needle == haystack[i:i+len(needle)] {
-			return i
-		}
-	}
-	return -1
-	// return strings.Index(haystack, needle) // this is faster
+	return strings.Index(haystack, needle) // this is faster
 }
 
 func substringSimd(needle, haystack string) int {
@@ -588,7 +636,7 @@ func main() {
 	// strlens()
 	// counts()
 	// softmaxes()
-	// matprods()
+	matprods()
 	// exps()
-	substrings()
+	// substrings()
 }
